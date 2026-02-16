@@ -32,6 +32,14 @@
       "version": "10.29.3"
     }
   },
+  "forwardPorts": [
+    "4200:4200"
+  ],
+  "portsAttributes": {
+    "4200": {
+      "label": "portal frontend"
+    }
+  },
   "onCreateCommand": "dotnet new install Aspire.ProjectTemplates --force",
   "postStartCommand": "dotnet dev-certs https --trust",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
