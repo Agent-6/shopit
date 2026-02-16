@@ -1,0 +1,38 @@
+// For format details, see https://aka.ms/devcontainer.json.
+{
+  "name": "ShopIt Dev Environment",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "angular.ng-template",
+        "EditorConfig.EditorConfig"
+      ]
+    }
+  },
+  // Features to add to the dev container. More info: https://containers.dev/features.
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/daniellindemann/dev-container-features/dotnet-usersecrets-persistence:0": {},
+    "ghcr.io/dotnet/aspire-devcontainer-feature/dotnetaspire:1": {
+      "version": "9.0"
+    },
+    "ghcr.io/devcontainers-extra/features/angular-cli:2": {
+      "version": "21.1.4"
+    },
+    "ghcr.io/devcontainers-extra/features/pnpm:2": {
+      "version": "10.29.3"
+    }
+  },
+  "onCreateCommand": "dotnet new install Aspire.ProjectTemplates --force",
+  "postStartCommand": "dotnet dev-certs https --trust",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteUser": "vscode"
+}
