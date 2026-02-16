@@ -12,7 +12,8 @@
         "ms-dotnettools.csdevkit",
         "ms-dotnettools.csharp",
         "angular.ng-template",
-        "EditorConfig.EditorConfig"
+        "EditorConfig.EditorConfig",
+        "streetsidesoftware.code-spell-checker"
       ]
     }
   },
