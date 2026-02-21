@@ -1,6 +1,14 @@
 <Solution>
   <Folder Name="/Services/" />
-  <Folder Name="/Services/Identity/" />
+  <Folder Name="/Services/Identity/">
+    <Project Path="Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+  </Folder>
   <Project Path="ShopIt.AppHost/ShopIt.AppHost.csproj" />
   <Project Path="ShopIt.ServiceDefaults/ShopIt.ServiceDefaults.csproj" />
+  <SolutionItems>
+    <Item Path="Directory.Build.props" />
+    <Item Path="Directory.Packages.props" />
+    <Item Path=".gitignore" />
+    <Item Path=".dockerignore" />
+  </SolutionItems>
 </Solution>

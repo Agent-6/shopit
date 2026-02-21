@@ -8,4 +8,8 @@
     <UserSecretsId>1c100f66-cb8f-4fb1-abf4-8a63c15d9105</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+  </ItemGroup>
+
 </Project>
