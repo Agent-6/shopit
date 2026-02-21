@@ -1,4 +1,5 @@
 <Solution>
+  <Folder Name="/Framework/" />
   <Folder Name="/Services/" />
   <Folder Name="/Services/Identity/">
     <Project Path="Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
