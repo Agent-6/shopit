@@ -1,4 +1,5 @@
 using ShopIt.Framework.Core.CQRS;
+using ShopIt.Identity.API.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,28 +23,31 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
+app.MapPost("/users", async (
+    CreateUserCommand command,
+    IDispatcher dispatcher,
+    CancellationToken cancellationToken) =>
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+    var userId = await dispatcher.SendAsync(command, cancellationToken);
+    return Results.Created($"/users/{userId}", new { Id = userId });
+});
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/users/roles", async (
+    IDispatcher dispatcher,
+    CancellationToken cancellationToken) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var message = await dispatcher.SendAsync(new AssignUserToRoleCommand(), cancellationToken);
+    return Results.Ok(new { Message = message });
+});
+
+app.MapGet("/users/{userId}", async (
+    Guid userId,
+    IDispatcher dispatcher,
+    CancellationToken cancellationToken) =>
+{
+    var user = await dispatcher.QueryAsync(new GetUserQuery(userId), cancellationToken);
+    return Results.Ok(user);
+});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
