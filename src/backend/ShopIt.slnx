@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Framework/">
+    <Project Path="Framework/ShopIt.Framework.Core/ShopIt.Framework.Core.csproj">
     <Project Path="Framework/ShopIt.Framework.Domain/ShopIt.Framework.Domain.csproj" />
   </Folder>
   <Folder Name="/Services/" />
