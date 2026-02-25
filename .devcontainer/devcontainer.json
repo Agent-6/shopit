@@ -5,6 +5,7 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+
   "customizations": {
     "vscode": {
       "extensions": [
@@ -18,10 +19,11 @@
       ]
     }
   },
+
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/git:1": {},
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/daniellindemann/dev-container-features/dotnet-usersecrets-persistence:0": {},
     "ghcr.io/dotnet/aspire-devcontainer-feature/dotnetaspire:1": {
       "version": "latest"
@@ -33,20 +35,25 @@
       "version": "10.29.3"
     }
   },
+
+  "hostRequirements": {
+		"cpus": 8,
+		"memory": "32gb",
+		"storage": "64gb",
+	},
+
   "forwardPorts": [
     "4200:4200",
-    "15000:15000"
   ],
+
   "portsAttributes": {
     "4200": {
       "label": "portal frontend"
     }
   },
-  "containerEnv": {
-    "ASPNETCORE_URLS": "http://0.0.0.0:15000"
-  },
+
   "onCreateCommand": "dotnet new install Aspire.ProjectTemplates --force",
-  "postStartCommand": "dotnet dev-certs https",
+  "postStartCommand": "dotnet dev-certs https --trust",
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "remoteUser": "vscode"
 }
