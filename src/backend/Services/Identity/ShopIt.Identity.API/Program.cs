@@ -1,5 +1,6 @@
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Identity.API.Features;
+using ShopIt.Identity.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,8 @@ builder.Services.AddOpenApi();
 builder.Services.AddDispatcher();
 builder.Services.AddRequestHandlers(typeof(Program).Assembly);
 
+builder.Services.AddPersistence("identity-db", builder.Configuration, typeof(Program).Assembly);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -22,6 +25,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.MapDefaultEndpoints();
 
 app.MapPost("/users", async (
     CreateUserCommand command,

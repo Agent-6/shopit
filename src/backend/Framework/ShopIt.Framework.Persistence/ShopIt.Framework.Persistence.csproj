@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Scrutor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Repositories/" />
+    <Folder Include="UnitOfWork/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../ShopIt.Framework.Core/ShopIt.Framework.Core.csproj" />
+    <ProjectReference Include="../ShopIt.Framework.Domain/ShopIt.Framework.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

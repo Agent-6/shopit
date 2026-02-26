@@ -5,6 +5,7 @@
     <Folder Include="CQRS/Behaviors/" />
     <Folder Include="CQRS/Commands/" />
     <Folder Include="CQRS/Queries/" />
+    <Folder Include="UnitOfWork/" />
   </ItemGroup>
 
   <ItemGroup>
