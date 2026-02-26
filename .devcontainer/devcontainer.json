@@ -16,6 +16,7 @@
         "EditorConfig.EditorConfig",
         "streetsidesoftware.code-spell-checker",
         "eamodio.gitlens",
+        "humao.rest-client"
       ]
     }
   },

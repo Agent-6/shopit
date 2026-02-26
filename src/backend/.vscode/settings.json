@@ -1,3 +1,6 @@
 {
-    "dotnet.defaultSolution": "ShopIt.slnx"
+    "dotnet.defaultSolution": "ShopIt.slnx",
+    "cSpell.words": [
+        "Npgsql"
+    ]
 }
