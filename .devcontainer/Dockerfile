@@ -1,5 +1,5 @@
 # Latest .NET base
-FROM mcr.microsoft.com/devcontainers/dotnet:10.0
+FROM mcr.microsoft.com/devcontainers/dotnet:dev-10.0-noble
 
 # Add .NET global tools path
 ENV PATH=$PATH:/home/vscode/.dotnet:/home/vscode/.dotnet/tools
