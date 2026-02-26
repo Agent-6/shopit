@@ -9,4 +9,8 @@
     <ProjectReference Include="../Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
 </Project>
