@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -40,6 +39,10 @@ public static class Extensions
         // {
         //     options.AllowedSchemes = ["https"];
         // });
+
+        // add openApi support by default
+        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+        builder.Services.AddOpenApi();
 
         return builder;
     }
@@ -120,6 +123,12 @@ public static class Extensions
             {
                 Predicate = r => r.Tags.Contains("live")
             });
+        }
+
+        // map openAPI endpoint in development
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapOpenApi();
         }
 
         return app;
