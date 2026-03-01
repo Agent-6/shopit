@@ -13,7 +13,11 @@
   <Folder Name="/src/Services/" />
       <Folder Name="/src/Services/Identity/">
         <Project Path="src/Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+        <Project Path="src/Services/Identity/ShopIt.Identity.Application/ShopIt.Identity.Application.csproj" />
+        <Project Path="src/Services/Identity/ShopIt.Identity.Domain/ShopIt.Identity.Domain.csproj" />
+        <Project Path="src/Services/Identity/ShopIt.Identity.Infrastructure/ShopIt.Identity.Infrastructure.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
+        <Project Path="src/Services/Identity/ShopIt.Identity.Presentation/ShopIt.Identity.Presentation.csproj" />
       </Folder>
   <Project Path="ShopIt.AppHost/ShopIt.AppHost.csproj" />
   <Project Path="ShopIt.ServiceDefaults/ShopIt.ServiceDefaults.csproj" />

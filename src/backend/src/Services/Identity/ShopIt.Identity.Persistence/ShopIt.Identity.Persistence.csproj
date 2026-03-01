@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../../../Framework/ShopIt.Framework.Persistence/ShopIt.Framework.Persistence.csproj" />
+    <ProjectReference Include="..\ShopIt.Identity.Domain\ShopIt.Identity.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
