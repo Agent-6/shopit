@@ -1,7 +1,13 @@
 <Solution>
+  <Folder Name="/Framework/">
+    <Project Path="Framework/ShopIt.Framework.Core/ShopIt.Framework.Core.csproj" />
+    <Project Path="Framework/ShopIt.Framework.Domain/ShopIt.Framework.Domain.csproj" />
+    <Project Path="Framework/ShopIt.Framework.Persistence/ShopIt.Framework.Persistence.csproj" />
+  </Folder>
   <Folder Name="/Services/" />
   <Folder Name="/Services/Identity/">
     <Project Path="Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+    <Project Path="Services/Identity/ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />

@@ -1,3 +1,7 @@
+using ShopIt.Framework.Core.CQRS;
+using ShopIt.Identity.API.Features;
+using ShopIt.Identity.Persistence;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -5,6 +9,12 @@ builder.AddServiceDefaults();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// request handlers
+builder.Services.AddDispatcher();
+builder.Services.AddRequestHandlers(typeof(Program).Assembly);
+
+builder.Services.AddPersistence("identity-db", builder.Configuration, typeof(Program).Assembly);
 
 var app = builder.Build();
 
@@ -16,28 +26,33 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.MapDefaultEndpoints();
 
-app.MapGet("/weatherforecast", () =>
+app.MapPost("/users", async (
+    CreateUserCommand command,
+    IDispatcher dispatcher,
+    CancellationToken cancellationToken) =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
+    var userId = await dispatcher.SendAsync(command, cancellationToken);
+    return Results.Created($"/users/{userId}", new { Id = userId });
+});
+
+app.MapPost("/users/roles", async (
+    IDispatcher dispatcher,
+    CancellationToken cancellationToken) =>
+{
+    var message = await dispatcher.SendAsync(new AssignUserToRoleCommand(), cancellationToken);
+    return Results.Ok(new { Message = message });
+});
+
+app.MapGet("/users/{userId}", async (
+    Guid userId,
+    IDispatcher dispatcher,
+    CancellationToken cancellationToken) =>
+{
+    var user = await dispatcher.QueryAsync(new GetUserQuery(userId), cancellationToken);
+    return Results.Ok(user);
+});
 
 app.Run();
 
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
