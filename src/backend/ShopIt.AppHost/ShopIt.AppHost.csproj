@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+    <ProjectReference Include="../src/Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>
