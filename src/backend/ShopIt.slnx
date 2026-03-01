@@ -15,8 +15,6 @@
         <Project Path="src/Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
       </Folder>
-    </Folder>
-  </Folder>
   <Project Path="ShopIt.AppHost/ShopIt.AppHost.csproj" />
   <Project Path="ShopIt.ServiceDefaults/ShopIt.ServiceDefaults.csproj" />
 </Solution>
