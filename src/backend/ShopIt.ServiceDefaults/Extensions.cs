@@ -6,6 +6,9 @@ using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Enrichers.Span;
+using Serilog.Exceptions;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -22,6 +25,10 @@ public static class Extensions
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();
+
+        builder.AddSerilog();
+
+        builder.AddSeqEndpoint("seq");
 
         builder.Services.AddServiceDiscovery();
 
@@ -96,6 +103,27 @@ public static class Extensions
         //    builder.Services.AddOpenTelemetry()
         //       .UseAzureMonitor();
         //}
+
+        return builder;
+    }
+
+    private static TBuilder AddSerilog<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    {
+        // add Serilog with enrichers and configuration from appsettings
+        builder.Services.AddSerilog((services, config) =>
+        {
+            config.ReadFrom.Configuration(builder.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.WithSpan()
+                .Enrich.WithEnvironmentName()
+                .Enrich.WithMachineName()
+                .Enrich.WithThreadId()
+                .Enrich.WithProcessId()
+                .Enrich.WithExceptionDetails()
+                .Enrich.FromLogContext()
+                .WriteTo.Console(outputTemplate:
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] [{Application}] [{SourceContext}] {SpanId}: {Message:lj}{NewLine}{Exception}");
+        });
 
         return builder;
     }
