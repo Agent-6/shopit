@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -24,11 +25,11 @@ public static class Extensions
     {
         builder.ConfigureOpenTelemetry();
 
-        builder.AddDefaultHealthChecks();
+        builder.AddSeqEndpoint("seq");
 
         builder.AddSerilog();
 
-        builder.AddSeqEndpoint("seq");
+        builder.AddDefaultHealthChecks();
 
         builder.Services.AddServiceDiscovery();
 
@@ -121,8 +122,14 @@ public static class Extensions
                 .Enrich.WithProcessId()
                 .Enrich.WithExceptionDetails()
                 .Enrich.FromLogContext()
+                .WriteTo.OpenTelemetry()
                 .WriteTo.Console(outputTemplate:
                     "[{Timestamp:HH:mm:ss} {Level:u3}] [{Application}] [{SourceContext}] {SpanId}: {Message:lj}{NewLine}{Exception}");
+
+            if (builder.Configuration.GetConnectionString("seq") is var seqEndpoint && !string.IsNullOrWhiteSpace(seqEndpoint))
+            {
+                config.WriteTo.Seq(seqEndpoint);
+            }
         });
 
         return builder;
@@ -158,6 +165,8 @@ public static class Extensions
         {
             app.MapOpenApi();
         }
+
+        app.UseSerilogRequestLogging();
 
         return app;
     }
