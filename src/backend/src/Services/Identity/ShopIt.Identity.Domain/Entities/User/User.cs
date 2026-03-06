@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
 using ShopIt.Identity.Domain.Enums.User;
 
@@ -24,7 +23,7 @@ public class User : AggregateRoot<Guid>
     public int AccessFailedCount { get; private set; }
 
     // Multi-tenancy
-    public string TenantId { get; private set; }
+    public Guid? TenantId { get; private set; }
 
     // Custom domain properties
     public string? FirstName { get; private set; }
@@ -89,10 +88,10 @@ public class User : AggregateRoot<Guid>
         RaiseDomainEvent(new UserPasswordChangedDomainEvent(Id, SecurityStamp));
     }
 
-    public bool VerifyPassword(string password, IPasswordHasher<User> hasher)
-    {
-        return hasher.VerifyHashedPassword(this, PasswordHash, password) != PasswordVerificationResult.Failed;
-    }
+    //public bool VerifyPassword(string password, IPasswordHasher<User> hasher)
+    //{
+    //    return hasher.VerifyHashedPassword(this, PasswordHash, password) != PasswordVerificationResult.Failed;
+    //}
 
     // Email confirmation
     public void ConfirmEmail()
