@@ -1,6 +1,7 @@
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Identity.Domain.Entities;
 
-namespace ShopIt.Identity.Domain.Entities.User;
+namespace ShopIt.Identity.Domain.Events.UserEvents;
 
 public class UserCreatedDomainEvent(User user) : IDomainEvent
 {

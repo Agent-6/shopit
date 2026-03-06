@@ -1,6 +1,6 @@
 using ShopIt.Framework.Domain.Entities;
 
-namespace ShopIt.Identity.Domain.Entities.User;
+namespace ShopIt.Identity.Domain.Events.UserEvents;
 
 public class UserEmailConfirmedDomainEvent(Guid userId, string Email) : IDomainEvent
 {

@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Domain.Enums.User;
+namespace ShopIt.Identity.Domain.Enums;
 
 public enum UserStatus
 {

@@ -1,6 +1,7 @@
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Identity.Domain.Events.RoleEvents;
 
-namespace ShopIt.Identity.Domain.Entities.Role;
+namespace ShopIt.Identity.Domain.Entities;
 
 public class Role : AggregateRoot<Guid>
 {
@@ -12,10 +13,7 @@ public class Role : AggregateRoot<Guid>
     public DateTime CreatedAt { get; private set; }
     public string CreatedBy { get; private set; }
 
-    //private readonly List<UserRole> _userRoles = new();
     //private readonly List<RoleClaim> _roleClaims = new();
-
-    //public IReadOnlyCollection<UserRole> UserRoles => _userRoles.AsReadOnly();
     //public IReadOnlyCollection<RoleClaim> RoleClaims => _roleClaims.AsReadOnly();
 
     /// <inheritdoc/>

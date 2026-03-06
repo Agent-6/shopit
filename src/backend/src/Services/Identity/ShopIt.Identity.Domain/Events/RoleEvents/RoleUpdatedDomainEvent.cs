@@ -1,6 +1,6 @@
 using ShopIt.Framework.Domain.Entities;
 
-namespace ShopIt.Identity.Domain.Entities.Role;
+namespace ShopIt.Identity.Domain.Events.RoleEvents;
 
 public class RoleUpdatedDomainEvent(Guid roleId, string name, string? description) : IDomainEvent
 {

@@ -1,8 +1,9 @@
 using System.Text.Json.Serialization;
 using ShopIt.Framework.Domain.Entities;
-using ShopIt.Identity.Domain.Enums.User;
+using ShopIt.Identity.Domain.Enums;
+using ShopIt.Identity.Domain.Events.UserEvents;
 
-namespace ShopIt.Identity.Domain.Entities.User;
+namespace ShopIt.Identity.Domain.Entities;
 
 public class User : AggregateRoot<Guid>
 {
@@ -60,7 +61,7 @@ public class User : AggregateRoot<Guid>
     {
     }
 
-    public static User Create(Guid id, string email, string userName, string tenantId, string createdBy)
+    public static User Create(Guid id, string email, string userName, Guid? tenantId, string createdBy)
     {
         var user = new User(id)
         {
