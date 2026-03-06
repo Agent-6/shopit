@@ -9,10 +9,10 @@ public interface IDomainEvent
     /// <summary>
     /// Gets the unique identifier for this domain event.
     /// </summary>
-    Guid EventId { get; }
+    Guid EventId => Guid.NewGuid();
 
     /// <summary>
     /// Gets the timestamp when the event occurred.
     /// </summary>
-    DateTime OccurredOn { get; }
+    DateTime OccurredOn => DateTime.UtcNow;
 }

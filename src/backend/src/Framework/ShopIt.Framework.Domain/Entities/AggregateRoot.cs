@@ -21,7 +21,7 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot<TId>
     /// Private constructor for EF Core and JSON serialization.
     /// </summary>
     [JsonConstructor]
-    private AggregateRoot() : base()
+    protected AggregateRoot() : base()
     {
     }
 
