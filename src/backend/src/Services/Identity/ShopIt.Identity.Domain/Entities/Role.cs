@@ -13,8 +13,8 @@ public class Role : AggregateRoot<Guid>
     public DateTime CreatedAt { get; private set; }
     public string CreatedBy { get; private set; }
 
-    //private readonly List<RoleClaim> _roleClaims = new();
-    //public IReadOnlyCollection<RoleClaim> RoleClaims => _roleClaims.AsReadOnly();
+    private readonly List<RoleClaim> _roleClaims = [];
+    public IReadOnlyCollection<RoleClaim> RoleClaims => _roleClaims.AsReadOnly();
 
     /// <inheritdoc/>
     private Role() : base() { }
@@ -47,24 +47,24 @@ public class Role : AggregateRoot<Guid>
         RaiseDomainEvent(new RoleUpdatedDomainEvent(Id, name, description));
     }
 
-    //public void AddClaim(string claimType, string claimValue)
-    //{
-    //    if (_roleClaims.Any(rc => rc.ClaimType == claimType && rc.ClaimValue == claimValue))
-    //        return;
+    public void AddClaim(string claimType, string claimValue)
+    {
+        if (_roleClaims.Any(rc => rc.ClaimType == claimType && rc.ClaimValue == claimValue))
+            return;
 
-    //    var claim = new RoleClaim(this, claimType, claimValue);
-    //    _roleClaims.Add(claim);
+        var claim = RoleClaim.Create(Guid.NewGuid(), this, claimType, claimValue);
+        _roleClaims.Add(claim);
 
-    //    AddDomainEvent(new RoleClaimAddedDomainEvent(Id, claimType, claimValue));
-    //}
+        RaiseDomainEvent(new RoleClaimAddedDomainEvent(Id, claimType, claimValue));
+    }
 
-    //public void RemoveClaim(string claimType, string claimValue)
-    //{
-    //    var claim = _roleClaims.FirstOrDefault(rc => rc.ClaimType == claimType && rc.ClaimValue == claimValue);
-    //    if (claim == null)
-    //        return;
+    public void RemoveClaim(string claimType, string claimValue)
+    {
+        var claim = _roleClaims.FirstOrDefault(rc => rc.ClaimType == claimType && rc.ClaimValue == claimValue);
+        if (claim == null)
+            return;
 
-    //    _roleClaims.Remove(claim);
-    //    AddDomainEvent(new RoleClaimRemovedDomainEvent(Id, claimType, claimValue));
-    //}
+        _roleClaims.Remove(claim);
+        RaiseDomainEvent(new RoleClaimRemovedDomainEvent(Id, claimType, claimValue));
+    }
 }

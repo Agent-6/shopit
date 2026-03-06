@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
 using ShopIt.Identity.Domain.Enums;
 using ShopIt.Identity.Domain.Events.UserEvents;
@@ -37,15 +38,15 @@ public class User : AggregateRoot<Guid>
     public string CreatedBy { get; private set; }
 
     // Navigation properties
-    //private readonly List<UserRole> _userRoles = new();
-    //private readonly List<UserClaim> _claims = new();
-    //private readonly List<UserLogin> _logins = new();
-    //private readonly List<UserToken> _tokens = new();
+    private readonly List<UserRole> _userRoles = [];
+    private readonly List<UserClaim> _claims = [];
+    private readonly List<UserLogin> _logins = [];
+    private readonly List<UserToken> _tokens = [];
 
-    //public IReadOnlyCollection<UserRole> UserRoles => _userRoles.AsReadOnly();
-    //public IReadOnlyCollection<UserClaim> Claims => _claims.AsReadOnly();
-    //public IReadOnlyCollection<UserLogin> Logins => _logins.AsReadOnly();
-    //public IReadOnlyCollection<UserToken> Tokens => _tokens.AsReadOnly();
+    public IReadOnlyCollection<UserRole> UserRoles => _userRoles.AsReadOnly();
+    public IReadOnlyCollection<UserClaim> Claims => _claims.AsReadOnly();
+    public IReadOnlyCollection<UserLogin> Logins => _logins.AsReadOnly();
+    public IReadOnlyCollection<UserToken> Tokens => _tokens.AsReadOnly();
 
     /// <inheritdoc/>
     [JsonConstructor]
@@ -89,6 +90,7 @@ public class User : AggregateRoot<Guid>
         RaiseDomainEvent(new UserPasswordChangedDomainEvent(Id, SecurityStamp));
     }
 
+    // put in application/infra layer
     //public bool VerifyPassword(string password, IPasswordHasher<User> hasher)
     //{
     //    return hasher.VerifyHashedPassword(this, PasswordHash, password) != PasswordVerificationResult.Failed;
@@ -181,105 +183,105 @@ public class User : AggregateRoot<Guid>
     }
 
     // Role management
-    //public void AddToRole(Role role)
-    //{
-    //    if (_userRoles.Any(ur => ur.RoleId == role.Id))
-    //        return;
+    public void AddToRole(Role role)
+    {
+        if (_userRoles.Any(ur => ur.RoleId == role.Id))
+            return;
 
-    //    var userRole = new UserRole(this, role);
-    //    _userRoles.Add(userRole);
+        var userRole = UserRole.Create(Guid.NewGuid(), this, role);
+        _userRoles.Add(userRole);
 
-    //    RaiseDomainEvent(new UserAddedToRoleDomainEvent(Id, role.Id, role.Name));
-    //}
+        RaiseDomainEvent(new UserAddedToRoleDomainEvent(Id, role.Id, role.Name));
+    }
 
-    //public void RemoveFromRole(Role role)
-    //{
-    //    var userRole = _userRoles.FirstOrDefault(ur => ur.RoleId == role.Id);
-    //    if (userRole == null)
-    //        return;
+    public void RemoveFromRole(Role role)
+    {
+        var userRole = _userRoles.FirstOrDefault(ur => ur.RoleId == role.Id);
+        if (userRole == null)
+            return;
 
-    //    _userRoles.Remove(userRole);
-    //    RaiseDomainEvent(new UserRemovedFromRoleDomainEvent(Id, role.Id, role.Name));
-    //}
+        _userRoles.Remove(userRole);
+        RaiseDomainEvent(new UserRemovedFromRoleDomainEvent(Id, role.Id, role.Name));
+    }
 
     // Claim management
-    //public void AddClaim(string claimType, string claimValue)
-    //{
-    //    if (_claims.Any(c => c.ClaimType == claimType && c.ClaimValue == claimValue))
-    //        return;
+    public void AddClaim(string claimType, string claimValue)
+    {
+        if (_claims.Any(c => c.ClaimType == claimType && c.ClaimValue == claimValue))
+            return;
 
-    //    var claim = new UserClaim(this, claimType, claimValue);
-    //    _claims.Add(claim);
+        var claim = UserClaim.Create(Guid.NewGuid(), this, claimType, claimValue);
+        _claims.Add(claim);
 
-    //    RaiseDomainEvent(new UserClaimAddedDomainEvent(Id, claimType, claimValue));
-    //}
+        RaiseDomainEvent(new UserClaimAddedDomainEvent(Id, claimType, claimValue));
+    }
 
-    //public void RemoveClaim(string claimType, string claimValue)
-    //{
-    //    var claim = _claims.FirstOrDefault(c => c.ClaimType == claimType && c.ClaimValue == claimValue);
-    //    if (claim == null)
-    //        return;
+    public void RemoveClaim(string claimType, string claimValue)
+    {
+        var claim = _claims.FirstOrDefault(c => c.ClaimType == claimType && c.ClaimValue == claimValue);
+        if (claim == null)
+            return;
 
-    //    _claims.Remove(claim);
-    //    RaiseDomainEvent(new UserClaimRemovedDomainEvent(Id, claimType, claimValue));
-    //}
+        _claims.Remove(claim);
+        RaiseDomainEvent(new UserClaimRemovedDomainEvent(Id, claimType, claimValue));
+    }
 
-    //public void ReplaceClaim(string oldClaimType, string oldClaimValue, string newClaimType, string newClaimValue)
-    //{
-    //    RemoveClaim(oldClaimType, oldClaimValue);
-    //    AddClaim(newClaimType, newClaimValue);
-    //}
+    public void ReplaceClaim(string oldClaimType, string oldClaimValue, string newClaimType, string newClaimValue)
+    {
+        RemoveClaim(oldClaimType, oldClaimValue);
+        AddClaim(newClaimType, newClaimValue);
+    }
 
     // Token management
-    //public void SetToken(string loginProvider, string name, string value)
-    //{
-    //    var token = _tokens.FirstOrDefault(t => t.LoginProvider == loginProvider && t.Name == name);
-    //    if (token == null)
-    //    {
-    //        token = new UserToken(this, loginProvider, name, value);
-    //        _tokens.Add(token);
-    //    }
-    //    else
-    //    {
-    //        token.SetValue(value);
-    //    }
-    //}
+    public void SetToken(string loginProvider, string name, string value)
+    {
+        var token = _tokens.FirstOrDefault(t => t.LoginProvider == loginProvider && t.Name == name);
+        if (token == null)
+        {
+            token = UserToken.Create(Guid.NewGuid(), this, loginProvider, name, value);
+            _tokens.Add(token);
+        }
+        else
+        {
+            token.SetValue(value);
+        }
+    }
 
-    //public void RemoveToken(string loginProvider, string name)
-    //{
-    //    var token = _tokens.FirstOrDefault(t => t.LoginProvider == loginProvider && t.Name == name);
-    //    if (token != null)
-    //    {
-    //        _tokens.Remove(token);
-    //    }
-    //}
+    public void RemoveToken(string loginProvider, string name)
+    {
+        var token = _tokens.FirstOrDefault(t => t.LoginProvider == loginProvider && t.Name == name);
+        if (token != null)
+        {
+            _tokens.Remove(token);
+        }
+    }
 
-    //public string? GetToken(string loginProvider, string name)
-    //{
-    //    return _tokens.FirstOrDefault(t => t.LoginProvider == loginProvider && t.Name == name)?.Value;
-    //}
+    public string? GetToken(string loginProvider, string name)
+    {
+        return _tokens.FirstOrDefault(t => t.LoginProvider == loginProvider && t.Name == name)?.Value;
+    }
 
     // External login management
-    //public void AddLogin(UserLoginInfo loginInfo)
-    //{
-    //    if (_logins.Any(l => l.LoginProvider == loginInfo.LoginProvider && l.ProviderKey == loginInfo.ProviderKey))
-    //        return;
+    public void AddLogin(UserLoginInfo loginInfo)
+    {
+        if (_logins.Any(l => l.LoginProvider == loginInfo.LoginProvider && l.ProviderKey == loginInfo.ProviderKey))
+            return;
 
-    //    var login = new UserLogin(this, loginInfo);
-    //    _logins.Add(login);
+        var login = UserLogin.Create(Guid.NewGuid(), this, loginInfo);
+        _logins.Add(login);
 
-    //    RaiseDomainEvent(new UserExternalLoginAddedDomainEvent(Id, loginInfo.LoginProvider, loginInfo.ProviderKey));
-    //}
+        RaiseDomainEvent(new UserExternalLoginAddedDomainEvent(Id, loginInfo.LoginProvider, loginInfo.ProviderKey));
+    }
 
-    //public void RemoveLogin(string loginProvider, string providerKey)
-    //{
-    //    var login = _logins.FirstOrDefault(l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey);
-    //    if (login == null)
-    //        return;
+    public void RemoveLogin(string loginProvider, string providerKey)
+    {
+        var login = _logins.FirstOrDefault(l => l.LoginProvider == loginProvider && l.ProviderKey == providerKey);
+        if (login is null)
+            return;
 
-    //    _logins.Remove(login);
-    //    RaiseDomainEvent(new UserExternalLoginRemovedDomainEvent(Id, loginProvider, providerKey));
-    //}
+        _logins.Remove(login);
+        RaiseDomainEvent(new UserExternalLoginRemovedDomainEvent(Id, loginProvider, providerKey));
+    }
 
     // Status management
     public void Deactivate(string reason)
@@ -304,11 +306,11 @@ public class User : AggregateRoot<Guid>
     }
 
     // Profile management
-    public void UpdateProfile(string firstName, string lastName, string profilePictureUrl = null)
+    public void UpdateProfile(string firstName, string lastName, string? profilePictureUrl = null)
     {
         FirstName = firstName;
         LastName = lastName;
-        if (profilePictureUrl != null)
+        if (profilePictureUrl is not null)
             ProfilePictureUrl = profilePictureUrl;
 
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, firstName, lastName));

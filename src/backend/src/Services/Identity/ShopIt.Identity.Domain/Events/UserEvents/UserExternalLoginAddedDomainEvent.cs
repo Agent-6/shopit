@@ -1,0 +1,10 @@
+using ShopIt.Framework.Domain.Entities;
+
+namespace ShopIt.Identity.Domain.Events.UserEvents;
+
+public class UserExternalLoginAddedDomainEvent(Guid userId, string loginProvider, string providerKey) : IDomainEvent
+{
+    public Guid UserId { get; } = userId;
+    public string LoginProvider { get; } = loginProvider;
+    public string ProviderKey { get; } = providerKey;
+}
