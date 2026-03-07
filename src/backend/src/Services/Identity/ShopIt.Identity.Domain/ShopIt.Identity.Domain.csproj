@@ -1,0 +1,11 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
+  </ItemGroup>
+  
+</Project>

@@ -1,11 +1,15 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Enrichers.Span;
+using Serilog.Exceptions;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -20,6 +24,10 @@ public static class Extensions
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
         builder.ConfigureOpenTelemetry();
+
+        builder.AddSeqEndpoint("seq");
+
+        builder.AddSerilog();
 
         builder.AddDefaultHealthChecks();
 
@@ -100,6 +108,33 @@ public static class Extensions
         return builder;
     }
 
+    private static TBuilder AddSerilog<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    {
+        // add Serilog with enrichers and configuration from appsettings
+        builder.Services.AddSerilog((services, config) =>
+        {
+            config.ReadFrom.Configuration(builder.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.WithSpan()
+                .Enrich.WithEnvironmentName()
+                .Enrich.WithMachineName()
+                .Enrich.WithThreadId()
+                .Enrich.WithProcessId()
+                .Enrich.WithExceptionDetails()
+                .Enrich.FromLogContext()
+                .WriteTo.OpenTelemetry()
+                .WriteTo.Console(outputTemplate:
+                    "[{Timestamp:HH:mm:ss} {Level:u3}] [{Application}] [{SourceContext}] {SpanId}: {Message:lj}{NewLine}{Exception}");
+
+            if (builder.Configuration.GetConnectionString("seq") is var seqEndpoint && !string.IsNullOrWhiteSpace(seqEndpoint))
+            {
+                config.WriteTo.Seq(seqEndpoint);
+            }
+        });
+
+        return builder;
+    }
+
     public static TBuilder AddDefaultHealthChecks<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddHealthChecks()
@@ -130,6 +165,8 @@ public static class Extensions
         {
             app.MapOpenApi();
         }
+
+        app.UseSerilogRequestLogging();
 
         return app;
     }

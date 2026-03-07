@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <Folder Include="CQRS/Abstractions/" />
+    <Folder Include="CQRS/Behaviors/" />
+    <Folder Include="CQRS/Commands/" />
+    <Folder Include="CQRS/Queries/" />
+    <Folder Include="UnitOfWork/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Scrutor" />
+  </ItemGroup>
+
+</Project>
