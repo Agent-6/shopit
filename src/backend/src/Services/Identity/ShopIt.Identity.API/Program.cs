@@ -1,3 +1,4 @@
+using ShopIt.Framework.Core;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Identity.API.Features;
 using ShopIt.Identity.Persistence;
@@ -8,8 +9,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // request handlers
-builder.Services.AddDispatcher();
-builder.Services.AddRequestHandlers(typeof(Program).Assembly);
+builder.Services.AddApplicationServices(typeof(Program).Assembly);
 
 builder.Services.AddPersistence("identity-db", builder.Configuration, typeof(Program).Assembly);
 

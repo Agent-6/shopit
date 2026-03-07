@@ -1,21 +1,25 @@
 using System.Reflection;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using ShopIt.Framework.Core.CQRS;
 using ShopIt.Framework.Core.CQRS.Abstractions;
+using ShopIt.Framework.Core.CQRS.Behaviors;
 using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Framework.Core.CQRS.Queries;
 
-namespace ShopIt.Framework.Core.CQRS;
+namespace ShopIt.Framework.Core;
 
 public static class DependencyInjection
 {
-    // TODO: rename to add application services
-    public static IServiceCollection AddDispatcher(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, params Assembly[] assemblies)
     {
         services.AddScoped<IDispatcher, Dispatcher>();
+        services.AddRequestHandlers(assemblies);
+        services.AddValidators(assemblies);
         return services;
     }
 
-    public static IServiceCollection AddRequestHandlers(this IServiceCollection services, params Assembly[] assemblies)
+    private static IServiceCollection AddRequestHandlers(this IServiceCollection services, params Assembly[] assemblies)
     {
         services.Scan(scan =>
             scan.FromAssemblies(assemblies)
@@ -30,17 +34,23 @@ public static class DependencyInjection
                 .WithScopedLifetime()
         );
 
-//      // TODO: comment out for now, we will register behaviors manually until we add ordering support for pipeline behaviors
+        // TODO: comment out for now, we will register behaviors manually until we add ordering support for pipeline behaviors
         // services.Scan(scan =>
         //     scan.FromAssemblyOf<IDispatcher>()
         //         .AddClasses(classes => classes.AssignableTo(typeof(IPipelineBehavior<,>)))
         //         .AsImplementedInterfaces()
         //         .WithScopedLifetime()
         // );
-        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(Behaviors.TransactionBehavior<,>));
-        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(Behaviors.ValidationBehavior<,>));
-        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(Behaviors.LoggingBehavior<,>));
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
 
+        return services;
+    }
+
+    private static IServiceCollection AddValidators(this IServiceCollection services, params Assembly[] assemblies)
+    {
+        services.AddValidatorsFromAssemblies(assemblies);
         return services;
     }
 }
