@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../src/Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+    <ProjectReference Include="..\src\Services\Authentication\ShopIt.Authentication.API\ShopIt.Authentication.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>

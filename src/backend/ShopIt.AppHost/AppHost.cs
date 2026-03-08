@@ -7,12 +7,19 @@ var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent);
 
+var authDb = postgres.AddDatabase("auth-db");
 var identityDb = postgres.AddDatabase("identity-db");
 
 var seq = builder.AddSeq("seq")
     .ExcludeFromManifest()
     .WithLifetime(ContainerLifetime.Persistent)
     .WithEnvironment("ACCEPT_EULA", "Y");
+
+var auth = builder.AddProject<Projects.ShopIt_Authentication_API>("auth-api")
+    .WithReference(authDb)
+    .WithReference(seq)
+    .WaitFor(authDb)
+    .WaitFor(seq);
 
 var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WithReference(identityDb)
@@ -21,6 +28,7 @@ var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WaitFor(seq);
 
 var scalar = builder.AddScalarApiReference()
-  .WithApiReference(identity);
+    .WithApiReference(auth)
+    .WithApiReference(identity);
 
 builder.Build().Run();
