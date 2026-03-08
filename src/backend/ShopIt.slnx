@@ -11,6 +11,14 @@
       <Project Path="src/Framework/ShopIt.Framework.Persistence/ShopIt.Framework.Persistence.csproj" />
     </Folder>
   <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Authentication/">
+    <Project Path="src/Services/Authentication/ShopIt.Authentication.API/ShopIt.Authentication.API.csproj" />
+    <Project Path="src/Services/Authentication/ShopIt.Authentication.Application/ShopIt.Authentication.Application.csproj" />
+    <Project Path="src/Services/Authentication/ShopIt.Authentication.Domain/ShopIt.Authentication.Domain.csproj" />
+    <Project Path="src/Services/Authentication/ShopIt.Authentication.Infrastructure/ShopIt.Authentication.Infrastructure.csproj" />
+    <Project Path="src/Services/Authentication/ShopIt.Authentication.Persistence/ShopIt.Authentication.Persistence.csproj" />
+    <Project Path="src/Services/Authentication/ShopIt.Authentication.Presentation/ShopIt.Authentication.Presentation.csproj" />
+  </Folder>
       <Folder Name="/src/Services/Identity/">
         <Project Path="src/Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Application/ShopIt.Identity.Application.csproj" />
