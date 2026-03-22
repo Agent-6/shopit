@@ -18,13 +18,13 @@ public static class DependencyInjection
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddPersistence(this IServiceCollection services, string databaseName, IConfiguration configuration, params Assembly[] assemblies)
     {
-        services.AddDbContext<AppDbContext>(options =>
+        services.AddDbContext<ApplicationDbContext>(options =>
         {
             var connectionString = configuration.GetConnectionString(databaseName);
             options.UseNpgsql(connectionString);
         });
 
-        services.AddPersistenceServices<AppDbContext>(configuration, assemblies);
+        services.AddPersistenceServices<ApplicationDbContext>(configuration, assemblies);
 
         return services;
     }
