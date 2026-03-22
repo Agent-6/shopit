@@ -1,26 +1,22 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class RoleClaim : Entity<Guid>
+public class RoleClaim : IdentityRoleClaim<Guid>, IEntity<int>, ITenantEntity
 {
-    public Guid RoleId { get; private set; }
-    public Role Role { get; private set; }
-    public string ClaimType { get; private set; }
-    public string ClaimValue { get; private set; }
-    public Guid? TenantId { get; private set; }
+    public Guid TenantId { get; private set; } = default!;
 
-    private RoleClaim() : base() { }
+    // Public parameterless constructor for Identity
+    public RoleClaim() : base() { }
 
-    // TODO: add non-generic Entity for multi-keyed entities
-    private RoleClaim(Guid id) : base(id) { }
-
-    public static RoleClaim Create(Guid id, Role role, string claimType, string claimValue)
+    internal static RoleClaim Create(Role role, string claimType, string claimValue)
     {
-        var roleClaim = new RoleClaim(id)
+        var roleClaim = new RoleClaim()
         {
             RoleId = role.Id,
-            Role = role,
             ClaimType = claimType,
             ClaimValue = claimValue,
             TenantId = role.TenantId,

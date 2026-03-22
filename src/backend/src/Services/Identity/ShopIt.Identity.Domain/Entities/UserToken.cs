@@ -1,26 +1,24 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class UserToken : Entity<Guid>
+public class UserToken : IdentityUserToken<Guid>, IEntity, ITenantEntity
 {
-    public Guid UserId { get; private set; }
-    public User User { get; private set; }
-    public string LoginProvider { get; private set; }
-    public string Name { get; private set; }
-    public string Value { get; private set; }
-    public Guid? TenantId { get; private set; }
+    public Guid TenantId { get; private set; }
 
-    private UserToken() : base() { }
+    // Public parameterless constructor for Identity
+    public UserToken() : base() { }
 
-    private UserToken(Guid id) : base(id) { }
+    public object GetId() => new { UserId, LoginProvider, Name };
 
-    public static UserToken Create(Guid id, User user, string loginProvider, string name, string value)
+    internal static UserToken Create(User user, string loginProvider, string name, string value)
     {
-        var userToken = new UserToken(id)
+        var userToken = new UserToken()
         {
-            UserId = id,
-            User = user,
+            UserId = user.Id,
             LoginProvider = loginProvider,
             Name = name,
             Value = value,
@@ -28,10 +26,5 @@ public class UserToken : Entity<Guid>
         };
 
         return userToken;
-    }
-
-    internal void SetValue(string value)
-    {
-        Value = value;
     }
 }

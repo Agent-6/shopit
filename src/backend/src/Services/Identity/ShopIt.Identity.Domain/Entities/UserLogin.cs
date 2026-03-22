@@ -1,31 +1,27 @@
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class UserLogin : Entity<Guid>
+public class UserLogin : IdentityUserLogin<Guid>, IEntity, ITenantEntity
 {
-    public Guid UserId { get; private set; }
-    public User User { get; private set; }
-    public string LoginProvider { get; private set; }
-    public string ProviderKey { get; private set; }
-    public string? ProviderDisplayName { get; private set; }
-    public Guid? TenantId { get; private set; }
+    public Guid TenantId { get; private set; } = default!;
 
-    private UserLogin() : base() { }
+    // Public parameterless constructor for Identity
+    public UserLogin() : base() { }
 
-    // TODO: add non-generic Entity for multi-keyed entities
-    private UserLogin(Guid id) : base(id) { }
+    public object GetId() => new { UserId, ProviderKey };
 
-    public static UserLogin Create(Guid id, User user, UserLoginInfo loginInfo)
+    internal static UserLogin Create(User user, UserLoginInfo loginInfo)
     {
-        var userLogin = new UserLogin(id)
+        var userLogin = new UserLogin()
         {
             LoginProvider = loginInfo.ProviderKey,
             ProviderDisplayName = loginInfo.ProviderDisplayName,
             ProviderKey = loginInfo.ProviderKey,
             TenantId = user.TenantId,
-            User = user,
             UserId = user.Id,
         };
 

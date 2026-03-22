@@ -1,27 +1,25 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Identity.Domain.Tenancy;
 namespace ShopIt.Identity.Domain.Entities;
 
-public class UserRole : Entity<Guid>
+public class UserRole : IdentityUserRole<Guid>, IEntity, ITenantEntity
 {
-    public Guid UserId { get; private set; }
-    public User User { get; private set; }
-    public Guid RoleId { get; private set; }
-    public Role Role { get; private set; }
-    public Guid? TenantId { get; private set; }
+    public Guid TenantId { get; private set; }
     public DateTime AssignedAt { get; private set; }
 
-    private UserRole() { }
+    // Public parameterless constructor for Identity
+    public UserRole() : base() { }
 
-    private UserRole(Guid id) : base(id) { }
+    public object GetId() => new { UserId, RoleId };
 
-    public static UserRole Create(Guid id, User user, Role role)
+    internal static UserRole Create(User user, Role role)
     {
-        var userRole = new UserRole(id)
+        var userRole = new UserRole()
         {
             UserId = user.Id,
-            User = user,
             RoleId = role.Id,
-            Role = role,
             TenantId = user.TenantId,
             AssignedAt = DateTime.UtcNow,
         };

@@ -1,27 +1,52 @@
+using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
 using ShopIt.Identity.Domain.Events.RoleEvents;
+using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class Role : AggregateRoot<Guid>
+public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
 {
-    public string Name { get; private set; }
-    public string NormalizedName { get; private set; }
-    public string? Description { get; private set; }
-    public string ConcurrencyStamp { get; private set; } = Guid.NewGuid().ToString();
-    public Guid? TenantId { get; private set; }
-    public DateTime CreatedAt { get; private set; }
-    public string CreatedBy { get; private set; }
+    #region IAggregateRoot Implementation
+
+    private readonly List<IDomainEvent> _domainEvents = [];
+    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    protected void RaiseDomainEvent(IDomainEvent domainEvent)
+    {
+        if (domainEvent == null)
+        {
+            throw new ArgumentNullException(nameof(domainEvent));
+        }
+
+        _domainEvents.Add(domainEvent);
+    }
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    #endregion
+
+    public Guid TenantId { get; private set; } = default!;
+    public string? Description { get; private set; } = default!;
+    public DateTime CreatedAt { get; private set; } = default!;
+    public string CreatedBy { get; private set; } = default!;
+
 
     private readonly List<RoleClaim> _roleClaims = [];
     public IReadOnlyCollection<RoleClaim> RoleClaims => _roleClaims.AsReadOnly();
 
-    /// <inheritdoc/>
-    private Role() : base() { }
+    // Public parameterless constructor for Identity
+    public Role() : base() { }
 
-    private Role(Guid id) : base(id) { }
+    private Role(Guid id) : base()
+    {
+        if (id == Guid.Empty)
+            throw new ArgumentException("Id cannot be empty.", nameof(id));
 
-    public static Role Create(Guid id, string name, Guid? tenantId, string createdBy, string? description = null)
+        Id = id;
+    }
+
+    public static Role Create(Guid id, string name, Guid tenantId, string createdBy, string? description = null)
     {
         var role = new Role(id)
         {
@@ -52,7 +77,7 @@ public class Role : AggregateRoot<Guid>
         if (_roleClaims.Any(rc => rc.ClaimType == claimType && rc.ClaimValue == claimValue))
             return;
 
-        var claim = RoleClaim.Create(Guid.NewGuid(), this, claimType, claimValue);
+        var claim = RoleClaim.Create(this, claimType, claimValue);
         _roleClaims.Add(claim);
 
         RaiseDomainEvent(new RoleClaimAddedDomainEvent(Id, claimType, claimValue));

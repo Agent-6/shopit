@@ -1,41 +1,44 @@
-using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
 using ShopIt.Identity.Domain.Enums;
 using ShopIt.Identity.Domain.Events.UserEvents;
+using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class User : AggregateRoot<Guid>
+public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
 {
-    // Core Identity properties
-    public string UserName { get; private set; }
-    public string NormalizedUserName { get; private set; }
-    public string Email { get; private set; }
-    public string NormalizedEmail { get; private set; }
-    public bool EmailConfirmed { get; private set; }
-    public string PasswordHash { get; private set; }
-    public string SecurityStamp { get; private set; }
-    public string ConcurrencyStamp { get; private set; } = Guid.NewGuid().ToString();
-    public string? PhoneNumber { get; private set; }
-    public bool PhoneNumberConfirmed { get; private set; }
-    public bool TwoFactorEnabled { get; private set; }
-    public DateTime? LockoutEnd { get; private set; }
-    public bool LockoutEnabled { get; private set; }
-    public int AccessFailedCount { get; private set; }
+    #region IAggregateRoot Implementation
+
+    private readonly List<IDomainEvent> _domainEvents = [];
+    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+
+    protected void RaiseDomainEvent(IDomainEvent domainEvent)
+    {
+        if (domainEvent == null)
+        {
+            throw new ArgumentNullException(nameof(domainEvent));
+        }
+
+        _domainEvents.Add(domainEvent);
+    }
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
+
+    #endregion
 
     // Multi-tenancy
-    public Guid? TenantId { get; private set; }
+    public Guid TenantId { get; private set; } = default!;
 
     // Custom domain properties
-    public string? FirstName { get; private set; }
-    public string? LastName { get; private set; }
-    public string? ProfilePictureUrl { get; private set; }
-    public DateTime? LastLoginAt { get; private set; }
+    public string? FirstName { get; private set; } = default!;
+    public string? LastName { get; private set; } = default!;
+    public string? ProfilePictureUrl { get; private set; } = default!;
+    public DateTime? LastLoginAt { get; private set; } = default!;
     public bool IsActive { get; private set; } = true;
     public UserStatus Status { get; private set; } = UserStatus.Active;
-    public DateTime CreatedAt { get; private set; }
-    public string CreatedBy { get; private set; }
+    public DateTime CreatedAt { get; private set; } = default!;
+    public string CreatedBy { get; private set; } = default!;
 
     // Navigation properties
     private readonly List<UserRole> _userRoles = [];
@@ -48,21 +51,16 @@ public class User : AggregateRoot<Guid>
     public IReadOnlyCollection<UserLogin> Logins => _logins.AsReadOnly();
     public IReadOnlyCollection<UserToken> Tokens => _tokens.AsReadOnly();
 
-    /// <inheritdoc/>
-    [JsonConstructor]
-    private User() : base()
-    {
-    }
+    // Public parameterless constructor for Identity
+    public User() : base() { }
 
     /// <summary>
     /// Initializes a new instance of the User class with the specified identifier.
     /// </summary>
     /// <param name="id">The Identifier of the User.</param>
-    private User(Guid id) : base(id)
-    {
-    }
+    private User(Guid id) : base() => Id = id;
 
-    public static User Create(Guid id, string email, string userName, Guid? tenantId, string createdBy)
+    public static User Create(Guid id, string email, string userName, Guid tenantId, string createdBy)
     {
         var user = new User(id)
         {
@@ -172,7 +170,7 @@ public class User : AggregateRoot<Guid>
     }
 
     // Login tracking
-    public void RecordLogin(string loginProvider = null)
+    public void RecordLogin(string loginProvider)
     {
         LastLoginAt = DateTime.UtcNow;
 
@@ -188,7 +186,7 @@ public class User : AggregateRoot<Guid>
         if (_userRoles.Any(ur => ur.RoleId == role.Id))
             return;
 
-        var userRole = UserRole.Create(Guid.NewGuid(), this, role);
+        var userRole = UserRole.Create(this, role);
         _userRoles.Add(userRole);
 
         RaiseDomainEvent(new UserAddedToRoleDomainEvent(Id, role.Id, role.Name));
@@ -210,7 +208,7 @@ public class User : AggregateRoot<Guid>
         if (_claims.Any(c => c.ClaimType == claimType && c.ClaimValue == claimValue))
             return;
 
-        var claim = UserClaim.Create(Guid.NewGuid(), this, claimType, claimValue);
+        var claim = UserClaim.Create(this, claimType, claimValue);
         _claims.Add(claim);
 
         RaiseDomainEvent(new UserClaimAddedDomainEvent(Id, claimType, claimValue));
@@ -238,12 +236,12 @@ public class User : AggregateRoot<Guid>
         var token = _tokens.FirstOrDefault(t => t.LoginProvider == loginProvider && t.Name == name);
         if (token == null)
         {
-            token = UserToken.Create(Guid.NewGuid(), this, loginProvider, name, value);
+            token = UserToken.Create(this, loginProvider, name, value);
             _tokens.Add(token);
         }
         else
         {
-            token.SetValue(value);
+            token.Value = value;
         }
     }
 
@@ -267,7 +265,7 @@ public class User : AggregateRoot<Guid>
         if (_logins.Any(l => l.LoginProvider == loginInfo.LoginProvider && l.ProviderKey == loginInfo.ProviderKey))
             return;
 
-        var login = UserLogin.Create(Guid.NewGuid(), this, loginInfo);
+        var login = UserLogin.Create(this, loginInfo);
         _logins.Add(login);
 
         RaiseDomainEvent(new UserExternalLoginAddedDomainEvent(Id, loginInfo.LoginProvider, loginInfo.ProviderKey));

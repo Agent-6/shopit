@@ -1,25 +1,22 @@
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class UserClaim : Entity<Guid>
+public class UserClaim : IdentityUserClaim<Guid>, IEntity<int>, ITenantEntity
 {
-    public Guid UserId { get; private set; }
-    public User User { get; private set; }
-    public string ClaimType { get; private set; }
-    public string ClaimValue { get; private set; }
-    public Guid? TenantId { get; private set; }
+    public Guid TenantId { get; private set; } = default!;
 
-    private UserClaim() : base() { }
+    // Public parameterless constructor for Identity
+    public UserClaim() : base() { }
 
-    private UserClaim(Guid id) : base(id) { }
-
-    public static UserClaim Create(Guid id, User user, string claimType, string claimValue)
+    internal static UserClaim Create(User user, string claimType, string claimValue)
     {
-        var userClaim = new UserClaim(id)
+        var userClaim = new UserClaim()
         {
             UserId = user.Id,
-            User = user,
             ClaimType = claimType,
             ClaimValue = claimValue,
             TenantId = user.TenantId
