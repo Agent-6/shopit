@@ -27,7 +27,11 @@ var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WaitFor(identityDb)
     .WaitFor(seq);
 
-var scalar = builder.AddScalarApiReference()
+var scalar = builder.AddScalarApiReference(options => options
+    .PreferHttpsEndpoint()
+    .AllowSelfSignedCertificates());
+
+scalar
     .WithApiReference(auth)
     .WithApiReference(identity);
 
