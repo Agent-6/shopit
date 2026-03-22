@@ -19,7 +19,7 @@ public abstract class Entity<TId> : IEntity<TId>
     /// <summary>
     /// Gets the unique identifier of the entity.
     /// </summary>
-    public TId Id { get; private set; }
+    public TId Id { get; init; } = default!;
 
     /// <summary>
     /// Private constructor for EF Core and JSON serialization.
@@ -27,7 +27,6 @@ public abstract class Entity<TId> : IEntity<TId>
     [JsonConstructor]
     protected Entity()
     {
-        Id = default!;
     }
 
     /// <summary>
@@ -115,8 +114,5 @@ public abstract class Entity<TId> : IEntity<TId>
     /// Determines whether this entity is transient (has no Id assigned yet).
     /// </summary>
     /// <returns>true if the entity is transient; otherwise, false.</returns>
-    private bool IsTransient()
-    {
-        return Id.Equals(default(TId));
-    }
+    private bool IsTransient() => Id.Equals(default(TId));
 }

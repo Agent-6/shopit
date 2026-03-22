@@ -5,11 +5,21 @@ namespace ShopIt.Framework.Domain.Entities;
 /// All domain entities should implement this interface to ensure consistency.
 /// </summary>
 /// <typeparam name="TId">The type of the entity identifier.</typeparam>
-public interface IEntity<out TId>
+public interface IEntity<out TId> : IEntity
     where TId : notnull
 {
     /// <summary>
     /// Gets the unique identifier of the entity.
     /// </summary>
     TId Id { get; }
+
+    object IEntity.GetId() => Id;
+}
+
+public interface IEntity
+{
+    /// <summary>
+    /// Gets the unique identifier of the entity.
+    /// </summary>
+    object GetId();
 }
