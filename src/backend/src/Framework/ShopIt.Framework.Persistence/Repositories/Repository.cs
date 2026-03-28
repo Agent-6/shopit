@@ -9,22 +9,23 @@ namespace ShopIt.Framework.Persistence.Repositories;
 /// </summary>
 /// <typeparam name="TEntity">The type of the entity</typeparam>
 /// <typeparam name="TId">The type of the entity identifier</typeparam>
-public class Repository<TEntity, TId> : IRepository<TEntity, TId>
+public class Repository<TEntity, TId, TDbContext> : IRepository<TEntity, TId>
     where TEntity : class, IEntity<TId>
     where TId : notnull
+    where TDbContext : DbContext
 {
-    protected readonly DbContext _dbContext;
-    protected readonly DbSet<TEntity> _dbSet;
+    protected readonly TDbContext DbContext;
+    protected readonly DbSet<TEntity> DbSet;
 
-    public Repository(DbContext dbContext)
+    public Repository(TDbContext dbContext)
     {
-        _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
-        _dbSet = _dbContext.Set<TEntity>();
+        DbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+        DbSet = DbContext.Set<TEntity>();
     }
 
     public virtual async Task<TEntity> GetByIdAsync(TId id, CancellationToken cancellationToken = default)
     {
-        var entity = await _dbSet.FindAsync(new object[] { id }, cancellationToken);
+        var entity = await DbSet.FindAsync(new object[] { id }, cancellationToken);
 
         if (entity is null)
         {
@@ -38,14 +39,14 @@ public class Repository<TEntity, TId> : IRepository<TEntity, TId>
     {
         if (entity is null) throw new ArgumentNullException(nameof(entity));
 
-        await _dbSet.AddAsync(entity, cancellationToken);
+        await DbSet.AddAsync(entity, cancellationToken);
     }
 
     public virtual Task UpdateAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         if (entity is null) throw new ArgumentNullException(nameof(entity));
 
-        _dbSet.Update(entity);
+        DbSet.Update(entity);
         return Task.CompletedTask;
     }
 
@@ -53,7 +54,7 @@ public class Repository<TEntity, TId> : IRepository<TEntity, TId>
     {
         if (entity is null) throw new ArgumentNullException(nameof(entity));
 
-        _dbSet.Remove(entity);
+        DbSet.Remove(entity);
         return Task.CompletedTask;
     }
 }
