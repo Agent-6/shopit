@@ -8,7 +8,7 @@ namespace ShopIt.Framework.Domain.Repositories;
 /// <typeparam name="TEntity">The type of the entity.</typeparam>
 /// <typeparam name="TId">The type of the entity identifier.</typeparam>
 public interface IRepository<TEntity, TId>
-    where TEntity : Entity<TId>
+    where TEntity : class, IEntity<TId>
     where TId : notnull
 {
     /// <summary>

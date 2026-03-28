@@ -10,7 +10,7 @@ namespace ShopIt.Framework.Persistence.Repositories;
 /// <typeparam name="TEntity">The type of the entity</typeparam>
 /// <typeparam name="TId">The type of the entity identifier</typeparam>
 public class Repository<TEntity, TId> : IRepository<TEntity, TId>
-    where TEntity : Entity<TId>
+    where TEntity : class, IEntity<TId>
     where TId : notnull
 {
     protected readonly DbContext _dbContext;
