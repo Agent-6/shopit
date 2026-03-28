@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Presentation.Users;
+namespace ShopIt.Identity.Presentation.Users.Enums;
 
 public enum PermissionSource
 {

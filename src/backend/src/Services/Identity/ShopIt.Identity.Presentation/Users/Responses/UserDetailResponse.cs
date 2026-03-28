@@ -1,7 +1,6 @@
-namespace ShopIt.Identity.Presentation.Users;
+namespace ShopIt.Identity.Presentation.Users.Responses;
 
-// Response Records
-public record UserResponse(
+public record UserDetailResponse(
     Guid Id,
     string Username,
     string Email,
@@ -11,8 +10,11 @@ public record UserResponse(
     bool EmailConfirmed,
     string? PhoneNumber,
     bool PhoneNumberConfirmed,
+    bool TwoFactorEnabled,
     bool LockoutEnabled,
     DateTimeOffset? LockoutEnd,
     DateTime CreatedAt,
-    DateTime LastModifiedAt
+    DateTime LastModifiedAt,
+    List<string> Roles,
+    List<UserClaimResponse> Claims
 );

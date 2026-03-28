@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Presentation.Modules;
+using ShopIt.Identity.Presentation.Users.Enums;
+using ShopIt.Identity.Presentation.Users.Requests;
+using ShopIt.Identity.Presentation.Users.Responses;
 
 namespace ShopIt.Identity.Presentation.Users;
 
@@ -150,11 +153,11 @@ public class UsersModule : EndpointsModule
                 new UserPermissionResponse("roles.assign", true, PermissionSource.Role),
                 new UserPermissionResponse("reports.view", true, PermissionSource.Direct)
             },
-            InheritedPermissions: new List<InheritedPermission>
+            InheritedPermissions: new List<InheritedPermissionResponse>
             {
-                new InheritedPermission("users.create", "Admin Role"),
-                new InheritedPermission("users.update", "Admin Role"),
-                new InheritedPermission("roles.assign", "Admin Role")
+                new InheritedPermissionResponse("users.create", "Admin Role"),
+                new InheritedPermissionResponse("users.update", "Admin Role"),
+                new InheritedPermissionResponse("roles.assign", "Admin Role")
             }
         );
 
@@ -179,13 +182,13 @@ public class UsersModule : EndpointsModule
         // Implementation will go here
         var response = new GetUserClaimsResponse(
             UserId: userId,
-            Claims: new List<UserClaimResponse>
-            {
+            Claims:
+            [
                 new UserClaimResponse("department", "IT"),
                 new UserClaimResponse("position", "Senior Developer"),
                 new UserClaimResponse("employeeId", "EMP12345"),
                 new UserClaimResponse("office", "New York")
-            }
+            ]
         );
 
         return Results.Ok(response);
@@ -197,7 +200,7 @@ public class UsersModule : EndpointsModule
         var response = new UpdateUserClaimsResponse(
             UserId: userId,
             UpdatedClaims: request.Claims,
-            RemovedClaims: request.RemovedClaims ?? new List<string>(),
+            RemovedClaims: request.RemovedClaims ?? [],
             UpdatedAt: DateTime.UtcNow
         );
 

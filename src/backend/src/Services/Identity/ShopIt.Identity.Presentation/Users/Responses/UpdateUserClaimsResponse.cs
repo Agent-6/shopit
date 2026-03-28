@@ -1,4 +1,6 @@
-namespace ShopIt.Identity.Presentation.Users;
+using ShopIt.Identity.Presentation.Users.Requests;
+
+namespace ShopIt.Identity.Presentation.Users.Responses;
 
 public record UpdateUserClaimsResponse(
     Guid UserId,

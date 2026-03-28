@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Presentation.Users;
+namespace ShopIt.Identity.Presentation.Users.Requests;
 
 // Request Records
 public record CreateUserRequest(

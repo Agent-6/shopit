@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Presentation.Users;
+namespace ShopIt.Identity.Presentation.Users.Requests;
 
 public record UpdateUserClaimsRequest(
     List<UserClaimRequest> Claims,
