@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using ShopIt.Framework.Core;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.API;
+using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
@@ -17,7 +17,7 @@ builder.AddServiceDefaults();
 
 // request handlers
 builder.Services.AddPresentation(builder.Configuration);
-builder.Services.AddApplicationServices(typeof(Program).Assembly);
+builder.Services.AddApplication();
 
 builder.Services.AddPersistence("identity-db", builder.Configuration);
 builder.Services.AddDataProtection();
