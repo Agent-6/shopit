@@ -1,6 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Routing" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Presentation\ShopIt.Framework.Presentation.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Application\ShopIt.Identity.Application.csproj" />
   </ItemGroup>
   

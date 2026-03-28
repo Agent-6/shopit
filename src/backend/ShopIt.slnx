@@ -9,6 +9,7 @@
       <Project Path="src/Framework/ShopIt.Framework.Core/ShopIt.Framework.Core.csproj" />
       <Project Path="src/Framework/ShopIt.Framework.Domain/ShopIt.Framework.Domain.csproj" />
       <Project Path="src/Framework/ShopIt.Framework.Persistence/ShopIt.Framework.Persistence.csproj" />
+      <Project Path="src/Framework/ShopIt.Framework.Presentation/ShopIt.Framework.Presentation.csproj" Id="28cdb74c-553f-466c-9889-e37955190f5e" />
     </Folder>
   <Folder Name="/src/Services/" />
   <Folder Name="/src/Services/Authentication/">

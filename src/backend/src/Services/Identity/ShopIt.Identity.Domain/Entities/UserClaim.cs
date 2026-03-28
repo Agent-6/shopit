@@ -14,6 +14,7 @@ public class UserClaim : IdentityUserClaim<Guid>, IEntity<int>, ITenantEntity
 
     internal static UserClaim Create(User user, string claimType, string claimValue)
     {
+
         var userClaim = new UserClaim()
         {
             UserId = user.Id,

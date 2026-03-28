@@ -16,7 +16,7 @@ public static class DependencyInjection
     /// <param name="databaseName">The name of the database connection string in configuration. Use the database resource name when using aspire.</param>
     /// <param name="configuration">The configuration object to retrieve connection strings from.</param>
     /// <returns>The updated service collection.</returns>
-    public static IServiceCollection AddPersistence(this IServiceCollection services, string databaseName, IConfiguration configuration, params Assembly[] assemblies)
+    public static IServiceCollection AddPersistence(this IServiceCollection services, string databaseName, IConfiguration configuration)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -24,7 +24,7 @@ public static class DependencyInjection
             options.UseNpgsql(connectionString);
         });
 
-        services.AddPersistenceServices<ApplicationDbContext>(configuration, assemblies);
+        services.AddPersistenceServices<ApplicationDbContext>(configuration, typeof(DependencyInjection).Assembly);
 
         return services;
     }

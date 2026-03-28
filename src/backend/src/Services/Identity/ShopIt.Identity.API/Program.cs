@@ -1,14 +1,14 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ShopIt.Framework.Core;
-using ShopIt.Framework.Core.CQRS;
+using ShopIt.Framework.Presentation;
 using ShopIt.Identity.API;
-using ShopIt.Identity.API.Features;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
 using ShopIt.Identity.Persistence;
 using ShopIt.Identity.Persistence.Data;
+using ShopIt.Identity.Presentation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,9 +16,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // request handlers
+builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplicationServices(typeof(Program).Assembly);
 
-builder.Services.AddPersistence("identity-db", builder.Configuration, typeof(Program).Assembly);
+builder.Services.AddPersistence("identity-db", builder.Configuration);
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<User>(options =>
 {
@@ -59,31 +60,32 @@ app.MapDefaultEndpoints();
 
 app.UseMiddleware<TenantResolutionMiddleware>();
 
-app.MapPost("/users", async (
-    CreateUserCommand command,
-    IDispatcher dispatcher,
-    CancellationToken cancellationToken) =>
-{
-    var userId = await dispatcher.SendAsync(command, cancellationToken);
-    return Results.Created($"/users/{userId}", new { Id = userId });
-});
+app.MapEndpoints();
+//app.MapPost("/users", async (
+//    CreateUserCommand command,
+//    IDispatcher dispatcher,
+//    CancellationToken cancellationToken) =>
+//{
+//    var userId = await dispatcher.SendAsync(command, cancellationToken);
+//    return Results.Created($"/users/{userId}", new { Id = userId });
+//});
 
-app.MapPost("/users/roles", async (
-    IDispatcher dispatcher,
-    CancellationToken cancellationToken) =>
-{
-    var message = await dispatcher.SendAsync(new AssignUserToRoleCommand(), cancellationToken);
-    return Results.Ok(new { Message = message });
-});
+//app.MapPost("/users/roles", async (
+//    IDispatcher dispatcher,
+//    CancellationToken cancellationToken) =>
+//{
+//    var message = await dispatcher.SendAsync(new AssignUserToRoleCommand(), cancellationToken);
+//    return Results.Ok(new { Message = message });
+//});
 
-app.MapGet("/users/{userId}", async (
-    Guid userId,
-    IDispatcher dispatcher,
-    CancellationToken cancellationToken) =>
-{
-    var user = await dispatcher.QueryAsync(new GetUserQuery(userId), cancellationToken);
-    return Results.Ok(user);
-});
+//app.MapGet("/users/{userId}", async (
+//    Guid userId,
+//    IDispatcher dispatcher,
+//    CancellationToken cancellationToken) =>
+//{
+//    var user = await dispatcher.QueryAsync(new GetUserQuery(userId), cancellationToken);
+//    return Results.Ok(user);
+//});
 
 // In Program.cs, before app.Run()
 using (var scope = app.Services.CreateScope())
