@@ -5,21 +5,12 @@ using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Application.Users.Commands.CreateUser;
 
-public class CreateUserCommandHandler : ICommandHandler<CreateUserCommand, CreateUserResult>
+public class CreateUserCommandHandler(
+    UserManager<User> userManager,
+    ITenantContext tenantContext) : ICommandHandler<CreateUserCommand, CreateUserResult>
 {
-    private readonly UserManager<User> _userManager;
-    private readonly RoleManager<Role> _roleManager;
-    private readonly ITenantContext _tenantContext;
-
-    public CreateUserCommandHandler(
-        UserManager<User> userManager,
-        RoleManager<Role> roleManager,
-        ITenantContext tenantContext)
-    {
-        _userManager = userManager;
-        _roleManager = roleManager;
-        _tenantContext = tenantContext;
-    }
+    private readonly UserManager<User> _userManager = userManager;
+    private readonly ITenantContext _tenantContext = tenantContext;
 
     public async Task<CreateUserResult> HandleAsync(CreateUserCommand request, CancellationToken cancellationToken)
     {
