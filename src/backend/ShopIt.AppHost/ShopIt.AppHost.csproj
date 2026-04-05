@@ -14,6 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
     <PackageReference Include="Aspire.Hosting.Seq" />
+    <PackageReference Include="Aspire.Hosting.Yarp" />
     <PackageReference Include="Scalar.Aspire" />
   </ItemGroup>
 
