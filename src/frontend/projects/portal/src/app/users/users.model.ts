@@ -1,0 +1,72 @@
+export interface UserClaimRequest {
+  claimType: string;
+  claimValue: string;
+}
+
+export interface UserPermissionRequest {
+  permissionName: string;
+  isGranted: boolean;
+}
+
+export interface CreateUserRequest {
+  username: string;
+  email: string;
+  password: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  roles?: string[] | null;
+  claims?: UserClaimRequest[] | null;
+  emailConfirmed?: boolean | null;
+  phoneNumberConfirmed?: boolean | null;
+  isActive?: boolean | null;
+}
+
+export interface UpdateUserRequest {
+  username?: string | null;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  phoneNumberConfirmed?: boolean | null;
+  isActive?: boolean | null;
+  roles?: string[] | null;
+  claims?: UserClaimRequest[] | null;
+}
+
+export interface DeleteUserResponse {
+  id: string;
+  isDeleted: boolean;
+  deletedType: string;
+}
+
+export interface UpdateUserPermissionsRequest {
+  permissions: UserPermissionRequest[];
+}
+
+export interface UpdateUserClaimsRequest {
+  claims: UserClaimRequest[];
+  removedClaims?: string[] | null;
+}
+
+export interface User {
+  id: string;
+  username: string;
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  roles?: string[];
+  claims?: UserClaimRequest[];
+  emailConfirmed?: boolean;
+  phoneNumberConfirmed?: boolean;
+  isActive: boolean;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  users: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
