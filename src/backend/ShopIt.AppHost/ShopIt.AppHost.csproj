@@ -1,12 +1,13 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.1.1">
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.2.1">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <IsAspireHost>true</IsAspireHost>
     <UserSecretsId>1c100f66-cb8f-4fb1-abf4-8a63c15d9105</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../src/Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+    <ProjectReference Include="..\src\Services\Identity\ShopIt.Identity.API\ShopIt.Identity.API.csproj" />
     <ProjectReference Include="..\src\Services\Authentication\ShopIt.Authentication.API\ShopIt.Authentication.API.csproj" />
   </ItemGroup>
 

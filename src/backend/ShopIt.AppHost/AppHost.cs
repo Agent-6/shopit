@@ -33,6 +33,8 @@ var scalar = builder.AddScalarApiReference(options => options
 
 scalar
     .WithApiReference(auth)
-    .WithApiReference(identity);
+    .WithApiReference(identity)
+    .WaitFor(auth)
+    .WaitFor(identity);
 
 builder.Build().Run();
