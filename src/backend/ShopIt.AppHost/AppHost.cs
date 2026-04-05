@@ -1,3 +1,4 @@
+using Aspire.Hosting.Yarp.Transforms;
 using Scalar.Aspire;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -27,6 +28,25 @@ var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WaitFor(identityDb)
     .WaitFor(seq);
 
+var gateway = builder.AddYarp("gateway")
+    .WithHostPort(5000)
+    .WithHostHttpsPort(5001)
+    .WithHttpsEndpoint()
+    .WithConfiguration(yarp =>
+    {
+        // Route for Identity API - removes /api/identity prefix
+        yarp.AddRoute("/api/identity/{**catch-all}", identity)
+            .WithTransformPathRemovePrefix("/api/identity");
+
+        // Route for Authentication API - removes /api/auth prefix
+        yarp.AddRoute("/api/auth/{**catch-all}", auth)
+            .WithTransformPathRemovePrefix("/api/auth");
+
+        // Optional: Serve static files (your Angular app)
+        // yarp.WithStaticFiles("../ShopIt.Angular/dist");
+    });
+
+
 var scalar = builder.AddScalarApiReference(options => options
     .PreferHttpsEndpoint()
     .AllowSelfSignedCertificates());
@@ -34,7 +54,9 @@ var scalar = builder.AddScalarApiReference(options => options
 scalar
     .WithApiReference(auth)
     .WithApiReference(identity)
+    .WithApiReference(gateway)
     .WaitFor(auth)
-    .WaitFor(identity);
+    .WaitFor(identity)
+    .WaitFor(gateway);
 
 builder.Build().Run();
