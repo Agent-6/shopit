@@ -43,10 +43,6 @@
 		"storage": "64gb",
 	},
 
-  "forwardPorts": [
-    "4200:4200",
-  ],
-
   "portsAttributes": {
     "4200": {
       "label": "portal frontend"
