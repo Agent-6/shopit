@@ -1,90 +1,107 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { UsersService } from './users.service';
 import { CreateUserRequest, UpdateUserRequest, User } from './users.model';
 import { UserEditorComponent } from './user-editor.component';
+import { UiButtonComponent } from '../shared/components/ui-button.component';
+import { UiIconComponent } from '../shared/components/ui-icon.component';
+import { Component, computed, inject, signal } from '@angular/core';
 
 @Component({
   selector: 'app-users-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, UserEditorComponent],
+  imports: [RouterLink, UserEditorComponent, UiButtonComponent, UiIconComponent],
   template: `
-    <section class="space-y-8">
-      <header class="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:flex-row md:items-center md:justify-between">
+    <section class="space-y-6">
+      <header class="flex flex-col gap-4 bg-card text-card-foreground md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 class="text-3xl font-semibold text-slate-900">Users</h1>
-          <p class="mt-2 text-sm text-slate-500">Browse, create, and maintain user accounts for the Identity API.</p>
+          <h1 class="text-2xl font-semibold tracking-tight">Users</h1>
+          <p class="mt-2 text-sm text-muted-foreground">Browse, create, and maintain user accounts for the Identity API.</p>
         </div>
-        <button type="button" class="inline-flex items-center justify-center rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700" (click)="openCreate()">
-          Create user
-        </button>
+        <div class="self-start flex flex-row gap-4 justify-between">
+          <ui-button variant="default" icon="plus" (click)="openCreate()">Create user</ui-button>
+        </div>
       </header>
 
-      <div class="grid gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(240px,320px)_minmax(180px,240px)]">
-          <input
-            type="search"
-            placeholder="Search by username, email, or role"
-            class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-            [value]="service.filter()"
-            (input)="service.filter.set($any($event.target).value)"
-          />
+      <div class="rounded-md border bg-card text-card-foreground p-6 shadow-sm">
+        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-12 items-end">
+          <div class="lg:col-span-5 space-y-1.5">
+            <label class="text-sm font-medium leading-none">Search input</label>
+            <input
+              type="search"
+              placeholder="Search by username, email, or role"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              [value]="service.filter()"
+              (input)="service.filter.set($any($event.target).value)"
+            />
+          </div>
 
-          <label class="grid gap-2 text-sm text-slate-600">
-            Sort by
-            <select class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none" [value]="service.sortBy()" (change)="service.sortBy.set($any($event.target).value)">
+          <div class="lg:col-span-2 space-y-1.5">
+            <label class="text-sm font-medium leading-none">Sort by</label>
+            <select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" [value]="service.sortBy()" (change)="service.sortBy.set($any($event.target).value)">
               <option value="username">Username</option>
               <option value="email">Email</option>
               <option value="isActive">Active</option>
             </select>
-          </label>
+          </div>
 
-          <label class="grid gap-2 text-sm text-slate-600">
-            Order
-            <select class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none" [value]="service.sortOrder()" (change)="service.sortOrder.set($any($event.target).value)">
-              <option value="asc">Asc</option>
-              <option value="desc">Desc</option>
+          <div class="lg:col-span-2 space-y-1.5">
+            <label class="text-sm font-medium leading-none">Order</label>
+            <select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" [value]="service.sortOrder()" (change)="service.sortOrder.set($any($event.target).value)">
+              <option value="asc">Ascending</option>
+              <option value="desc">Descending</option>
             </select>
-          </label>
+          </div>
 
-          <label class="grid gap-2 text-sm text-slate-600">
-            Page size
-            <select class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none" [value]="service.pageSize()" (change)="setPageSize($any($event.target).value)">
+          <div class="lg:col-span-2 space-y-1.5">
+            <label class="text-sm font-medium leading-none">Size</label>
+            <select class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" [value]="service.pageSize()" (change)="setPageSize($any($event.target).value)">
               <option [value]="5">5</option>
               <option [value]="10">10</option>
               <option [value]="20">20</option>
             </select>
-          </label>
+          </div>
 
-          <button type="button" class="rounded-2xl border border-slate-300 bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200" (click)="service.loadUsers()">
-            Refresh
-          </button>
+          <div class="lg:col-span-full flex justify-end w-fit">
+            <ui-button variant="outline" icon="refresh-cw" (click)="service.loadUsers()" class="w-full">Refresh</ui-button>
+          </div>
         </div>
       </div>
 
-      <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <table class="min-w-full border-separate border-spacing-0 text-sm text-slate-700">
-          <thead class="bg-slate-50 text-slate-500">
-            <tr>
-              <th class="px-6 py-4 text-left font-semibold">Username</th>
-              <th class="px-6 py-4 text-left font-semibold">Email</th>
-              <th class="px-6 py-4 text-left font-semibold">Roles</th>
-              <th class="px-6 py-4 text-left font-semibold">Active</th>
-              <th class="px-6 py-4 text-left font-semibold">Actions</th>
+      <div class="overflow-y-auto rounded-md border bg-card text-card-foreground shadow-sm">
+        <table class="w-full text-sm">
+          <thead class="border-b bg-muted/50">
+            <tr class="text-left font-medium text-muted-foreground">
+              <th class="h-12 px-4 align-middle font-medium">Username</th>
+              <th class="h-12 px-4 align-middle font-medium">Email</th>
+              <th class="h-12 px-4 align-middle font-medium">Roles</th>
+              <th class="h-12 px-4 align-middle font-medium">Active</th>
+              <th class="h-12 px-4 align-middle font-medium text-right">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-200 bg-white">
+          <tbody class="[&_tr:last-child]:border-0">
             @for (user of service.users(); track user.id) {
-              <tr class="hover:bg-slate-50">
-                <td class="px-6 py-4">{{ user.username }}</td>
-                <td class="px-6 py-4">{{ user.email }}</td>
-                <td class="px-6 py-4">{{ user.roles?.join(', ') || '—' }}</td>
-                <td class="px-6 py-4">{{ user.isActive ? 'Yes' : 'No' }}</td>
-                <td class="flex flex-wrap gap-2 px-6 py-4">
-                  <a class="rounded-full px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-slate-100" [routerLink]="['/users', user.id]">View</a>
-                  <button type="button" class="rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-200" (click)="editUser(user)">Edit</button>
-                  <button type="button" class="rounded-full bg-rose-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-rose-700" (click)="deleteUser(user)">Delete</button>
+              <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                <td class="p-4 align-middle font-medium">{{ user.username }}</td>
+                <td class="p-4 align-middle text-muted-foreground">{{ user.email }}</td>
+                <td class="p-4 align-middle">
+                  @if (user.roles?.length) {
+                    <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                      {{ user.roles?.join(', ') || '—' }}
+                    </div>
+                  }
+                </td>
+                <td class="p-4 align-middle">
+                  @if (user.isActive) {
+                    <span class="text-primary"><ui-icon name="check" class="h-4 w-4"></ui-icon></span>
+                  }
+                  @if (!user.isActive) {
+                    <span class="text-muted-foreground"><ui-icon name="x" class="h-4 w-4"></ui-icon></span>
+                  }
+                </td>
+                <td class="p-4 align-middle text-right flex justify-end gap-2">
+                  <ui-button variant="outline" size="sm" routerLink="/users/{{ user.id }}">View</ui-button>
+                  <ui-button variant="secondary" size="sm" (click)="editUser(user)">Edit</ui-button>
+                  <ui-button variant="destructive" size="sm" (click)="deleteUser(user)">Delete</ui-button>
                 </td>
               </tr>
             }
@@ -92,37 +109,42 @@ import { UserEditorComponent } from './user-editor.component';
         </table>
       </div>
 
-      <div class="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm md:flex-row md:items-center md:justify-between">
-        <span>Page {{ service.page() }} of {{ service.pageCount() }}</span>
+      <div class="flex items-center justify-between text-sm text-muted-foreground">
+        <div>Page {{ service.page() }} of {{ service.pageCount() }}</div>
         <div class="flex items-center gap-2">
-          <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50" (click)="previousPage()" [disabled]="service.page() <= 1">Previous</button>
-          <button type="button" class="rounded-full border border-slate-300 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-50" (click)="nextPage()" [disabled]="service.page() >= service.pageCount()">Next</button>
+          <ui-button variant="outline" size="sm" (click)="previousPage()" [disabled]="service.page() <= 1">Previous</ui-button>
+          <ui-button variant="outline" size="sm" (click)="nextPage()" [disabled]="service.page() >= service.pageCount()">Next</ui-button>
         </div>
       </div>
 
-      <div *ngIf="!service.loading() && service.users().length === 0" class="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-sm text-slate-600">
-        No users found. Click Create user to add the first account.
-      </div>
+      @if (!service.loading() && service.users().length === 0) {
+        <div class="rounded-xl border bg-card p-6 text-sm text-muted-foreground text-center">
+          No users found. Click <span class="font-medium text-foreground">Create user</span> to add an account.
+        </div>
+      }
 
-      <div *ngIf="service.error()" class="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
-        {{ service.error() }}
-      </div>
+      @if (service.error()) {
+        <div class="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
+          {{ service.error() }}
+        </div>
+      }
 
-      <aside *ngIf="editorOpen()" class="sticky top-8 rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-100 md:max-w-md">
-        <app-user-editor
-          [title]="editorTitle()"
-          [submitLabel]="editorMode() === 'create' ? 'Create user' : 'Save changes'"
-          [mode]="editorMode()"
-          [model]="editingUser()"
-          (submit)="saveUser($event)"
-          (cancel)="closeEditor()"
-        ></app-user-editor>
-      </aside>
+      @if (editorOpen()) {
+        <aside class="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-background/80 backdrop-blur-sm sm:items-center sm:pt-0">
+          <div class="w-full max-w-lg rounded-xl border bg-card p-6 shadow-lg">
+          <app-user-editor
+            [title]="editorTitle()"
+            [submitLabel]="editorMode() === 'create' ? 'Create user' : 'Save changes'"
+            [mode]="editorMode()"
+            [model]="editingUser()"
+            (submit)="saveUser($event)"
+            (cancel)="closeEditor()"
+          ></app-user-editor>
+          </div>
+        </aside>
+      }
     </section>
-
-    <ng-template #loadingState>
-      <div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-slate-700 shadow-sm">Loading users…</div>
-    </ng-template>
   `
 })
 export class UsersPageComponent {

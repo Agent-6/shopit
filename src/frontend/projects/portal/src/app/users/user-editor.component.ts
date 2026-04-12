@@ -1,28 +1,28 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
 import { User, UserClaimRequest, CreateUserRequest, UpdateUserRequest } from './users.model';
+import { UiButtonComponent } from '../shared/components/ui-button.component';
 
 type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> & { password?: string | null };
 
 @Component({
   selector: 'app-user-editor',
   standalone: true,
-  imports: [CommonModule],
+  imports: [UiButtonComponent],
   template: `
     <section class="space-y-6">
-      <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center justify-between gap-4 border-b border-border pb-4">
         <div>
-          <h2 class="text-xl font-semibold text-slate-900">{{ title }}</h2>
+          <h2 class="text-xl font-semibold tracking-tight">{{ title }}</h2>
         </div>
-        <button type="button" class="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200" (click)="cancel.emit()">Cancel</button>
+        <ui-button variant="outline" size="sm" (click)="cancel.emit()">Cancel</ui-button>
       </div>
 
       <div class="grid gap-4">
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Username</label>
+          <label class="text-sm font-medium leading-none">Username</label>
           <input
             type="text"
-            class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             [value]="form().username"
             (input)="updateField('username', $any($event.target).value)"
             required
@@ -30,42 +30,44 @@ type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> &
         </div>
 
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Email</label>
+          <label class="text-sm font-medium leading-none">Email</label>
           <input
             type="email"
-            class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             [value]="form().email"
             (input)="updateField('email', $any($event.target).value)"
             required
           />
         </div>
 
-        <div class="grid gap-2" *ngIf="mode === 'create'">
-          <label class="text-sm font-medium text-slate-700">Password</label>
-          <input
-            type="password"
-            class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-            [value]="form().password ?? ''"
-            (input)="updateField('password', $any($event.target).value)"
-            required
-          />
-        </div>
+        @if (mode === 'create') {
+          <div class="grid gap-2">
+            <label class="text-sm font-medium leading-none">Password</label>
+            <input
+              type="password"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              [value]="form().password ?? ''"
+              (input)="updateField('password', $any($event.target).value)"
+              required
+            />
+          </div>
+        }
 
         <div class="grid gap-4 md:grid-cols-2">
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-700">First name</label>
+            <label class="text-sm font-medium leading-none">First name</label>
             <input
               type="text"
-              class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               [value]="form().firstName ?? ''"
               (input)="updateField('firstName', $any($event.target).value || null)"
             />
           </div>
           <div class="grid gap-2">
-            <label class="text-sm font-medium text-slate-700">Last name</label>
+            <label class="text-sm font-medium leading-none">Last name</label>
             <input
               type="text"
-              class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               [value]="form().lastName ?? ''"
               (input)="updateField('lastName', $any($event.target).value || null)"
             />
@@ -73,67 +75,72 @@ type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> &
         </div>
 
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Phone number</label>
+          <label class="text-sm font-medium leading-none">Phone number</label>
           <input
             type="tel"
-            class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             [value]="form().phoneNumber ?? ''"
             (input)="updateField('phoneNumber', $any($event.target).value || null)"
           />
         </div>
 
         <div class="grid gap-2">
-          <label class="text-sm font-medium text-slate-700">Roles</label>
+          <label class="text-sm font-medium leading-none">Roles (comma-separated)</label>
           <input
             type="text"
-            class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
+            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             [value]="form().roles?.join(', ') ?? ''"
             (input)="updateRoles($any($event.target).value)"
             placeholder="admin, user"
           />
         </div>
 
-        <div class="flex items-center gap-3">
-          <label class="inline-flex items-center gap-3 text-sm text-slate-600">
+        <div class="flex items-center gap-3 py-2">
+          <label class="inline-flex items-center gap-2 text-sm font-medium leading-none cursor-pointer">
             <input
               type="checkbox"
-              class="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-500"
+              class="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               [checked]="form().isActive ?? true"
               (change)="updateField('isActive', $any($event.target).checked)"
             />
-            Active account
+            <span>Active account</span>
           </label>
         </div>
 
-        <div class="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+        <div class="space-y-4 rounded-xl border bg-card p-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-base font-semibold text-slate-900">Claims</h3>
-            <button type="button" class="rounded-full bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200" (click)="addClaim()">Add claim</button>
+            <h3 class="text-sm font-medium leading-none">Custom Claims</h3>
+            <ui-button variant="secondary" size="sm" (click)="addClaim()">Add claim</ui-button>
           </div>
           <div class="space-y-3">
-            <div *ngFor="let claim of form().claims ?? []; index as i" class="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-              <input
-                type="text"
-                class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                [value]="claim.claimType"
-                (input)="updateClaim(i, 'claimType', $any($event.target).value)"
-                placeholder="Claim type"
-              />
-              <input
-                type="text"
-                class="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200"
-                [value]="claim.claimValue"
-                (input)="updateClaim(i, 'claimValue', $any($event.target).value)"
-                placeholder="Claim value"
-              />
-              <button type="button" class="rounded-full bg-rose-100 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-200" (click)="removeClaim(i)">Remove</button>
-            </div>
+            @for (claim of form().claims ?? []; track claim; let i = $index) {
+              <div class="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                <input
+                  type="text"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  [value]="claim.claimType"
+                  (input)="updateClaim(i, 'claimType', $any($event.target).value)"
+                  placeholder="Type (e.g. org_id)"
+                />
+                <input
+                  type="text"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  [value]="claim.claimValue"
+                  (input)="updateClaim(i, 'claimValue', $any($event.target).value)"
+                  placeholder="Value"
+                />
+                <ui-button variant="destructive" size="icon" (click)="removeClaim(i)" title="Remove claim">X</ui-button>
+              </div>
+            }
+            @if (!form().claims?.length) {
+              <div class="text-sm text-muted-foreground italic text-center py-2">No claims assigned.</div>
+            }
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end">
-        <button type="button" class="rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-700" (click)="submitForm()">{{ submitLabel }}</button>
+      <div class="flex justify-end pt-4 border-t border-border">
+        <ui-button variant="default" (click)="submitForm()">{{ submitLabel }}</ui-button>
       </div>
     </section>
   `
