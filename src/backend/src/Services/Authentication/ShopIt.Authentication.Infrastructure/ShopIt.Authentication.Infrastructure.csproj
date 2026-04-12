@@ -1,7 +1,13 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="OpenIddict.AspNetCore" />
+    <PackageReference Include="OpenIddict.EntityFrameworkCore" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ShopIt.Authentication.Application\ShopIt.Authentication.Application.csproj" />
+    <ProjectReference Include="..\ShopIt.Authentication.Persistence\ShopIt.Authentication.Persistence.csproj" />
   </ItemGroup>
 
 </Project>
