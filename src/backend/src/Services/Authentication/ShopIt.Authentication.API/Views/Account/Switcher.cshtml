@@ -1,0 +1,45 @@
+@using System.Security.Claims
+@model List<ClaimsIdentity>
+@{
+    ViewData["Title"] = "Choose an Account";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+
+<div class="flex flex-col space-y-2 text-center mb-6">
+    <div class="mx-auto bg-secondary text-secondary-foreground h-12 w-12 rounded-lg flex items-center justify-center mb-2">
+        <i data-lucide="users" class="h-6 w-6"></i>
+    </div>
+    <h1 class="text-2xl font-semibold tracking-tight">Choose an account</h1>
+    <p class="text-sm text-muted-foreground">Select an active session to continue</p>
+</div>
+
+<div class="space-y-3 mb-6">
+    @foreach (var identity in Model)
+    {
+        var email = identity.FindFirst(ClaimTypes.Email)?.Value;
+        var name = identity.FindFirst(ClaimTypes.Name)?.Value;
+        
+        <form asp-controller="Account" asp-action="SwitchAccount" asp-route-returnUrl="@returnUrl" method="post" class="m-0">
+            <input type="hidden" name="email" value="@email" />
+            <button type="submit" class="w-full flex items-center p-3 rounded-lg border border-input bg-card hover:bg-accent hover:text-accent-foreground transition-colors text-left group">
+                <div class="h-10 w-10 bg-primary/10 text-primary rounded-full flex items-center justify-center font-semibold text-lg mr-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                    @(name?.Substring(0, 1).ToUpper() ?? "U")
+                </div>
+                <div class="flex-1 overflow-hidden">
+                    <div class="font-medium truncate">@name</div>
+                    <div class="text-sm text-muted-foreground truncate">@email</div>
+                </div>
+                <i data-lucide="chevron-right" class="h-5 w-5 text-muted-foreground group-hover:text-foreground"></i>
+            </button>
+        </form>
+    }
+</div>
+
+<div class="relative mb-6">
+    <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-border"></span></div>
+    <div class="relative flex justify-center text-xs uppercase"><span class="bg-card px-2 text-muted-foreground">Or</span></div>
+</div>
+
+<a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl" class="btn-outline w-full text-muted-foreground hover:text-foreground">
+    <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Add another account
+</a>

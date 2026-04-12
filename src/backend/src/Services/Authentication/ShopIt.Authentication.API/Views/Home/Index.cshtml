@@ -1,0 +1,44 @@
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="flex flex-col items-center justify-center space-y-6 text-center">
+    <div class="bg-primary text-primary-foreground h-16 w-16 rounded-2xl flex items-center justify-center shadow-lg transform -rotate-6 transition-all hover:rotate-0 duration-300">
+        <i data-lucide="rocket" class="h-8 w-8"></i>
+    </div>
+    
+    <div class="space-y-2">
+        <h1 class="text-3xl font-bold tracking-tight">ShopIt Authentication</h1>
+        <p class="text-muted-foreground">Centralized Identity & Access Management</p>
+    </div>
+    
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <div class="w-full mt-4 p-6 rounded-xl border bg-card text-card-foreground shadow-sm">
+            <div class="h-16 w-16 mx-auto bg-primary/10 text-primary rounded-full flex items-center justify-center font-bold text-2xl mb-4 border border-primary/20">
+                @(User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value?.Substring(0, 1).ToUpper() ?? "U")
+            </div>
+            
+            <h3 class="text-xl font-semibold">@User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value</h3>
+            <p class="text-sm text-muted-foreground mb-6">@User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value</p>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+                <a asp-controller="Account" asp-action="Switcher" class="btn-outline w-full sm:w-auto">
+                    <i data-lucide="users" class="mr-2 h-4 w-4"></i> Switch Account
+                </a>
+                <a asp-controller="Account" asp-action="Logout" class="btn-primary bg-destructive text-destructive-foreground hover:bg-destructive/90 w-full sm:w-auto">
+                    <i data-lucide="log-out" class="mr-2 h-4 w-4"></i> Logout
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="w-full mt-4 p-6 rounded-xl border bg-muted/50 border-dashed">
+            <p class="text-muted-foreground mb-4">You are not currently logged in.</p>
+            <a asp-controller="Account" asp-action="Login" class="btn-primary">
+                <i data-lucide="log-in" class="mr-2 h-4 w-4"></i> Secure Login
+            </a>
+        </div>
+    }
+</div>

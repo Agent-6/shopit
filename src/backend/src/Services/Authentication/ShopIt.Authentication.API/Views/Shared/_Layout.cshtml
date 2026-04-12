@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ShopIt SSO</title>
+    
+    <!-- Tailwind v4 via CDN -->
+    <script src="https://unpkg.com/@@tailwindcss/browser@4"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Theme Initialization Script (prevents FOUC) -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('sso-theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        })();
+    </script>
+
+    <!-- Shadcn Custom CSS mapping for Tailwind v4 -->
+    <style type="text/tailwindcss">
+        @@theme {
+            --color-border: var(--border);
+            --color-input: var(--input);
+            --color-ring: var(--ring);
+            --color-background: var(--background);
+            --color-foreground: var(--foreground);
+
+            --color-primary: var(--primary);
+            --color-primary-foreground: var(--primary-foreground);
+
+            --color-secondary: var(--secondary);
+            --color-secondary-foreground: var(--secondary-foreground);
+
+            --color-destructive: var(--destructive);
+            --color-destructive-foreground: var(--destructive-foreground);
+
+            --color-muted: var(--muted);
+            --color-muted-foreground: var(--muted-foreground);
+
+            --color-accent: var(--accent);
+            --color-accent-foreground: var(--accent-foreground);
+
+            --color-popover: var(--popover);
+            --color-popover-foreground: var(--popover-foreground);
+
+            --color-card: var(--card);
+            --color-card-foreground: var(--card-foreground);
+            
+            --radius-lg: var(--radius);
+            --radius-md: calc(var(--radius) - 2px);
+            --radius-sm: calc(var(--radius) - 4px);
+            
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        @@layer base {
+            :root {
+                --background: #ffffff;
+                --foreground: #09090b;
+                --card: #ffffff;
+                --card-foreground: #09090b;
+                --popover: #ffffff;
+                --popover-foreground: #09090b;
+                --primary: #18181b;
+                --primary-foreground: #fafafa;
+                --secondary: #f4f4f5;
+                --secondary-foreground: #18181b;
+                --muted: #f4f4f5;
+                --muted-foreground: #71717a;
+                --accent: #f4f4f5;
+                --accent-foreground: #18181b;
+                --destructive: #ef4444;
+                --destructive-foreground: #fafafa;
+                --border: #e4e4e7;
+                --input: #e4e4e7;
+                --ring: #18181b;
+                --radius: 0.5rem;
+            }
+            .dark {
+                --background: #09090b;
+                --foreground: #fafafa;
+                --card: #09090b;
+                --card-foreground: #fafafa;
+                --popover: #09090b;
+                --popover-foreground: #fafafa;
+                --primary: #fafafa;
+                --primary-foreground: #18181b;
+                --secondary: #27272a;
+                --secondary-foreground: #fafafa;
+                --muted: #27272a;
+                --muted-foreground: #a1a1aa;
+                --accent: #27272a;
+                --accent-foreground: #fafafa;
+                --destructive: #7f1d1d;
+                --destructive-foreground: #fafafa;
+                --border: #27272a;
+                --input: #27272a;
+                --ring: #d4d4d8;
+            }
+        }
+        
+        @@layer base {
+            * { border-color: var(--border); }
+            body { 
+                background-color: var(--background); 
+                color: var(--foreground); 
+                font-family: var(--font-sans);
+                @@apply antialiased min-h-screen selection:bg-primary selection:text-primary-foreground;
+            }
+        }
+
+        @@layer components {
+            .input-shadcn {
+                @@apply flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-colors;
+            }
+            .btn-primary {
+                @@apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2;
+            }
+            .btn-outline {
+                @@apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2;
+            }
+            .btn-ghost {
+                @@apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2;
+            }
+            .card-shadcn {
+                @@apply rounded-xl border bg-card text-card-foreground shadow-sm;
+            }
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4 md:p-8">
+    <!-- Theme Toggle -->
+    <div class="fixed top-4 right-4 flex gap-1 rounded-full border bg-card p-1 shadow-sm">
+        <button id="btn-theme-light" onclick="setTheme('light')" class="rounded-full p-2 hover:bg-accent text-muted-foreground focus:outline-none transition-colors" title="Light Theme">
+            <i data-lucide="sun" class="h-4 w-4"></i>
+        </button>
+        <button id="btn-theme-dark" onclick="setTheme('dark')" class="rounded-full p-2 hover:bg-accent text-muted-foreground focus:outline-none transition-colors" title="Dark Theme">
+            <i data-lucide="moon" class="h-4 w-4"></i>
+        </button>
+        <button id="btn-theme-system" onclick="setTheme('system')" class="rounded-full p-2 hover:bg-accent text-muted-foreground focus:outline-none transition-colors" title="System Theme">
+            <i data-lucide="monitor" class="h-4 w-4"></i>
+        </button>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div class="card-shadcn p-6 md:p-8">
+            @RenderBody()
+        </div>
+    </main>
+
+    <script>
+        lucide.createIcons();
+
+        function updateThemeButtons(activeTheme) {
+            const buttons = ['light', 'dark', 'system'];
+            buttons.forEach(t => {
+                const btn = document.getElementById('btn-theme-' + t);
+                if (!btn) return;
+                
+                if (t === activeTheme) {
+                    btn.classList.add('bg-primary', 'text-primary-foreground');
+                    btn.classList.remove('text-muted-foreground', 'hover:bg-accent');
+                } else {
+                    btn.classList.remove('bg-primary', 'text-primary-foreground');
+                    btn.classList.add('text-muted-foreground', 'hover:bg-accent');
+                }
+            });
+        }
+
+        // Initialize buttons
+        const currentTheme = localStorage.getItem('sso-theme') || 'system';
+        updateThemeButtons(currentTheme);
+
+        function setTheme(theme) {
+            if (theme === 'system') {
+                localStorage.removeItem('sso-theme');
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                updateThemeButtons('system');
+            } else {
+                localStorage.setItem('sso-theme', theme);
+                if (theme === 'dark') {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+                updateThemeButtons(theme);
+            }
+        }
+
+        // Listen for system theme changes if using system
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if (!localStorage.getItem('sso-theme')) {
+                if (e.matches) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+</body>
+</html>
