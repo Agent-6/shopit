@@ -19,8 +19,7 @@ public class UserRepository(ApplicationDbContext dbContext) : Repository<User, G
         var query = DbSet.AsQueryable();
         if (!string.IsNullOrWhiteSpace(filter))
         {
-            var f = filter.ToLowerInvariant();
-            query = query.Where(u => u.UserName!.Contains(f, StringComparison.CurrentCultureIgnoreCase) || u.Email!.Contains(f, StringComparison.CurrentCultureIgnoreCase));
+            query = query.Where(u => EF.Functions.ILike(u.UserName, $"%{filter}%") || EF.Functions.ILike(u.Email, $"%{filter}%"));
         }
 
         var total = await query.CountAsync(cancellationToken);
