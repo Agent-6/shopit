@@ -1,8 +1,9 @@
-using System;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
+using ShopIt.Authentication.Application.Services;
+using ShopIt.Authentication.Infrastructure.Services;
 using ShopIt.Authentication.Persistence.Data;
 
 namespace ShopIt.Authentication.Infrastructure;
@@ -58,6 +59,9 @@ public static class DependencyInjection
                        .SetRefreshTokenLifetime(TimeSpan.FromDays(14))
                        .SetAuthorizationCodeLifetime(TimeSpan.FromMinutes(5));
 
+                // TODO: remove in non-dev
+                options.DisableAccessTokenEncryption();
+
                 options.AddDevelopmentEncryptionCertificate()
                        .AddDevelopmentSigningCertificate();
 
@@ -74,7 +78,7 @@ public static class DependencyInjection
                 options.UseAspNetCore();
             });
 
-        services.AddHttpClient<ShopIt.Authentication.Application.Services.IIdentityServiceClient, ShopIt.Authentication.Infrastructure.Services.IdentityServiceClient>("IdentityService");
+        services.AddHttpClient<IIdentityServiceClient, IdentityServiceClient>("IdentityService");
 
         return services;
     }

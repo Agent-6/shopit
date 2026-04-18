@@ -75,6 +75,7 @@ using (var scope = app.Services.CreateScope())
         }
 
         // Seed data
+        await SeedScopesAsync(scope.ServiceProvider);
         await SeedOpenIddictApplicationsAsync(scope.ServiceProvider);
     }
     catch (Exception ex)
@@ -85,6 +86,25 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+async Task SeedScopesAsync(IServiceProvider serviceProvider)
+{
+    var scopeManager = serviceProvider.GetRequiredService<IOpenIddictScopeManager>();
+    var existingScope = await scopeManager.FindByNameAsync("shopit-api");
+    if (existingScope != null)
+    {
+        await scopeManager.DeleteAsync(existingScope);
+    }
+    await scopeManager.CreateAsync(new OpenIddictScopeDescriptor
+    {
+        Name = "shopit-api",
+        DisplayName = "ShopIt API Access",
+        Resources =
+        {
+            "identity-api"
+        }
+    });
+}
 
 async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
 {
@@ -105,7 +125,7 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
             ClientType = OpenIddictConstants.ClientTypes.Public,
             RedirectUris = { new Uri("http://localhost:4200/auth-callback"), new Uri("http://localhost:4201/auth-callback") },
             PostLogoutRedirectUris = { 
-                new Uri("http://localhost:4200"), 
+                new Uri("http://localhost:4200"),
                 new Uri("http://localhost:4201"),
                 new Uri("http://localhost:4200/auth-callback"),
                 new Uri("http://localhost:4201/auth-callback")
@@ -114,12 +134,14 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
             {
                 OpenIddictConstants.Permissions.Endpoints.Authorization,
                 OpenIddictConstants.Permissions.Endpoints.Token,
+                OpenIddictConstants.Permissions.Endpoints.Revocation,
                 OpenIddictConstants.Permissions.GrantTypes.AuthorizationCode,
                 OpenIddictConstants.Permissions.GrantTypes.RefreshToken,
                 OpenIddictConstants.Permissions.ResponseTypes.Code,
                 OpenIddictConstants.Permissions.Scopes.Email,
                 OpenIddictConstants.Permissions.Scopes.Profile,
                 OpenIddictConstants.Permissions.Scopes.Roles,
+                $"{OpenIddictConstants.Permissions.Prefixes.Scope}shopit-api",
             },
             Requirements =
             {
@@ -159,5 +181,23 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
         };
         await applicationManager.CreateAsync(descriptor);
     }
+
+    const string identityApiClientId = "identity-api";
+    var existingApiClient = await applicationManager.FindByClientIdAsync(identityApiClientId);
+    if (existingApiClient != null)
+    {
+        await applicationManager.DeleteAsync(existingApiClient);
+    }
+
+    await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
+    {
+        ClientId = identityApiClientId,
+        ClientSecret = "SECRET",
+        DisplayName = "Identity API Resource Server",
+        Permissions =
+        {
+            OpenIddictConstants.Permissions.Endpoints.Introspection,
+        }
+    });
 }
 

@@ -24,15 +24,16 @@ public class IdentityServiceClient : IIdentityServiceClient
         // Add mocked user logic for now
         if (request.Username == "mock@user.com" && request.Password == "mockpassword")
         {
-            return new CredentialValidationResult(Guid.NewGuid(), "Mock User", "mock@user.com");
+            return new CredentialValidationResult(Guid.NewGuid(), Guid.NewGuid(), "Mock User", "mock@user.com");
         }
 
         var payload = new
         {
-            Username = request.Username,
-            Password = request.Password
+            request.Username,
+            request.Password,
         };
 
+        // TODO: remove this after implementing client credintails auth
         _httpClient.DefaultRequestHeaders.Clear();
         _httpClient.DefaultRequestHeaders.Add("X-API-Key", _config["ApiKeys:IdentityService"]);
 

@@ -9,8 +9,10 @@ using OpenIddict.Server.AspNetCore;
 
 namespace ShopIt.Authentication.Presentation.Controllers;
 
-public class AuthorizationController : Controller
+public class AuthorizationController(IOpenIddictScopeManager scopeManager) : Controller
 {
+    private readonly IOpenIddictScopeManager _scopeManager = scopeManager;
+
     [HttpPost("~/connect/token"), Produces("application/json")]
     public async Task<IActionResult> Exchange()
     {
@@ -69,6 +71,15 @@ public class AuthorizationController : Controller
                     identity.AddClaim(new Claim(OpenIddictConstants.Claims.Subject, userId)
                         .SetDestinations(OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken));
                 }
+
+                // TODO: check scope for tenant id claim
+                var tenantId = result.Principal.FindFirst("tenant_id")?.Value;
+                if (!string.IsNullOrEmpty(tenantId))
+                {
+                    identity.AddClaim(new Claim("tenant_id", tenantId)
+                        .SetDestinations(OpenIddictConstants.Destinations.AccessToken));
+                }
+
                 var userName = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
                 if (!string.IsNullOrEmpty(userName))
                 {
@@ -76,8 +87,22 @@ public class AuthorizationController : Controller
                         .SetDestinations(OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken));
                 }
 
+                // TODO: check scope for email claim
+                var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
+                if (!string.IsNullOrEmpty(email))
+                {
+                    identity.AddClaim(new Claim(OpenIddictConstants.Claims.Email, email)
+                        .SetDestinations(OpenIddictConstants.Destinations.AccessToken, OpenIddictConstants.Destinations.IdentityToken));
+                }
+
                 var principal = new ClaimsPrincipal(identity);
-                principal.SetScopes(request.GetScopes());
+                var scopes = request.GetScopes();
+                principal.SetScopes(scopes);
+
+                // for introspection endpoint to work, we need to include the list of resources associated with the requested scopes
+                // without this, custom claims won't be included in claims principal after validation, and we will not have access to tenant_id claim in the API
+                var resources = await _scopeManager.ListResourcesAsync(principal.GetScopes()).ToListAsync();
+                principal.SetResources(resources);
 
                 return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
             }

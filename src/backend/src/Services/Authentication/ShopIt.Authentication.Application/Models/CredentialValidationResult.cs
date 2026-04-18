@@ -1,5 +1,3 @@
-using System;
-
 namespace ShopIt.Authentication.Application.Models;
 
-public record CredentialValidationResult(Guid UserId, string UserName, string Email);
+public record CredentialValidationResult(Guid UserId, Guid TenantId, string UserName, string Email);

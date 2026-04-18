@@ -2,9 +2,6 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
-using System.Net.Http.Json;
 using ShopIt.Authentication.Application.Models;
 using ShopIt.Authentication.Application.Services;
 namespace ShopIt.Authentication.Presentation.Controllers;
@@ -44,6 +41,7 @@ public class AccountController : Controller
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, validationResult?.UserId.ToString()!),
+            new("tenant_id", validationResult?.TenantId.ToString()!),
             new(ClaimTypes.Name, validationResult?.UserName!),
             new(ClaimTypes.Email, validationResult?.Email!),
         };
