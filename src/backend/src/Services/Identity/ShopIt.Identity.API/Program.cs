@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Validation.AspNetCore;
 using ShopIt.Framework.Presentation;
-using ShopIt.Identity.API;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Domain.Entities;
@@ -47,18 +47,45 @@ builder.Services.AddIdentityCore<User>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+// Add OpenIddict validation
+builder.Services.AddOpenIddict()
+    .AddValidation(options =>
+    {
+        // Point to your Auth Server
+        options.SetIssuer("https://localhost:7234/");  // Your Auth Server URL
+
+        // Add the audience that matches the token's audience
+        //options.AddAudiences("angular-spa");  // Same as your Angular client ID
+
+        // Configure introspection with client credentials
+        options.UseIntrospection()
+               .SetClientId("identity-api")      // The client you created
+               .SetClientSecret("SECRET");  // Same secret as above
+
+        //options.AddEncryptionKey(new SymmetricSecurityKey(
+        //        Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
+
+        options.UseSystemNetHttp();
+
+        options.UseAspNetCore();
+    });
+
+// Add authentication and authorization
+builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+builder.Services.AddAuthorization();
+
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ITenantResolutionStrategy, HeaderTenantResolutionStrategy>();
-builder.Services.AddScoped<ITenantContext, TenantContext>();
+builder.Services.AddScoped<ICurrentTenant, CurrentTenant>();
 
 var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
 
 app.MapDefaultEndpoints();
-
-app.UseMiddleware<TenantResolutionMiddleware>();
 
 app.MapEndpoints();
 //app.MapPost("/users", async (
@@ -141,10 +168,10 @@ static async Task SeedRoles(IServiceProvider services)
 {
     using var scope = services.CreateScope();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
-    var tenantContext = scope.ServiceProvider.GetRequiredService<ITenantContext>();
+    var currentTenant = scope.ServiceProvider.GetRequiredService<ICurrentTenant>();
 
     // Set a default tenant for seeding (you might want to handle this differently)
-    tenantContext.SetTenant(new(Guid.Empty, "Host")); // System-wide roles
+    using var tenantChange = currentTenant.Change(new TenantInfo(Guid.Empty, "Host")); // System-wide roles
 
     string[] roles = { "Admin", "User", "Manager" };
     foreach (var roleName in roles)
