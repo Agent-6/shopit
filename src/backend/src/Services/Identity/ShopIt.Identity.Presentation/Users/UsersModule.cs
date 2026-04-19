@@ -20,19 +20,18 @@ public class UsersModule : EndpointsModule
     public override void RegisterEndpoints(IEndpointRouteBuilder app)
     {
         // User CRUD Operations
-        app.MapGet("/", GetUsers);
-        app.MapGet("/{userId:guid}", GetUserById);
-        app.MapPost("/", CreateUser);
-        app.MapPut("/{userId:guid}", UpdateUser);
-        app.MapDelete("/{userId:guid}", DeleteUser);
-
+        app.MapGet("/", GetUsers).RequireAuthorization();
+        app.MapGet("/{userId:guid}", GetUserById).RequireAuthorization();
+        app.MapPost("/", CreateUser).RequireAuthorization();
+        app.MapPut("/{userId:guid}", UpdateUser).RequireAuthorization();
+        app.MapDelete("/{userId:guid}", DeleteUser).RequireAuthorization();
         // User Permissions
-        app.MapGet("/{userId:guid}/permissions", GetUserPermissions);
-        app.MapPut("/{userId:guid}/permissions", UpdateUserPermissions);
+        app.MapGet("/{userId:guid}/permissions", GetUserPermissions).RequireAuthorization();
+        app.MapPut("/{userId:guid}/permissions", UpdateUserPermissions).RequireAuthorization();
 
         // User Claims
-        app.MapGet("/{userId:guid}/claims", GetUserClaims);
-        app.MapPut("/{userId:guid}/claims", UpdateUserClaims);
+        app.MapGet("/{userId:guid}/claims", GetUserClaims).RequireAuthorization();
+        app.MapPut("/{userId:guid}/claims", UpdateUserClaims).RequireAuthorization();
     }
 
     private async Task<IResult> GetUsers(
