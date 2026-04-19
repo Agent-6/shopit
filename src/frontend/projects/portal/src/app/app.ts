@@ -1,6 +1,6 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { AuthService } from './auth.service';
+import { AuthService } from './core/auth/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -9,9 +9,11 @@ import { AuthService } from './auth.service';
   styleUrl: './app.css'
 })
 export class App {
+  private readonly authService = inject(AuthService);
   protected readonly title = signal('portal');
 
-  constructor(private authService: AuthService) {
+  constructor() {
     // Explicitly triggers instantiation to kick-off silent OIDC evaluation
+    this.authService.configure();
   }
 }
