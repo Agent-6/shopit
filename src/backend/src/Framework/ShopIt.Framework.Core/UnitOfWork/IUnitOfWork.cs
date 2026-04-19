@@ -30,4 +30,12 @@ public interface IUnitOfWork
     /// <remarks>This method should be called after all operations within a transaction are completed, and before committing the transaction.</remarks>
     /// <returns>Number of entities affected by the changes.</returns>
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Executes the provided action within a transaction. If a transaction is already in progress, it will be reused for the current operation. If any exception occurs during the execution of the action, the transaction will be rolled back.
+    /// </summary>
+    /// <param name="action"></param>
+    /// <param name="cancellationToken"></param>
+    /// <returns></returns>
+    Task<TResult> ExecuteAsync<TResult>(Func<Task<TResult>> action, CancellationToken cancellationToken = default);
 }

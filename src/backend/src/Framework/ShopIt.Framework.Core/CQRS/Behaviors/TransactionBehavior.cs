@@ -19,21 +19,6 @@ public class TransactionBehavior<TCommand, TResult>(
         RequestHandlerDelegate<TResult> next,
         CancellationToken cancellationToken)
     {
-        try
-        {
-            await _unitOfWork.BeginTransactionAsync(cancellationToken);
-
-            var response = await next();
-
-            await _unitOfWork.CommitAsync(cancellationToken);
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Transaction failed for {Command}", typeof(TCommand).Name);
-            await _unitOfWork.RollbackAsync(cancellationToken);
-            throw;
-        }
+        return await _unitOfWork.ExecuteAsync(async () => await next(), cancellationToken);
     }
 }
