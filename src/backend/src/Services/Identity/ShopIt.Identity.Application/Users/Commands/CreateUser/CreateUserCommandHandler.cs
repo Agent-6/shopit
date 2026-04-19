@@ -7,10 +7,10 @@ namespace ShopIt.Identity.Application.Users.Commands.CreateUser;
 
 public class CreateUserCommandHandler(
     UserManager<User> userManager,
-    ITenantContext tenantContext) : ICommandHandler<CreateUserCommand, CreateUserResult>
+    ICurrentTenant currentTenant) : ICommandHandler<CreateUserCommand, CreateUserResult>
 {
     private readonly UserManager<User> _userManager = userManager;
-    private readonly ITenantContext _tenantContext = tenantContext;
+    private readonly ICurrentTenant _currentTenant = currentTenant;
 
     public async Task<CreateUserResult> HandleAsync(CreateUserCommand request, CancellationToken cancellationToken)
     {
@@ -20,7 +20,7 @@ public class CreateUserCommandHandler(
             userId,
             request.Email,
             request.Username,
-            _tenantContext.CurrentTenantId,
+            _currentTenant.Id,
             createdBy: "system"
         );
 
