@@ -1,7 +1,4 @@
-using System;
-using System.Net.Http;
 using System.Net.Http.Json;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using ShopIt.Authentication.Application.Models;
 using ShopIt.Authentication.Application.Services;
@@ -24,7 +21,13 @@ public class IdentityServiceClient : IIdentityServiceClient
         // Add mocked user logic for now
         if (request.Username == "mock@user.com" && request.Password == "mockpassword")
         {
-            return new CredentialValidationResult(Guid.NewGuid(), Guid.NewGuid(), "Mock User", "mock@user.com");
+            // WATCH: empty guid for host user.
+            return new CredentialValidationResult(Guid.NewGuid(), Guid.Empty, "Mock User", "mock@user.com");
+        }
+
+        if (request.Username == "tenant@user.com" && request.Password == "mockpassword")
+        {
+            return new CredentialValidationResult(Guid.NewGuid(), new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), "Tenant User", "tenant@user.com");
         }
 
         var payload = new
