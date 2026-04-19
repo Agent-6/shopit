@@ -3,13 +3,24 @@ using Scalar.Aspire;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-var postgres = builder.AddPostgres("postgres")
+var authPostgres = builder.AddPostgres("auth-postgres")
     .WithPgAdmin()
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent);
 
-var authDb = postgres.AddDatabase("auth-db");
-var identityDb = postgres.AddDatabase("identity-db");
+var identityPostgres = builder.AddPostgres("identity-postgres")
+    .WithPgAdmin()
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
+
+var tenancyPostgres = builder.AddPostgres("tenancy-postgres")
+    .WithPgAdmin()
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
+
+var authDb = authPostgres.AddDatabase("auth-db");
+var identityDb = identityPostgres.AddDatabase("identity-db");
+var tenancyDb = tenancyPostgres.AddDatabase("tenancy-db");
 
 var seq = builder.AddSeq("seq")
     .ExcludeFromManifest()
@@ -28,6 +39,12 @@ var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WaitFor(identityDb)
     .WaitFor(seq);
 
+var tenancy = builder.AddProject<Projects.ShopIt_Tenancy_API>("tenancy-api")
+    .WithReference(tenancyDb)
+    .WithReference(seq)
+    .WaitFor(tenancyDb)
+    .WaitFor(seq);
+
 var gateway = builder.AddYarp("gateway")
     .WithHostPort(5000)
     .WithHostHttpsPort(5001)
@@ -42,6 +59,10 @@ var gateway = builder.AddYarp("gateway")
         yarp.AddRoute("/api/auth/{**catch-all}", auth)
             .WithTransformPathRemovePrefix("/api/auth");
 
+        // Route for Tenancy API - removes /api/tenancy prefix
+        yarp.AddRoute("/api/tenancy/{**catch-all}", tenancy)
+            .WithTransformPathRemovePrefix("/api/tenancy");
+
         // Optional: Serve static files (your Angular app)
         // yarp.WithStaticFiles("../ShopIt.Angular/dist");
     });
@@ -54,9 +75,11 @@ var scalar = builder.AddScalarApiReference(options => options
 scalar
     .WithApiReference(auth)
     .WithApiReference(identity)
+    .WithApiReference(tenancy)
     .WithApiReference(gateway)
     .WaitFor(auth)
     .WaitFor(identity)
+    .WaitFor(tenancy)
     .WaitFor(gateway);
 
 builder.Build().Run();
