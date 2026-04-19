@@ -2,7 +2,7 @@ import { Component, HostListener, signal, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { ThemeService, Theme } from '../../shared/services/theme.service';
-import { AuthService } from '../../auth.service';
+import { AuthService } from '../../core/auth/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -80,8 +80,8 @@ import { AuthService } from '../../auth.service';
         }
 
         <!-- User profile area -->
-        <div class="flex items-center w-full transition-all duration-300" 
-             [class.gap-3]="isExpanded()" 
+        <div class="flex items-center w-full transition-all duration-300"
+             [class.gap-3]="isExpanded()"
              [class.px-1]="isExpanded()"
              [class.justify-center]="!isExpanded()">
           <div class="h-8 w-8 bg-primary/10 text-primary border border-primary/20 rounded-full flex items-center justify-center shrink-0 font-medium text-xs">
@@ -93,7 +93,7 @@ import { AuthService } from '../../auth.service';
               <div class="text-sm font-medium leading-none truncate">{{ userName }}</div>
               <div class="text-xs text-muted-foreground truncate mt-1">{{ userEmail }}</div>
             </div>
-            
+
             <button (click)="logout()" class="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md focus:outline-none transition-colors" title="Log Out">
               <ui-icon name="log-out" class="h-4 w-4"></ui-icon>
             </button>
