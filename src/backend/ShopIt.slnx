@@ -28,6 +28,14 @@
         <Project Path="src/Services/Identity/ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Presentation/ShopIt.Identity.Presentation.csproj" />
       </Folder>
+  <Folder Name="/src/Services/Tenancy/">
+    <Project Path="src/Services/Tenancy/ShopIt.Tenancy.API/ShopIt.Tenancy.API.csproj" Id="6b5a94c3-9add-4ddd-950c-839fd82783d0" />
+    <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Application/ShopIt.Tenancy.Application.csproj" Id="251a74ac-ff59-4907-8c6b-dd49534efcb5" />
+    <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Domain/ShopIt.Tenancy.Domain.csproj" Id="9d36bd0d-be59-4aef-b3bf-97d8f2f5da8e" />
+    <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Infrastructure/ShopIt.Tenancy.Infrastructure.csproj" Id="bbc3a992-4b5e-489d-9c84-b5b719178892" />
+    <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Persistence/ShopIt.Tenancy.Persistence.csproj" Id="e004d938-4de9-4df5-aa8e-f37f699442e3" />
+    <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Presentation/ShopIt.Tenancy.Presentation.csproj" Id="7e0a09e6-6285-4c17-b29a-e5db911d6576" />
+  </Folder>
   <Project Path="ShopIt.AppHost/ShopIt.AppHost.csproj" />
   <Project Path="ShopIt.ServiceDefaults/ShopIt.ServiceDefaults.csproj" />
 </Solution>
