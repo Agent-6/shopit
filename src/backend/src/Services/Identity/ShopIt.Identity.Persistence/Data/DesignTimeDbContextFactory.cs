@@ -4,9 +4,9 @@ using ShopIt.Identity.Domain.Tenancy;
 
 namespace ShopIt.Identity.Persistence.Data;
 
-public class DesignTimeDbContextFactory(ICurrentTenant currentTenant) : IDesignTimeDbContextFactory<ApplicationDbContext>
+public class DesignTimeDbContextFactory() : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
-    private readonly ICurrentTenant _currentTenant = currentTenant;
+    private readonly ICurrentTenant _currentTenant = null!;
     
     public ApplicationDbContext CreateDbContext(string[] args)
     {

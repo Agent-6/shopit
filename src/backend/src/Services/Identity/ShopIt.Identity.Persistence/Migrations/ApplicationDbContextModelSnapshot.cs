@@ -56,6 +56,8 @@ namespace ShopIt.Identity.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("AspNetRoles", (string)null);
                 });
 
@@ -87,6 +89,8 @@ namespace ShopIt.Identity.Persistence.Migrations
                     b.HasIndex("RoleId");
 
                     b.HasIndex("RoleId1");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("AspNetRoleClaims", (string)null);
                 });
@@ -181,6 +185,8 @@ namespace ShopIt.Identity.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
+                    b.HasIndex("TenantId");
+
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
@@ -208,6 +214,8 @@ namespace ShopIt.Identity.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UserId");
 
@@ -238,6 +246,8 @@ namespace ShopIt.Identity.Persistence.Migrations
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("UserId");
 
                     b.HasIndex("UserId1");
@@ -266,6 +276,8 @@ namespace ShopIt.Identity.Persistence.Migrations
 
                     b.HasIndex("RoleId");
 
+                    b.HasIndex("TenantId");
+
                     b.HasIndex("UserId1");
 
                     b.ToTable("AspNetUserRoles", (string)null);
@@ -292,6 +304,8 @@ namespace ShopIt.Identity.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("UserId", "LoginProvider", "Name");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("UserId1");
 

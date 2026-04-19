@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace ShopIt.Identity.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class init : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -217,10 +217,25 @@ namespace ShopIt.Identity.Persistence.Migrations
                 column: "RoleId1");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AspNetRoleClaims_TenantId",
+                table: "AspNetRoleClaims",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetRoles_TenantId",
+                table: "AspNetRoles",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "RoleNameIndex",
                 table: "AspNetRoles",
                 column: "NormalizedName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserClaims_TenantId",
+                table: "AspNetUserClaims",
+                column: "TenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserClaims_UserId",
@@ -231,6 +246,11 @@ namespace ShopIt.Identity.Persistence.Migrations
                 name: "IX_AspNetUserClaims_UserId1",
                 table: "AspNetUserClaims",
                 column: "UserId1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserLogins_TenantId",
+                table: "AspNetUserLogins",
+                column: "TenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserLogins_UserId",
@@ -248,6 +268,11 @@ namespace ShopIt.Identity.Persistence.Migrations
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserRoles_TenantId",
+                table: "AspNetUserRoles",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserRoles_UserId1",
                 table: "AspNetUserRoles",
                 column: "UserId1");
@@ -258,10 +283,20 @@ namespace ShopIt.Identity.Persistence.Migrations
                 column: "NormalizedEmail");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_TenantId",
+                table: "AspNetUsers",
+                column: "TenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "UserNameIndex",
                 table: "AspNetUsers",
                 column: "NormalizedUserName",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUserTokens_TenantId",
+                table: "AspNetUserTokens",
+                column: "TenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetUserTokens_UserId1",
