@@ -20,6 +20,9 @@ builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplication();
 
 builder.Services.AddPersistence("identity-db", builder.Configuration);
+// TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder
+builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
+
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<User>(options =>
 {
@@ -88,35 +91,14 @@ app.UseHttpsRedirection();
 app.MapDefaultEndpoints();
 
 app.MapEndpoints();
-//app.MapPost("/users", async (
-//    CreateUserCommand command,
-//    IDispatcher dispatcher,
-//    CancellationToken cancellationToken) =>
-//{
-//    var userId = await dispatcher.SendAsync(command, cancellationToken);
-//    return Results.Created($"/users/{userId}", new { Id = userId });
-//});
 
-//app.MapPost("/users/roles", async (
-//    IDispatcher dispatcher,
-//    CancellationToken cancellationToken) =>
-//{
-//    var message = await dispatcher.SendAsync(new AssignUserToRoleCommand(), cancellationToken);
-//    return Results.Ok(new { Message = message });
-//});
-
-//app.MapGet("/users/{userId}", async (
-//    Guid userId,
-//    IDispatcher dispatcher,
-//    CancellationToken cancellationToken) =>
-//{
-//    var user = await dispatcher.QueryAsync(new GetUserQuery(userId), cancellationToken);
-//    return Results.Ok(user);
-//});
-
-// In Program.cs, before app.Run()
 using (var scope = app.Services.CreateScope())
 {
+    var currentTenant = scope.ServiceProvider.GetRequiredService<ICurrentTenant>();
+
+    // Set a default tenant for seeding (you might want to handle this differently)
+    using var tenantChange = currentTenant.Change(new TenantInfo(Guid.Empty, "Host")); // System-wide roles
+
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
 
@@ -166,12 +148,7 @@ app.Run();
 
 static async Task SeedRoles(IServiceProvider services)
 {
-    using var scope = services.CreateScope();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
-    var currentTenant = scope.ServiceProvider.GetRequiredService<ICurrentTenant>();
-
-    // Set a default tenant for seeding (you might want to handle this differently)
-    using var tenantChange = currentTenant.Change(new TenantInfo(Guid.Empty, "Host")); // System-wide roles
+    var roleManager = services.GetRequiredService<RoleManager<Role>>();
 
     string[] roles = { "Admin", "User", "Manager" };
     foreach (var roleName in roles)
