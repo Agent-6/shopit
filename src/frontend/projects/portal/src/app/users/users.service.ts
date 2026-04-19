@@ -53,7 +53,6 @@ export class UsersService {
   async loadUsers(): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
-    debugger
 
     try {
       const result = await lastValueFrom(
@@ -149,7 +148,7 @@ export class UsersService {
     try {
       const response = await lastValueFrom(
         this.http.get<UserPermissionRequest[] | { permissions: UserPermissionRequest[] }>(
-          `${this.baseUrl}users/${userId}/permissions`
+          `${this.baseUrl}/users/${userId}/permissions`
         )
       );
       this.permissions.set(Array.isArray(response) ? response : response.permissions ?? []);
