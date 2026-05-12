@@ -1,0 +1,42 @@
+{
+  "features": {
+    "ghcr.io/daniellindemann/dev-container-features/dotnet-usersecrets-persistence:0": {
+      "version": "0.0.1",
+      "resolved": "ghcr.io/daniellindemann/dev-container-features/dotnet-usersecrets-persistence@sha256:8a5214a74316bb86100cb45d2047cf8ec41486b34c239cf2b93f0e9053635bee",
+      "integrity": "sha256:8a5214a74316bb86100cb45d2047cf8ec41486b34c239cf2b93f0e9053635bee"
+    },
+    "ghcr.io/devcontainers-extra/features/angular-cli:2": {
+      "version": "2.0.16",
+      "resolved": "ghcr.io/devcontainers-extra/features/angular-cli@sha256:ce6e5b54a1da409b24f84c624ec8973e6027c6e1bad0385fe65d7fa3e2db5bc8",
+      "integrity": "sha256:ce6e5b54a1da409b24f84c624ec8973e6027c6e1bad0385fe65d7fa3e2db5bc8"
+    },
+    "ghcr.io/devcontainers-extra/features/pnpm:2": {
+      "version": "2.0.5",
+      "resolved": "ghcr.io/devcontainers-extra/features/pnpm@sha256:694c2b6182435c9e9c06f6071728b087c1181b38c18cecf0defe2ab8c11cddd6",
+      "integrity": "sha256:694c2b6182435c9e9c06f6071728b087c1181b38c18cecf0defe2ab8c11cddd6"
+    },
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "2.16.1",
+      "resolved": "ghcr.io/devcontainers/features/docker-in-docker@sha256:ce078b7bf7d9ef3bcb9813b32103795d8d72172446890b64772cbe1dec6baafd",
+      "integrity": "sha256:ce078b7bf7d9ef3bcb9813b32103795d8d72172446890b64772cbe1dec6baafd"
+    },
+    "ghcr.io/devcontainers/features/dotnet": {
+      "version": "2.5.0",
+      "resolved": "ghcr.io/devcontainers/features/dotnet@sha256:0fc16547ed4db6d7ff2a9f5981d2b93eb314e568affb9958029ad794f1f9a093",
+      "integrity": "sha256:0fc16547ed4db6d7ff2a9f5981d2b93eb314e568affb9958029ad794f1f9a093"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "1.3.5",
+      "resolved": "ghcr.io/devcontainers/features/git@sha256:27905dc196c01f77d6ba8709cb82eeaf330b3b108772e2f02d1cd0d826de1251",
+      "integrity": "sha256:27905dc196c01f77d6ba8709cb82eeaf330b3b108772e2f02d1cd0d826de1251"
+    },
+    "ghcr.io/dotnet/aspire-devcontainer-feature/dotnetaspire:1": {
+      "version": "1.0.0",
+      "resolved": "ghcr.io/dotnet/aspire-devcontainer-feature/dotnetaspire@sha256:21cf32b051d4afc63f3301ac2d1343394c6be53dbf370f9bf9e7b63c78aefd9b",
+      "integrity": "sha256:21cf32b051d4afc63f3301ac2d1343394c6be53dbf370f9bf9e7b63c78aefd9b",
+      "dependsOn": [
+        "ghcr.io/devcontainers/features/dotnet"
+      ]
+    }
+  }
+}
