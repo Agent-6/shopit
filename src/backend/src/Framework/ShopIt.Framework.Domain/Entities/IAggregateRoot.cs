@@ -1,3 +1,5 @@
+using ShopIt.Framework.Domain.Events;
+
 namespace ShopIt.Framework.Domain.Entities;
 
 /// <summary>

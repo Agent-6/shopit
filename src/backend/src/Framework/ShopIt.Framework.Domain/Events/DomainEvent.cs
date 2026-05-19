@@ -1,4 +1,6 @@
-namespace ShopIt.Framework.Domain.Entities;
+using ShopIt.Framework.Domain.Providers;
+
+namespace ShopIt.Framework.Domain.Events;
 
 /// <summary>
 /// Base class for domain events.
@@ -21,8 +23,8 @@ public abstract class DomainEvent : IDomainEvent
     /// </summary>
     protected DomainEvent()
     {
-        EventId = Guid.NewGuid();
-        OccurredOn = DateTime.UtcNow;
+        EventId = DomainProviders.Guid.NewGuid();
+        OccurredOn = DomainProviders.Date.UtcNow;
     }
 
     /// <summary>

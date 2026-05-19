@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Framework.Domain.Events;
 using ShopIt.Identity.Domain.Events.RoleEvents;
 using ShopIt.Identity.Domain.Tenancy;
 
@@ -14,10 +15,7 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
 
     protected void RaiseDomainEvent(IDomainEvent domainEvent)
     {
-        if (domainEvent == null)
-        {
-            throw new ArgumentNullException(nameof(domainEvent));
-        }
+        ArgumentNullException.ThrowIfNull(domainEvent);
 
         _domainEvents.Add(domainEvent);
     }

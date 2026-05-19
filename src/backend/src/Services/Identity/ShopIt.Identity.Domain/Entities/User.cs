@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Framework.Domain.Events;
 using ShopIt.Identity.Domain.Enums;
 using ShopIt.Identity.Domain.Events.UserEvents;
 using ShopIt.Identity.Domain.Tenancy;
@@ -15,10 +16,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
 
     protected void RaiseDomainEvent(IDomainEvent domainEvent)
     {
-        if (domainEvent == null)
-        {
-            throw new ArgumentNullException(nameof(domainEvent));
-        }
+        ArgumentNullException.ThrowIfNull(domainEvent);
 
         _domainEvents.Add(domainEvent);
     }

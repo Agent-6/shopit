@@ -1,4 +1,6 @@
-namespace ShopIt.Framework.Domain.Entities;
+using ShopIt.Framework.Domain.Providers;
+
+namespace ShopIt.Framework.Domain.Events;
 
 /// <summary>
 /// Represents a marker interface for domain events.
@@ -9,10 +11,10 @@ public interface IDomainEvent
     /// <summary>
     /// Gets the unique identifier for this domain event.
     /// </summary>
-    Guid EventId => Guid.NewGuid();
+    Guid EventId => DomainProviders.Guid.NewGuid();
 
     /// <summary>
     /// Gets the timestamp when the event occurred.
     /// </summary>
-    DateTime OccurredOn => DateTime.UtcNow;
+    DateTime OccurredOn => DomainProviders.Date.UtcNow;
 }

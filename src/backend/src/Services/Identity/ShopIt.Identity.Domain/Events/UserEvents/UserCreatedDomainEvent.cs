@@ -1,4 +1,4 @@
-using ShopIt.Framework.Domain.Entities;
+using ShopIt.Framework.Domain.Events;
 using ShopIt.Identity.Domain.Entities;
 
 namespace ShopIt.Identity.Domain.Events.UserEvents;

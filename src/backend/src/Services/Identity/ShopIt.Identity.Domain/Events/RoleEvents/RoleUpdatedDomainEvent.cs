@@ -1,4 +1,4 @@
-using ShopIt.Framework.Domain.Entities;
+using ShopIt.Framework.Domain.Events;
 
 namespace ShopIt.Identity.Domain.Events.RoleEvents;
 

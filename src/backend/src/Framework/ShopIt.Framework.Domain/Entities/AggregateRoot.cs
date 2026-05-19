@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using ShopIt.Framework.Domain.Events;
 
 namespace ShopIt.Framework.Domain.Entities;
 
@@ -40,10 +41,7 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot<TId>
     /// <param name="domainEvent">The domain event to raise.</param>
     protected void RaiseDomainEvent(IDomainEvent domainEvent)
     {
-        if (domainEvent == null)
-        {
-            throw new ArgumentNullException(nameof(domainEvent));
-        }
+        ArgumentNullException.ThrowIfNull(domainEvent);
 
         _domainEvents.Add(domainEvent);
     }
