@@ -1,28 +1,31 @@
 namespace ShopIt.Framework.Domain.Providers;
 
 /// <summary>
-/// Static gateway for accessing Guid and Date providers in domain models and tests.
+/// Static gateway for accessing Guid and Date providers in domain models.
 /// </summary>
-public static class DomainProviders
+internal static class DomainProviders
 {
-    private static IGuidProvider _guid = new GuidProvider();
-    private static IDateProvider _date = new DateProvider();
+    /// <summary>
+    /// The global GUID provider.
+    /// </summary>
+    internal static IGuidProvider Guid { get; private set; } = default!;
 
     /// <summary>
-    /// Gets or sets the global GUID provider.
+    /// The global date and time provider.
     /// </summary>
-    public static IGuidProvider Guid
-    {
-        get => _guid;
-        set => _guid = value ?? throw new ArgumentNullException(nameof(value));
-    }
+    internal static IDateProvider Date { get; private set; } = default!;
 
     /// <summary>
-    /// Gets or sets the global date and time provider.
+    /// Internal method to set the global providers (used by the DI extension).
     /// </summary>
-    public static IDateProvider Date
+    /// <param name="guidProvider">The GUID provider to set.</param>
+    /// <param name="dateProvider">The date provider to set.</param>
+    internal static void SetProviders(IGuidProvider guidProvider, IDateProvider dateProvider)
     {
-        get => _date;
-        set => _date = value ?? throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(guidProvider, nameof(guidProvider));
+        ArgumentNullException.ThrowIfNull(dateProvider, nameof(dateProvider));
+
+        Guid = guidProvider;
+        Date = dateProvider;
     }
 }

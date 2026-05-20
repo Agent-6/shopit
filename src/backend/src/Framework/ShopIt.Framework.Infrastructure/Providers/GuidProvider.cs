@@ -1,9 +1,11 @@
-namespace ShopIt.Framework.Domain.Providers;
+using ShopIt.Framework.Domain.Providers;
+
+namespace ShopIt.Framework.Infrastructure.Providers;
 
 /// <summary>
 /// Default implementation of <see cref="IGuidProvider"/> using standard System.Guid.
 /// </summary>
-public class GuidProvider : IGuidProvider
+internal class GuidProvider : IGuidProvider
 {
     /// <inheritdoc />
     public Guid NewGuid() => Guid.NewGuid();

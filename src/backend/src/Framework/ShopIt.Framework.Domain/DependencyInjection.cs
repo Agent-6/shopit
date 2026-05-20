@@ -15,9 +15,21 @@ public static class DependencyInjection
     /// <returns>The service collection with registered domain services.</returns>
     public static IServiceCollection AddDomainServices(this IServiceCollection services)
     {
-        services.AddSingleton<IDateProvider, DateProvider>();
-        services.AddSingleton<IGuidProvider, GuidProvider>();
-
         return services;
+    }
+
+    /// <summary>
+    /// Uses the domain services.
+    /// </summary>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <returns>The service provider with registered domain services.</returns>
+    public static IServiceProvider UseDomainServices(this IServiceProvider serviceProvider)
+    {
+        var guidProvider = serviceProvider.GetRequiredService<IGuidProvider>();
+        var dateProvider = serviceProvider.GetRequiredService<IDateProvider>();
+
+        DomainProviders.SetProviders(guidProvider, dateProvider);
+
+        return serviceProvider;
     }
 }

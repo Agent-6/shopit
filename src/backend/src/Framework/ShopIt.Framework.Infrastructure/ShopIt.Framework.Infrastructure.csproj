@@ -4,5 +4,10 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
+    <ProjectReference Include="..\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
+  </ItemGroup>
 
 </Project>
