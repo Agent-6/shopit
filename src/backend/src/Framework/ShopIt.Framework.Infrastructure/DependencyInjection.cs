@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ShopIt.Framework.Domain.Providers;
+using ShopIt.Framework.Infrastructure.Providers;
 
 namespace ShopIt.Framework.Infrastructure;
 
@@ -13,6 +15,9 @@ public static class DependencyInjection
     /// <returns>The same service collection instance, enabling method chaining.</returns>
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton<IDateProvider, DateProvider>();
+        services.AddSingleton<IGuidProvider, GuidProvider>();
+
         return services;
     }
 }
