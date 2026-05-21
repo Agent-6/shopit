@@ -1,16 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\ShopIt.ServiceDefaults\ShopIt.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
-    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Persistence\ShopIt.Identity.Persistence.csproj" />
-    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Presentation\ShopIt.Identity.Presentation.csproj" />
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
+    <ProjectReference Include="..\ShopIt.Tenancy.Application\ShopIt.Tenancy.Application.csproj" />
+    <ProjectReference Include="..\ShopIt.Tenancy.Persistence\ShopIt.Tenancy.Persistence.csproj" />
+    <ProjectReference Include="..\ShopIt.Tenancy.Presentation\ShopIt.Tenancy.Presentation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
