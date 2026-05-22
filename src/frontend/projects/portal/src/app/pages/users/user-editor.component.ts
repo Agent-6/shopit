@@ -1,6 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
 import { User, UserClaimRequest, CreateUserRequest, UpdateUserRequest } from './users.model';
-import { UiButtonComponent } from '../shared/components/ui-button.component';
+import { UiButtonComponent } from '../../shared/components/ui-button.component';
 
 type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> & { password?: string | null };
 

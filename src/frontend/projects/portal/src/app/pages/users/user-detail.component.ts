@@ -3,7 +3,7 @@ import { UsersService } from './users.service';
 import { UserClaimRequest, UserPermissionRequest, UpdateUserRequest } from './users.model';
 import { UserEditorComponent } from './user-editor.component';
 import { Component, computed, inject, signal } from '@angular/core';
-import { UiButtonComponent } from '../shared/components/ui-button.component';
+import { UiButtonComponent } from '../../shared/components/ui-button.component';
 
 @Component({
   selector: 'app-user-detail',

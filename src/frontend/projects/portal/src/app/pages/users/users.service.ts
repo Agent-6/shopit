@@ -12,7 +12,7 @@ import {
   UserClaimRequest,
   UserPermissionRequest
 } from './users.model';
-import { environment } from '../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {

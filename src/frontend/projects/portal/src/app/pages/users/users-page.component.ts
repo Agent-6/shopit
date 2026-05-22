@@ -2,8 +2,8 @@ import { RouterLink } from '@angular/router';
 import { UsersService } from './users.service';
 import { CreateUserRequest, UpdateUserRequest, User } from './users.model';
 import { UserEditorComponent } from './user-editor.component';
-import { UiButtonComponent } from '../shared/components/ui-button.component';
-import { UiIconComponent } from '../shared/components/ui-icon.component';
+import { UiButtonComponent } from '../../shared/components/ui-button.component';
+import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 
 @Component({
