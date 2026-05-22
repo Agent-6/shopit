@@ -24,7 +24,7 @@ public interface ITenantRepository : IRepository<Tenant, Guid>
     /// <param name="filter">Optional search filter string.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The list of tenants in the page and the total count matching the criteria.</returns>
-    Task<(IEnumerable<Tenant> Tenants, int TotalCount)> GetPagedAsync(
+    Task<(IEnumerable<Tenant> Tenants, long TotalCount, long TotalPages)> GetPagedAsync(
         int page, 
         int pageSize, 
         string? filter, 
