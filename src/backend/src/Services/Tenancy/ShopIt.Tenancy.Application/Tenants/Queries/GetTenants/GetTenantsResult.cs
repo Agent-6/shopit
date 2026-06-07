@@ -2,7 +2,7 @@ namespace ShopIt.Tenancy.Application.Tenants.Queries.GetTenants;
 
 public record GetTenantsResult(
     IEnumerable<GetTenantsTenantItem> Items,
-    int TotalCount,
-    int Page,
+    int PageNumber,
     int PageSize,
-    int TotalPages);
+    long TotalCount,
+    long TotalPages);
