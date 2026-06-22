@@ -32,13 +32,13 @@ public class TenantsModule : EndpointsModule
     }
 
     private async Task<IResult> GetTenants(
+        [FromQuery] int pageNumber,
+        [FromQuery] int pageSize,
+        [FromQuery] string? filter,
         IDispatcher dispatcher,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string? filter = null,
         CancellationToken cancellationToken = default)
     {
-        var result = await dispatcher.QueryAsync(new GetTenantsQuery(page, pageSize, filter), cancellationToken);
+        var result = await dispatcher.QueryAsync(new GetTenantsQuery(pageNumber, pageSize, filter), cancellationToken);
         return Results.Ok(result);
     }
 
@@ -74,7 +74,7 @@ public class TenantsModule : EndpointsModule
 
     private async Task<IResult> DeleteTenant(
         Guid tenantId,
-        IDispatcher dispatcher = null!,
+        IDispatcher dispatcher,
         CancellationToken cancellationToken = default)
     {
         var cmd = new DeleteTenantCommand(tenantId);

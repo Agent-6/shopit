@@ -10,8 +10,8 @@ public class GetTenantsQueryHandler(ITenantRepository tenantRepository)
 
     public async Task<GetTenantsResult> HandleAsync(GetTenantsQuery request, CancellationToken cancellationToken)
     {
-        var (tenants, totalCount) = await _tenantRepository.GetPagedAsync(
-            request.Page,
+        var (tenants, totalCount, totalPages) = await _tenantRepository.GetPagedAsync(
+            request.PageNumber,
             request.PageSize,
             request.Filter,
             cancellationToken
@@ -25,13 +25,11 @@ public class GetTenantsQueryHandler(ITenantRepository tenantRepository)
             LastModifiedOn: t.LastModifiedOn
         ));
 
-        var totalPages = (int)Math.Ceiling((double)totalCount / request.PageSize);
-
         return new GetTenantsResult(
             Items: items,
-            TotalCount: totalCount,
-            Page: request.Page,
+            PageNumber: request.PageNumber,
             PageSize: request.PageSize,
+            TotalCount: totalCount,
             TotalPages: totalPages
         );
     }
