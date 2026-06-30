@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { UsersPageComponent } from './users/users-page.component';
-import { UserDetailComponent } from './users/user-detail.component';
+import { UsersPageComponent } from './pages/users/users-page.component';
+import { UserDetailComponent } from './pages/users/user-detail.component';
 import { authGuard } from './core/auth/auth.guard';
 import { AuthCallbackComponent } from './core/auth/auth-callback.component';
 import { LayoutComponent } from './layout/layout.component';

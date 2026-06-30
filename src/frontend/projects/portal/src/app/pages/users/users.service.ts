@@ -4,7 +4,6 @@ import { lastValueFrom } from 'rxjs';
 import {
   CreateUserRequest,
   DeleteUserResponse,
-  PagedResult,
   UpdateUserClaimsRequest,
   UpdateUserPermissionsRequest,
   UpdateUserRequest,
@@ -13,6 +12,7 @@ import {
   UserPermissionRequest
 } from './users.model';
 import { environment } from '../../../environments/environment';
+import { PagedResponse } from '../../core/models/pagination';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -56,18 +56,13 @@ export class UsersService {
 
     try {
       const result = await lastValueFrom(
-        this.http.get<User[] | PagedResult<User>>(`${this.baseUrl}/users`, {
+        this.http.get<PagedResponse<User>>(`${this.baseUrl}/users`, {
           params: this.queryParams()
         })
       );
 
-      if (Array.isArray(result)) {
-        this.users.set(result);
-        this.totalCount.set(result.length);
-      } else {
-        this.users.set(result.users ?? []);
-        this.totalCount.set(result.totalCount ?? result.users?.length ?? 0);
-      }
+      this.users.set(result.items ?? []);
+      this.totalCount.set(result.totalCount ?? 0);
     } catch (error) {
       this.error.set('Unable to load users. Please try again.');
     } finally {
