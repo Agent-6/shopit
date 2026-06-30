@@ -6,7 +6,7 @@ public class GetTenantsQueryValidator : AbstractValidator<GetTenantsQuery>
 {
     public GetTenantsQueryValidator()
     {
-        RuleFor(x => x.Page)
+        RuleFor(x => x.PageNumber)
             .GreaterThan(0);
 
         RuleFor(x => x.PageSize)
