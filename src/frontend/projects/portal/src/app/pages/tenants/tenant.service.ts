@@ -2,7 +2,7 @@ import { HttpClient } from "@angular/common/http";
 import { inject, Injectable, signal } from "@angular/core";
 import { environment } from "../../../environments/environment";
 import { Tenant } from "./tenant.model";
-import { PagedResult } from "../users/users.model";
+import { PagedResponse } from "../../core/models/pagination";
 
 @Injectable({ providedIn: 'root' })
 export class TenantService {
@@ -22,12 +22,12 @@ export class TenantService {
     this.loading.set(true);
     this.error.set(null);
 
-    this.http.get<PagedResult<Tenant>>(this.baseUrl, {params: { pageNumber: this.page(), pageSize: this.pageSize() } })
+    this.http.get<PagedResponse<Tenant>>(this.baseUrl, {params: { pageNumber: this.page(), pageSize: this.pageSize() } })
       .subscribe({
         next: (result) => {
           this.tenants.set(result.items);
           this.totalCount.set(result.totalCount);
-          this.totalPages.set(Math.ceil(result.totalCount / this.pageSize()));
+          this.totalPages.set(result.totalPages);
         },
         error: (err) => {
           this.error.set(err.message);
