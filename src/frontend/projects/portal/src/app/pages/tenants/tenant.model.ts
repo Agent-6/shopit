@@ -3,7 +3,7 @@ export interface Tenant {
   name: string;
   isActive: boolean;
   createdOn: Date;
-  lastModifiedOn: Date;
+  lastModifiedOn: Date | null;
 }
 
 export interface CreateTenantRequest {

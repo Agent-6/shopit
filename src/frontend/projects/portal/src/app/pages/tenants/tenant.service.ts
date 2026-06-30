@@ -7,7 +7,7 @@ import { PagedResponse } from "../../core/models/pagination";
 @Injectable({ providedIn: 'root' })
 export class TenantService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/tenants`;
+  private readonly baseUrl = `${environment.apiUrl}/tenancy/tenants`;
 
   readonly tenants = signal<Tenant[]>([]);
   readonly loading = signal(false);
@@ -96,7 +96,7 @@ export class TenantService {
     this.loading.set(true);
     this.error.set(null);
 
-    this.http.post(`${this.baseUrl}/${tenantId}/activate`, {})
+    this.http.put(`${this.baseUrl}/${tenantId}/activate`, {})
       .subscribe({
         next: () => {
           this.loadTenants();
@@ -114,7 +114,7 @@ export class TenantService {
     this.loading.set(true);
     this.error.set(null);
 
-    this.http.post(`${this.baseUrl}/${tenantId}/deactivate`, {})
+    this.http.put(`${this.baseUrl}/${tenantId}/deactivate`, {})
       .subscribe({
         next: () => {
           this.loadTenants();

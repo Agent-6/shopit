@@ -18,7 +18,7 @@ export const authConfig: AuthConfig = {
   responseType: 'code',
 
   // Scopes requested from the auth server
-  scope: 'openid profile email roles shopit-api',
+  scope: 'openid profile email roles shopit-api offline_access',
 
   // Display trace details in console
   showDebugInformation: true,
