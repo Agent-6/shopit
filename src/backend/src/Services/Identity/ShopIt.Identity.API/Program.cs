@@ -1,14 +1,17 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
+using Refit;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
+using ShopIt.Identity.Application.Contracts.Clients;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
 using ShopIt.Identity.Persistence;
 using ShopIt.Identity.Persistence.Data;
 using ShopIt.Identity.Presentation;
+using ShopIt.Identity.Presentation.Internal;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -91,6 +94,7 @@ app.UseHttpsRedirection();
 app.MapDefaultEndpoints();
 
 app.MapEndpoints();
+app.MapInternalEndpoints();
 
 using (var scope = app.Services.CreateScope())
 {
