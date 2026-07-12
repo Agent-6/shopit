@@ -1,13 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+    <PackageReference Include="OpenIddict.Server" />
     <PackageReference Include="OpenIddict.AspNetCore" />
     <PackageReference Include="OpenIddict.EntityFrameworkCore" />
+    <PackageReference Include="Refit" />
+    <PackageReference Include="Refit.HttpClientFactory" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ShopIt.Authentication.Application\ShopIt.Authentication.Application.csproj" />
     <ProjectReference Include="..\ShopIt.Authentication.Persistence\ShopIt.Authentication.Persistence.csproj" />
+    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Application.Contracts\ShopIt.Identity.Application.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

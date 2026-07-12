@@ -199,5 +199,28 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
             OpenIddictConstants.Permissions.Endpoints.Introspection,
         }
     });
+
+    // Backend-to-backend client credentials client
+    const string backendClientId = "shopit-backend";
+    var existingBackendApp = await applicationManager.FindByClientIdAsync(backendClientId);
+    if (existingBackendApp != null)
+    {
+        await applicationManager.DeleteAsync(existingBackendApp);
+    }
+
+    await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
+    {
+        ClientId = backendClientId,
+        ClientSecret = "BACKEND_SECRET",
+        DisplayName = "ShopIt Backend Service",
+        ClientType = OpenIddictConstants.ClientTypes.Confidential,
+        Permissions =
+        {
+            OpenIddictConstants.Permissions.Endpoints.Token,
+            OpenIddictConstants.Permissions.Endpoints.Revocation,
+            OpenIddictConstants.Permissions.GrantTypes.ClientCredentials,
+            $"{OpenIddictConstants.Permissions.Prefixes.Scope}shopit-api",
+        }
+    });
 }
 
