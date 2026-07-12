@@ -33,20 +33,6 @@ public static class InternalEndpoints
             return Results.BadRequest("Username and password are required.");
         }
 
-        // Add mocked user logic for now
-        if (request.Username == "mock@user.com" && request.Password == "mockpassword")
-        {
-            // WATCH: empty guid for host user.
-            var hostUser = new CredentialValidationResponse(Guid.NewGuid(), Guid.Empty, "Mock User", "mock@user.com");
-            return Results.Ok(hostUser);
-        }
-
-        if (request.Username == "tenant@user.com" && request.Password == "mockpassword")
-        {
-            var tenantUser = new CredentialValidationResponse(Guid.NewGuid(), new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), "Tenant User", "tenant@user.com");
-            return Results.Ok(tenantUser);
-        }
-
         var user = await userManager.FindByNameAsync(request.Username);
 
         if (user is null)

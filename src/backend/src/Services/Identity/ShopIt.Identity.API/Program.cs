@@ -140,6 +140,7 @@ using (var scope = app.Services.CreateScope())
 
         // Seed data
         await SeedRoles(scope.ServiceProvider);
+        await SeedUsers(scope.ServiceProvider);
     }
     catch (Exception ex)
     {
@@ -167,6 +168,41 @@ static async Task SeedRoles(IServiceProvider services)
             );
             await roleManager.CreateAsync(role);
         }
+    }
+}
+
+static async Task SeedUsers(IServiceProvider services)
+{
+    var userManager = services.GetRequiredService<UserManager<User>>();
+    var passwordHasher = new PasswordHasher<User>();
+    const string password = "P@SSw0rd";
+
+    var users = new[]
+    {
+        ("mock@user.com", "Mock User", Guid.Empty, "system"),
+        ("tenant@user.com", "Tenant User", new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), "system")
+    };
+
+    foreach (var (email, name, tenantId, createdBy) in users)
+    {
+        if (await userManager.FindByEmailAsync(email) is not null)
+        {
+            continue;
+        }
+
+        var user = User.Create(
+            Guid.NewGuid(),
+            email,
+            email,
+            tenantId,
+            createdBy);
+
+        var hashedPassword = passwordHasher.HashPassword(user, password);
+
+        user.SetPassword(hashedPassword);
+        user.ConfirmEmail();
+
+        await userManager.CreateAsync(user);
     }
 }
 
