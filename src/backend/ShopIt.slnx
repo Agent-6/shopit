@@ -23,6 +23,7 @@
   </Folder>
       <Folder Name="/src/Services/Identity/">
         <Project Path="src/Services/Identity/ShopIt.Identity.API/ShopIt.Identity.API.csproj" />
+        <Project Path="src/Services/Identity/ShopIt.Identity.Application.Contracts/ShopIt.Identity.Application.Contracts.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Application/ShopIt.Identity.Application.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Domain/ShopIt.Identity.Domain.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Infrastructure/ShopIt.Identity.Infrastructure.csproj" />

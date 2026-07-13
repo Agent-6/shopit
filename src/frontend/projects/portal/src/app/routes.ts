@@ -3,7 +3,7 @@ export const APP_ROUTES = {
     path: '',
     url: '/',
   },
-  users : {
+  users: {
     list: {
       path: 'users',
       url: '/users',
@@ -13,4 +13,14 @@ export const APP_ROUTES = {
       url: (id: string) => `/users/${id}`,
     },
   },
-}
+  tenants: {
+    list: {
+      path: 'tenants',
+      url: '/tenants',
+    },
+    detail: {
+      path: 'tenants/:id',
+      url: (id: string) => `/tenants/${id}`,
+    },
+  },
+};

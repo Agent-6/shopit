@@ -9,15 +9,13 @@ namespace ShopIt.Tenancy.Persistence.Repositories;
 public class TenantRepository(TenancyDbContext dbContext) 
     : Repository<Tenant, Guid, TenancyDbContext>(dbContext), ITenantRepository
 {
-    public async Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken = default)
-    {
-        return await DbSet.AnyAsync(t => t.Name == name, cancellationToken);
-    }
+    public async Task<bool> ExistsByNameAsync(string name, CancellationToken cancellationToken = default) =>
+        await DbSet.AnyAsync(t => t.Name == name, cancellationToken);
 
-    public async Task<(IEnumerable<Tenant> Tenants, long TotalCount, long TotalPages)> GetPagedAsync(
-        int page, 
-        int pageSize, 
-        string? filter, 
+    public async Task<(IEnumerable<Tenant> Items, long TotalCount, long TotalPages)> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        string? filter,
         CancellationToken cancellationToken = default)
     {
         var query = DbSet.AsQueryable();
@@ -32,7 +30,7 @@ public class TenantRepository(TenancyDbContext dbContext)
 
         var tenants = await query
             .OrderBy(t => t.Name)
-            .Skip((page - 1) * pageSize)
+            .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 

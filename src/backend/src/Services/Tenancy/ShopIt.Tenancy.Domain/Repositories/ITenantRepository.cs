@@ -19,14 +19,14 @@ public interface ITenantRepository : IRepository<Tenant, Guid>
     /// <summary>
     /// Gets a paged list of tenants, optionally filtered.
     /// </summary>
-    /// <param name="page">The page number.</param>
+    /// <param name="pageNumber">The page number.</param>
     /// <param name="pageSize">The number of items per page.</param>
     /// <param name="filter">Optional search filter string.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The list of tenants in the page and the total count matching the criteria.</returns>
-    Task<(IEnumerable<Tenant> Tenants, long TotalCount, long TotalPages)> GetPagedAsync(
-        int page, 
-        int pageSize, 
-        string? filter, 
+    Task<(IEnumerable<Tenant> Items, long TotalCount, long TotalPages)> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        string? filter,
         CancellationToken cancellationToken = default);
 }

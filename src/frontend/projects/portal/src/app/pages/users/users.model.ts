@@ -62,11 +62,3 @@ export interface User {
   phoneNumberConfirmed?: boolean;
   isActive: boolean;
 }
-
-export interface PagedResult<T> {
-  items: T[];
-  users: T[];
-  totalCount: number;
-  page: number;
-  pageSize: number;
-}

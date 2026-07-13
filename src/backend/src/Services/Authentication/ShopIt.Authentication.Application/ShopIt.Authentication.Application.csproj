@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ShopIt.Authentication.Domain\ShopIt.Authentication.Domain.csproj" />
+    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Application.Contracts\ShopIt.Identity.Application.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

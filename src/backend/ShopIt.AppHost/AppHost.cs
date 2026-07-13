@@ -39,6 +39,8 @@ var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WaitFor(identityDb)
     .WaitFor(seq);
 
+auth.WithReference(identity).WaitFor(identity);
+
 var tenancy = builder.AddProject<Projects.ShopIt_Tenancy_API>("tenancy-api")
     .WithReference(tenancyDb)
     .WithReference(seq)

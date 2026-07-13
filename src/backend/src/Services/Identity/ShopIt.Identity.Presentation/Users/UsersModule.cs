@@ -47,7 +47,7 @@ public class UsersModule : EndpointsModule
 
         var response = new GetUsersResponse
         {
-            Users = result.Users.Select(u => new UserResponse(
+            Items = result.Users.Select(u => new UserResponse(
                 u.Id,
                 u.Username,
                 u.Email,

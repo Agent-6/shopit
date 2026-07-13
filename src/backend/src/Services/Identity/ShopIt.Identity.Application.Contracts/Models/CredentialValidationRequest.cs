@@ -1,5 +1,3 @@
-using System;
-
-namespace ShopIt.Authentication.Application.Models;
+namespace ShopIt.Identity.Application.Contracts.Models;
 
 public record CredentialValidationRequest(string Username, string Password);

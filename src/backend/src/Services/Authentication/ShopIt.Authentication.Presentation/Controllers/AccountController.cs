@@ -2,8 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using ShopIt.Authentication.Application.Models;
-using ShopIt.Authentication.Application.Services;
+using ShopIt.Identity.Application.Contracts.Models;
+using ShopIt.Identity.Application.Contracts.Services;
+
 namespace ShopIt.Authentication.Presentation.Controllers;
 
 [Route("[controller]")]

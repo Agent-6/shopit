@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
-using ShopIt.Authentication.Application.Services;
-using ShopIt.Authentication.Infrastructure.Services;
+using Refit;
 using ShopIt.Authentication.Persistence.Data;
+using ShopIt.Identity.Application.Contracts.Clients;
+using ShopIt.Identity.Application.Contracts.Implementations;
+using ShopIt.Identity.Application.Contracts.Services;
 
 namespace ShopIt.Authentication.Infrastructure;
 
@@ -27,6 +29,17 @@ public static class DependencyInjection
 
         services.AddAuthorization();
 
+        services.AddMemoryCache();
+        services.AddHttpContextAccessor();
+
+        services.AddTransient<IdentityModelTokenHandler>();
+
+        // Register Refit client for Identity service with auth handler
+        services.AddRefitClient<IIdentityApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = new("https+http://identity-api"))
+            .AddHttpMessageHandler<IdentityModelTokenHandler>();
+        services.AddScoped<IIdentityServiceClient, IdentityServiceClient>();
+
         services.AddOpenIddict()
             .AddCore(options =>
             {
@@ -36,6 +49,7 @@ public static class DependencyInjection
             })
             .AddServer(options =>
             {
+                options.SetIssuer("https://localhost:7234/");
                 options.SetAuthorizationEndpointUris("connect/authorize")
                        .SetTokenEndpointUris("connect/token")
                        .SetUserInfoEndpointUris("connect/userinfo")
@@ -77,8 +91,6 @@ public static class DependencyInjection
                 options.UseLocalServer();
                 options.UseAspNetCore();
             });
-
-        services.AddHttpClient<IIdentityServiceClient, IdentityServiceClient>("IdentityService");
 
         return services;
     }

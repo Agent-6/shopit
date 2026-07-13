@@ -16,7 +16,9 @@
         "EditorConfig.EditorConfig",
         "streetsidesoftware.code-spell-checker",
         "eamodio.gitlens",
-        "humao.rest-client"
+        "humao.rest-client",
+        "Angular.ng-template",
+        "bradlc.vscode-tailwindcss"
       ]
     }
   },
@@ -36,12 +38,6 @@
       "version": "10.29.3"
     }
   },
-
-  "hostRequirements": {
-		"cpus": 8,
-		"memory": "32gb",
-		"storage": "64gb",
-	},
 
   "portsAttributes": {
     "4200": {
