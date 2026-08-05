@@ -11,12 +11,12 @@ namespace ShopIt.Framework.Domain.Entities;
 public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot<TId>
     where TId : notnull
 {
-    private readonly List<IDomainEvent> _domainEvents = [];
+    private readonly List<DomainEvent> _domainEvents = [];
 
     /// <summary>
     /// Gets the collection of domain events that have been raised within this aggregate.
     /// </summary>
-    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     /// <summary>
     /// Private constructor for EF Core and JSON serialization.
@@ -39,7 +39,7 @@ public abstract class AggregateRoot<TId> : Entity<TId>, IAggregateRoot<TId>
     /// These events will be published after the aggregate is persisted to the database.
     /// </summary>
     /// <param name="domainEvent">The domain event to raise.</param>
-    protected void RaiseDomainEvent(IDomainEvent domainEvent)
+    protected void RaiseDomainEvent(DomainEvent domainEvent)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
 

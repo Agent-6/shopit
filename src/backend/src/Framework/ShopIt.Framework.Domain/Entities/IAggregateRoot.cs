@@ -15,7 +15,7 @@ public interface IAggregateRoot<out TId> : IEntity<TId>
     /// Gets the collection of domain events that have occurred within this aggregate.
     /// These events should be published after the aggregate is committed to the database.
     /// </summary>
-    IReadOnlyList<IDomainEvent> DomainEvents { get; }
+    IReadOnlyList<DomainEvent> DomainEvents { get; }
 
     /// <summary>
     /// Clears all domain events from this aggregate.

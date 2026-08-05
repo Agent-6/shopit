@@ -15,4 +15,8 @@
     <PackageReference Include="Scrutor" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
+  </ItemGroup>
+
 </Project>
