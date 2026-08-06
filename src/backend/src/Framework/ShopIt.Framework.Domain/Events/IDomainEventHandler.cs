@@ -1,6 +1,4 @@
-using ShopIt.Framework.Domain.Events;
-
-namespace ShopIt.Framework.Core.Events;
+namespace ShopIt.Framework.Domain.Events;
 
 public interface IDomainEventHandler<in TEvent> where TEvent : DomainEvent
 {

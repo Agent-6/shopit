@@ -1,6 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ShopIt.Framework.Core.Events.Integration;
+using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Domain.Providers;
+using ShopIt.Framework.Infrastructure.Events;
 using ShopIt.Framework.Infrastructure.Providers;
 
 namespace ShopIt.Framework.Infrastructure;
@@ -17,6 +21,17 @@ public static class DependencyInjection
     {
         services.AddSingleton<IDateProvider, DateProvider>();
         services.AddSingleton<IGuidProvider, GuidProvider>();
+
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+
+        // OutboxWriter depends on the scoped DbContext registered by each service's persistence layer.
+        // The service's AddPersistence call must register a DbContext before this is resolved.
+        services.AddScoped<IOutboxWriter>(sp =>
+        {
+            var dbContext = sp.GetRequiredService<DbContext>();
+            var logger = sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<OutboxWriter>>();
+            return new OutboxWriter(dbContext, logger);
+        });
 
         return services;
     }
