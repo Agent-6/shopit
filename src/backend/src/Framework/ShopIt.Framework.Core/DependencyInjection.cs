@@ -6,6 +6,7 @@ using ShopIt.Framework.Core.CQRS.Abstractions;
 using ShopIt.Framework.Core.CQRS.Behaviors;
 using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Framework.Core.CQRS.Queries;
+using ShopIt.Framework.Domain.Events;
 
 namespace ShopIt.Framework.Core;
 
@@ -30,6 +31,9 @@ public static class DependencyInjection
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
                 .AddClasses(classes => classes.AssignableTo(typeof(IPipelineBehavior<,>)))
+                .AsImplementedInterfaces()
+                .WithScopedLifetime()
+                .AddClasses(classes => classes.AssignableTo(typeof(IDomainEventHandler<>)))
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
         );

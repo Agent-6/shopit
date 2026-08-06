@@ -2,8 +2,4 @@ using ShopIt.Framework.Domain.Events;
 
 namespace ShopIt.Identity.Domain.Events.UserEvents;
 
-public class UserEmailChangedDomainEvent(Guid userId, string newEmail) : IDomainEvent
-{
-    public Guid UserId { get; private set; } = userId;
-    public string NewEmail { get; private set; } = newEmail;
-}
+public record UserEmailChangedDomainEvent(Guid userId, string newEmail) : DomainEvent;

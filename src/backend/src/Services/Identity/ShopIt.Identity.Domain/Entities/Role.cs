@@ -10,10 +10,10 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
 {
     #region IAggregateRoot Implementation
 
-    private readonly List<IDomainEvent> _domainEvents = [];
-    public IReadOnlyList<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    private readonly List<DomainEvent> _domainEvents = [];
+    public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
-    protected void RaiseDomainEvent(IDomainEvent domainEvent)
+    protected void RaiseDomainEvent(DomainEvent domainEvent)
     {
         ArgumentNullException.ThrowIfNull(domainEvent);
 

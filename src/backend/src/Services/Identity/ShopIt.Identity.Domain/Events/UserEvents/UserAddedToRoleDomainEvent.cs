@@ -2,9 +2,4 @@ using ShopIt.Framework.Domain.Events;
 
 namespace ShopIt.Identity.Domain.Events.UserEvents;
 
-public class UserAddedToRoleDomainEvent(Guid userId, Guid roleId, string? roleName) : IDomainEvent
-{
-    public Guid UserId { get; } = userId;
-    public Guid RoleId { get; } = roleId;
-    public string? RoleName { get; } = roleName;
-}
+public record UserAddedToRoleDomainEvent(Guid UserId, Guid RoleId, string? RoleName) : DomainEvent;
