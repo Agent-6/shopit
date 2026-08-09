@@ -11,6 +11,34 @@ using ShopIt.Framework.Persistence.UnitOfWork;
 
 namespace ShopIt.Framework.Persistence;
 
+/// <summary>
+/// Helper to read Kafka bootstrap servers from Aspire-injected environment variables
+/// (<c>KAFKA_HOST</c> and <c>KAFKA_PORT</c>) or fall back to configuration / defaults.
+/// </summary>
+public static class KafkaConfiguration
+{
+    /// <summary>
+    /// Reads the Kafka bootstrap servers from:
+    /// 1. <c>KAFKA_HOST</c> + <c>KAFKA_PORT</c> environment variables (Aspire injection)
+    /// 2. <c>ConnectionStrings:kafka</c> configuration (manual setup)
+    /// 3. Default <c>localhost:9092</c>
+    /// </summary>
+    public static string GetBootstrapServers(IConfiguration? configuration = null)
+    {
+        var host = Environment.GetEnvironmentVariable("KAFKA_HOST");
+        var port = Environment.GetEnvironmentVariable("KAFKA_PORT");
+
+        if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(port))
+            return $"{host}:{port}";
+
+        var connStr = configuration?.GetConnectionString("kafka");
+        if (!string.IsNullOrEmpty(connStr))
+            return connStr.Replace("kafka://", string.Empty);
+
+        return "localhost:9092";
+    }
+}
+
 public static class DependencyInjection
 {
     /// <summary>
@@ -34,27 +62,36 @@ public static class DependencyInjection
 
     /// <summary>
     /// Adds the Kafka-based Integration Event infrastructure (Outbox + Inbox processors)
-    /// for the specified DbContext type.
+    /// for the specified DbContext type. Reads Kafka bootstrap servers from environment
+    /// variables (Aspire <c>KAFKA_HOST</c> / <c>KAFKA_PORT</c>) or falls back to
+    /// <c>ConnectionStrings:kafka</c> configuration.
     /// </summary>
     /// <typeparam name="TContext">The DbContext type for the service. Outbox and Inbox tables must be in its schema.</typeparam>
     /// <param name="services">The service collection.</param>
+    /// <param name="configuration">Optional configuration to read <c>ConnectionStrings:kafka</c> from.</param>
     /// <param name="configureOutbox">Optional action to configure <see cref="OutboxOptions"/>.</param>
     /// <param name="configureInbox">Optional action to configure <see cref="InboxOptions"/>.</param>
     /// <param name="assemblies">Assemblies to scan for <see cref="IIntegrationEventHandler{TEvent}"/> implementations.</param>
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddKafkaIntegration<TContext>(
         this IServiceCollection services,
+        IConfiguration? configuration = null,
         Action<OutboxOptions>? configureOutbox = null,
         Action<InboxOptions>? configureInbox = null,
         params Assembly[] assemblies)
         where TContext : DbContext
     {
-        // Configure options
+        var bootstrapServers = KafkaConfiguration.GetBootstrapServers(configuration);
+
+        // Configure outbox options
         var outboxOptions = new OutboxOptions();
+        outboxOptions.KafkaBootstrapServers = bootstrapServers;
         configureOutbox?.Invoke(outboxOptions);
         services.AddSingleton(Microsoft.Extensions.Options.Options.Create(outboxOptions));
 
+        // Configure inbox options
         var inboxOptions = new InboxOptions();
+        inboxOptions.KafkaBootstrapServers = bootstrapServers;
         configureInbox?.Invoke(inboxOptions);
         services.AddSingleton(Microsoft.Extensions.Options.Options.Create(inboxOptions));
 

@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
+using ShopIt.Authentication.Persistence;
 using ShopIt.Authentication.Persistence.Data;
+using ShopIt.Framework.Persistence.Outbox;
+using ShopIt.Framework.Persistence.Inbox;
 
 using ShopIt.Authentication.Infrastructure;
 
@@ -11,8 +14,8 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add DbContext (replace with your actual DbContext)
-builder.AddNpgsqlDbContext<ApplicationDbContext>("auth-db");
+// Add DbContext and Kafka-based integration event infrastructure
+builder.Services.AddPersistence("auth-db", builder.Configuration);
 
 builder.Services.AddInfrastructureServices();
 builder.Services.AddHttpContextAccessor();

@@ -22,6 +22,10 @@ var authDb = authPostgres.AddDatabase("auth-db");
 var identityDb = identityPostgres.AddDatabase("identity-db");
 var tenancyDb = tenancyPostgres.AddDatabase("tenancy-db");
 
+var kafka = builder.AddKafka("kafka")
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var seq = builder.AddSeq("seq")
     .ExcludeFromManifest()
     .WithLifetime(ContainerLifetime.Persistent)
@@ -30,13 +34,17 @@ var seq = builder.AddSeq("seq")
 var auth = builder.AddProject<Projects.ShopIt_Authentication_API>("auth-api")
     .WithReference(authDb)
     .WithReference(seq)
+    .WithReference(kafka)
     .WaitFor(authDb)
+    .WaitFor(kafka)
     .WaitFor(seq);
 
 var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WithReference(identityDb)
     .WithReference(seq)
+    .WithReference(kafka)
     .WaitFor(identityDb)
+    .WaitFor(kafka)
     .WaitFor(seq);
 
 auth.WithReference(identity).WaitFor(identity);
@@ -44,7 +52,9 @@ auth.WithReference(identity).WaitFor(identity);
 var tenancy = builder.AddProject<Projects.ShopIt_Tenancy_API>("tenancy-api")
     .WithReference(tenancyDb)
     .WithReference(seq)
+    .WithReference(kafka)
     .WaitFor(tenancyDb)
+    .WaitFor(kafka)
     .WaitFor(seq);
 
 var gateway = builder.AddYarp("gateway")
