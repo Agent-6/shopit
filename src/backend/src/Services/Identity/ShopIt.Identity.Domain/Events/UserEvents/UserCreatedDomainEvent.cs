@@ -3,7 +3,4 @@ using ShopIt.Identity.Domain.Entities;
 
 namespace ShopIt.Identity.Domain.Events.UserEvents;
 
-public class UserCreatedDomainEvent(User user) : IDomainEvent
-{
-    public User User { get; private set; } = user;
-}
+public record UserCreatedDomainEvent(User User) : DomainEvent;

@@ -2,8 +2,4 @@ using ShopIt.Framework.Domain.Events;
 
 namespace ShopIt.Identity.Domain.Events.UserEvents;
 
-public class UserLoggedInDomainEvent(Guid userId, string loginProvider) : IDomainEvent
-{
-    public Guid UserId { get; private set;  } = userId;
-    public string LoginProvider { get; private set;  } = loginProvider;
-}
+public record UserLoggedInDomainEvent(Guid UserId, string LoginProvider) : DomainEvent;

@@ -6,7 +6,4 @@ namespace ShopIt.Tenancy.Domain.Events;
 /// <summary>
 /// Domain event raised when a Tenant's basic details are updated.
 /// </summary>
-public class TenantUpdatedDomainEvent(Tenant tenant) : IDomainEvent
-{
-    public Tenant Tenant { get; } = tenant;
-}
+public record TenantUpdatedDomainEvent(Tenant Tenant) : DomainEvent;
