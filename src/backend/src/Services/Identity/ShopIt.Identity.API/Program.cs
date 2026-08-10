@@ -89,6 +89,8 @@ builder.Services.AddScoped<ICurrentTenant, CurrentTenant>();
 
 var app = builder.Build();
 
+app.Services.UseDomainServices();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
+using ShopIt.Authentication.Infrastructure;
 using ShopIt.Authentication.Persistence;
 using ShopIt.Authentication.Persistence.Data;
-using ShopIt.Framework.Persistence.Outbox;
+using ShopIt.Framework.Domain;
 using ShopIt.Framework.Persistence.Inbox;
-
-using ShopIt.Authentication.Infrastructure;
+using ShopIt.Framework.Persistence.Outbox;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +30,8 @@ builder.Services.AddCors(options =>
     });
 });
 var app = builder.Build();
+
+app.Services.UseDomainServices();
 
 app.MapDefaultEndpoints();
 

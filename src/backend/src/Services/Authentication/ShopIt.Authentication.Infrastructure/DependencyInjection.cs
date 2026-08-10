@@ -39,7 +39,7 @@ public static class DependencyInjection
         services.AddTransient<IdentityModelTokenHandler>();
 
         // Register Refit client for Identity service with auth handler
-        services.AddRefitClient<IIdentityApi>()
+        services.AddRefitGeneratedClient<IIdentityApi>()
             .ConfigureHttpClient(c => c.BaseAddress = new("https+http://identity-api"))
             .AddHttpMessageHandler<IdentityModelTokenHandler>();
         services.AddScoped<IIdentityServiceClient, IdentityServiceClient>();
