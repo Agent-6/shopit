@@ -3,13 +3,11 @@ using ShopIt.Framework.Domain.Events;
 namespace ShopIt.Framework.Domain.Entities;
 
 /// <summary>
-/// Represents the interface for aggregate roots.
-/// An aggregate root is the root entity of an aggregate that controls access to the aggregate's internal entities.
-/// It is responsible for maintaining the invariants within the aggregate and publishing domain events.
+/// Non-generic marker interface for aggregate roots.
+/// Used by infrastructure (e.g. UnitOfWork) to collect domain events from EF Core's
+/// ChangeTracker without needing to know the aggregate's ID type.
 /// </summary>
-/// <typeparam name="TId">The type of the aggregate root identifier.</typeparam>
-public interface IAggregateRoot<out TId> : IEntity<TId>
-    where TId : notnull
+public interface IAggregateRoot
 {
     /// <summary>
     /// Gets the collection of domain events that have occurred within this aggregate.
@@ -22,4 +20,15 @@ public interface IAggregateRoot<out TId> : IEntity<TId>
     /// Should be called after all events have been published.
     /// </summary>
     void ClearDomainEvents();
+}
+
+/// <summary>
+/// Represents the interface for aggregate roots.
+/// An aggregate root is the root entity of an aggregate that controls access to the aggregate's internal entities.
+/// It is responsible for maintaining the invariants within the aggregate and publishing domain events.
+/// </summary>
+/// <typeparam name="TId">The type of the aggregate root identifier.</typeparam>
+public interface IAggregateRoot<out TId> : IAggregateRoot, IEntity<TId>
+    where TId : notnull
+{
 }

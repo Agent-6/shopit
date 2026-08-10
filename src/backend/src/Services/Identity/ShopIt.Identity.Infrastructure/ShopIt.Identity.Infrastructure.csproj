@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Application\ShopIt.Identity.Application.csproj" />
   </ItemGroup>
   

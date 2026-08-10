@@ -1,6 +1,8 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using ShopIt.Framework.Domain.Events;
+using ShopIt.Framework.Persistence;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
 
@@ -23,7 +25,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     {
         base.OnModelCreating(builder);
 
+        // Ignore domain events so EF Core doesn't try to map DomainEvent as an entity
+        builder.Ignore<DomainEvent>();
+
         ApplyTenantConfiguration(builder);
+        builder.ApplyInboxOutboxConfigurations();
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 

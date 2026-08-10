@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 using Refit;
 using ShopIt.Authentication.Persistence.Data;
+using ShopIt.Framework.Infrastructure;
 using ShopIt.Identity.Application.Contracts.Clients;
 using ShopIt.Identity.Application.Contracts.Implementations;
 using ShopIt.Identity.Application.Contracts.Services;
@@ -12,8 +14,10 @@ namespace ShopIt.Authentication.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddInfrastructureServices(configuration);
+
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(options =>
             {
@@ -35,7 +39,7 @@ public static class DependencyInjection
         services.AddTransient<IdentityModelTokenHandler>();
 
         // Register Refit client for Identity service with auth handler
-        services.AddRefitClient<IIdentityApi>()
+        services.AddRefitGeneratedClient<IIdentityApi>()
             .ConfigureHttpClient(c => c.BaseAddress = new("https+http://identity-api"))
             .AddHttpMessageHandler<IdentityModelTokenHandler>();
         services.AddScoped<IIdentityServiceClient, IdentityServiceClient>();

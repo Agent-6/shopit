@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ShopIt.Authentication.Domain\ShopIt.Authentication.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Persistence\ShopIt.Framework.Persistence.csproj" />
   </ItemGroup>
 
 </Project>
