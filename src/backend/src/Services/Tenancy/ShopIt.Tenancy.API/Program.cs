@@ -12,13 +12,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.AddServiceDefaults();
 
+builder.Services.AddDomainServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
 builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddPersistence("tenancy-db", builder.Configuration);
 builder.EnrichNpgsqlDbContext<TenancyDbContext>();
 
-builder.Services.AddDomainServices();
-builder.Services.AddInfrastructureServices(builder.Configuration);
 
 var app = builder.Build();
 

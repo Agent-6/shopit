@@ -17,7 +17,7 @@ builder.Services.AddControllersWithViews();
 // Add DbContext and Kafka-based integration event infrastructure
 builder.Services.AddPersistence("auth-db", builder.Configuration);
 
-builder.Services.AddInfrastructureServices();
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCors(options =>

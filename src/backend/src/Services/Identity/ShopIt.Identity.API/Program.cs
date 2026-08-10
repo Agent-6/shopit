@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
 using Refit;
+using ShopIt.Framework.Domain;
+using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Contracts.Clients;
@@ -19,6 +21,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 // request handlers
+builder.Services.AddDomainServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplication();
 

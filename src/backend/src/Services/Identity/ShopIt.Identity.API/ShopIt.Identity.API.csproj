@@ -5,6 +5,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.OpenApi" />
     <PackageReference Include="OpenIddict.AspNetCore" />
   </ItemGroup>
 
@@ -12,6 +13,7 @@
     <ProjectReference Include="../../../../ShopIt.ServiceDefaults/ShopIt.ServiceDefaults.csproj" />
     <ProjectReference Include="../../../Framework/ShopIt.Framework.Core/ShopIt.Framework.Core.csproj" />
     <ProjectReference Include="../ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
+    <ProjectReference Include="..\ShopIt.Identity.Infrastructure\ShopIt.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Presentation\ShopIt.Identity.Presentation.csproj" />
   </ItemGroup>
 
