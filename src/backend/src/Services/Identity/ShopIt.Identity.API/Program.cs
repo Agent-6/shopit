@@ -186,11 +186,13 @@ static async Task SeedUsers(IServiceProvider services)
 
     var users = new[]
     {
-        ("mock@user.com", "Mock User", Guid.Empty, "system"),
-        ("tenant@user.com", "Tenant User", new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), "system")
+        (Email: "mock@user.com", Name: "Mock User", TenantId: Guid.Empty, ConfirmEmail: true),
+        (Email: "tenant@user.com", Name: "Tenant User", TenantId: new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), ConfirmEmail: true),
+        // Left unconfirmed on purpose to exercise the email confirmation (OTP) flow on login.
+        (Email: "unconfirmed@user.com", Name: "Unconfirmed User", TenantId: Guid.Empty, ConfirmEmail: false)
     };
 
-    foreach (var (email, name, tenantId, createdBy) in users)
+    foreach (var (email, name, tenantId, confirmEmail) in users)
     {
         if (await userManager.FindByEmailAsync(email) is not null)
         {
@@ -199,15 +201,18 @@ static async Task SeedUsers(IServiceProvider services)
 
         var user = User.Create(
             Guid.NewGuid(),
-            email,
+            name,
             email,
             tenantId,
-            createdBy);
+            createdBy: "system");
 
         var hashedPassword = passwordHasher.HashPassword(user, password);
 
         user.SetPassword(hashedPassword);
-        user.ConfirmEmail();
+        if (confirmEmail)
+        {
+            user.ConfirmEmail();
+        }
 
         await userManager.CreateAsync(user);
     }

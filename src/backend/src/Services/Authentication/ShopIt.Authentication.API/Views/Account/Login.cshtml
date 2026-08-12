@@ -12,6 +12,14 @@
     <p class="text-sm text-muted-foreground">Enter your credentials to sign in to your account</p>
 </div>
 
+@if (TempData["EmailConfirmedMessage"] is string message)
+{
+    <div class="mb-4 flex items-center gap-2 rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-600 dark:text-green-500">
+        <i data-lucide="badge-check" class="h-4 w-4 shrink-0"></i>
+        <span>@message</span>
+    </div>
+}
+
 <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl" method="post" class="space-y-4">
     <div asp-validation-summary="All" class="text-[0.8rem] font-medium text-destructive"></div>
 
