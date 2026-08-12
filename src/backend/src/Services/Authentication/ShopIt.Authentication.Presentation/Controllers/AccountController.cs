@@ -39,6 +39,11 @@ public class AccountController : Controller
             return View(request);
         }
 
+        if (!validationResult.EmailConfirmed)
+        {
+            return RedirectToAction("ConfirmEmail", new { email = validationResult.Email, returnUrl });
+        }
+
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, validationResult?.UserId.ToString()!),
@@ -142,7 +147,10 @@ public class AccountController : Controller
             return View();
         }
 
-        await _identityServiceClient.ForgotPasswordAsync(email);
+        var response = await _identityServiceClient.ForgotPasswordAsync(email);
+        ViewData["Email"] = response?.Email ?? email;
+        ViewData["ResetToken"] = response?.Token;
+
         return View("ForgotPasswordConfirmation");
     }
 
@@ -162,12 +170,77 @@ public class AccountController : Controller
         if (!ModelState.IsValid)
             return View(request);
 
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            ModelState.AddModelError("ConfirmPassword", "The passwords do not match.");
+            return View(request);
+        }
+
         var result = await _identityServiceClient.ResetPasswordAsync(request.Email, request.Token, request.NewPassword);
         if (result)
             return View("ResetPasswordConfirmation");
 
         ModelState.AddModelError(string.Empty, "Failed to reset password. The token may be expired or invalid.");
         return View(request);
+    }
+
+    [HttpGet("ConfirmEmail")]
+    public IActionResult ConfirmEmail(string email, string returnUrl = null)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            return RedirectToAction("Login", new { returnUrl });
+        }
+
+        ViewData["ReturnUrl"] = returnUrl;
+        return View(new ConfirmEmailViewModel { Email = email });
+    }
+
+    [HttpPost("ConfirmEmail/SendOtp")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SendEmailConfirmationOtp([FromForm] string email, [FromQuery] string returnUrl = null)
+    {
+        ViewData["ReturnUrl"] = returnUrl;
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            ModelState.AddModelError(string.Empty, "Email is required.");
+            return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email });
+        }
+
+        var response = await _identityServiceClient.SendEmailConfirmationOtpAsync(email);
+        if (response == null || string.IsNullOrEmpty(response.Code))
+        {
+            ModelState.AddModelError(string.Empty, "We could not send a verification code to this email address.");
+            return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email });
+        }
+
+        ViewData["OtpSent"] = true;
+        ViewData["MockOtp"] = response.Code;
+        return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email });
+    }
+
+    [HttpPost("ConfirmEmail")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmEmail([FromForm] ConfirmEmailViewModel request, [FromQuery] string returnUrl = null)
+    {
+        ViewData["ReturnUrl"] = returnUrl;
+
+        if (!ModelState.IsValid)
+        {
+            return View(request);
+        }
+
+        var confirmed = await _identityServiceClient.ConfirmEmailAsync(request.Email, request.Code);
+        if (!confirmed)
+        {
+            ViewData["OtpSent"] = true;
+            ModelState.AddModelError(string.Empty, "The verification code is invalid or has expired. Please try again.");
+            return View(request);
+        }
+
+        TempData["EmailConfirmedMessage"] = "Your email address has been confirmed. You can now sign in.";
+        return RedirectToAction("Login", new { returnUrl });
     }
 }
 
@@ -178,4 +251,11 @@ public class ResetPasswordRequest
     public string Email { get; set; }
     public string Token { get; set; }
     public string NewPassword { get; set; }
+    public string ConfirmPassword { get; set; }
+}
+
+public class ConfirmEmailViewModel
+{
+    public string Email { get; set; }
+    public string Code { get; set; }
 }

@@ -6,22 +6,51 @@ import { UiButtonComponent } from '../../shared/components/ui-button.component';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { PageHeaderComponent } from '../../core/components/page/page-header.component';
+import { PageFiltersComponent } from '../../core/components/page/page-filters.component';
+import {
+  PageTableCellDirective,
+  PageTableColumn,
+  PageTableComponent,
+} from '../../core/components/page/page-table.component';
 
 @Component({
   selector: 'app-users-page',
   standalone: true,
   templateUrl: './users-page.component.html',
-  imports: [RouterLink, UserEditorComponent, UiButtonComponent, UiIconComponent, PageHeaderComponent],
+  imports: [
+    RouterLink,
+    UserEditorComponent,
+    UiButtonComponent,
+    UiIconComponent,
+    PageHeaderComponent,
+    PageFiltersComponent,
+    PageTableComponent,
+    PageTableCellDirective,
+  ],
 })
 export class UsersPageComponent {
   protected readonly service = inject(UsersService);
   protected readonly editorOpen = signal(false);
   protected readonly editingUser = signal<User | null>(null);
   protected readonly editorMode = computed(() => (this.editingUser() ? 'edit' : 'create'));
-  protected readonly editorTitle = computed(() => (this.editingUser() ? `Edit ${this.editingUser()?.username}` : 'Create a new user'));
+  protected readonly editorTitle = computed(() =>
+    this.editingUser() ? `Edit ${this.editingUser()?.username}` : 'Create a new user'
+  );
+
+  protected readonly columns: PageTableColumn[] = [
+    { key: 'username', header: 'Username' },
+    { key: 'email', header: 'Email' },
+    { key: 'roles', header: 'Roles' },
+    { key: 'isActive', header: 'Active' },
+    { key: 'actions', header: 'Actions', align: 'right' },
+  ];
 
   constructor() {
     this.service.loadUsers();
+  }
+
+  protected trackById(_index: number, user: User): string {
+    return user.id;
   }
 
   protected openCreate(): void {
@@ -59,18 +88,13 @@ export class UsersPageComponent {
     this.service.removeUser(user.id, true);
   }
 
-  protected previousPage(): void {
-    this.service.page.update((current) => Math.max(1, current - 1));
+  protected goToPage(page: number): void {
+    this.service.page.set(Math.min(Math.max(1, page), this.service.pageCount()));
     this.service.loadUsers();
   }
 
-  protected nextPage(): void {
-    this.service.page.update((current) => Math.min(this.service.pageCount(), current + 1));
-    this.service.loadUsers();
-  }
-
-  protected setPageSize(value: string): void {
-    this.service.pageSize.set(Number(value));
+  protected setPageSize(size: number): void {
+    this.service.pageSize.set(size);
     this.service.loadUsers();
   }
 }

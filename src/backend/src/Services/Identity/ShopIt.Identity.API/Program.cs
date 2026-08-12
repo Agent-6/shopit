@@ -1,15 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
-using Refit;
 using ShopIt.Framework.Domain;
-using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
-using ShopIt.Identity.Application.Contracts.Clients;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Identity.Infrastructure;
 using ShopIt.Identity.Persistence;
 using ShopIt.Identity.Persistence.Data;
 using ShopIt.Identity.Presentation;
@@ -29,6 +27,9 @@ builder.Services.AddApplication();
 builder.Services.AddPersistence("identity-db", builder.Configuration);
 // TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder
 builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
+
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddDomainServices();
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<User>(options =>
@@ -185,11 +186,13 @@ static async Task SeedUsers(IServiceProvider services)
 
     var users = new[]
     {
-        ("mock@user.com", "Mock User", Guid.Empty, "system"),
-        ("tenant@user.com", "Tenant User", new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), "system")
+        (Email: "mock@user.com", Name: "Mock User", TenantId: Guid.Empty, ConfirmEmail: true),
+        (Email: "tenant@user.com", Name: "Tenant User", TenantId: new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), ConfirmEmail: true),
+        // Left unconfirmed on purpose to exercise the email confirmation (OTP) flow on login.
+        (Email: "unconfirmed@user.com", Name: "Unconfirmed User", TenantId: Guid.Empty, ConfirmEmail: false)
     };
 
-    foreach (var (email, name, tenantId, createdBy) in users)
+    foreach (var (email, name, tenantId, confirmEmail) in users)
     {
         if (await userManager.FindByEmailAsync(email) is not null)
         {
@@ -198,15 +201,18 @@ static async Task SeedUsers(IServiceProvider services)
 
         var user = User.Create(
             Guid.NewGuid(),
-            email,
+            name,
             email,
             tenantId,
-            createdBy);
+            createdBy: "system");
 
         var hashedPassword = passwordHasher.HashPassword(user, password);
 
         user.SetPassword(hashedPassword);
-        user.ConfirmEmail();
+        if (confirmEmail)
+        {
+            user.ConfirmEmail();
+        }
 
         await userManager.CreateAsync(user);
     }

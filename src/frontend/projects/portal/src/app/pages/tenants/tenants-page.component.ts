@@ -1,6 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { PageHeaderComponent } from '../../core/components/page/page-header.component';
+import { PageFiltersComponent } from '../../core/components/page/page-filters.component';
+import {
+  PageTableCellDirective,
+  PageTableColumn,
+  PageTableComponent,
+} from '../../core/components/page/page-table.component';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { TenantEditorComponent } from './tenant-editor.component';
@@ -12,18 +18,42 @@ import { DatePipe } from '@angular/common';
   selector: 'app-tenants-page',
   standalone: true,
   templateUrl: './tenants-page.component.html',
-  imports: [DatePipe, RouterLink, TenantEditorComponent, UiButtonComponent, UiIconComponent, PageHeaderComponent]
+  imports: [
+    DatePipe,
+    RouterLink,
+    TenantEditorComponent,
+    UiButtonComponent,
+    UiIconComponent,
+    PageHeaderComponent,
+    PageFiltersComponent,
+    PageTableComponent,
+    PageTableCellDirective,
+  ],
 })
 export class TenantsPageComponent {
   protected readonly service = inject(TenantService);
   protected readonly editorOpen = signal(false);
   protected readonly editingTenant = signal<Tenant | null>(null);
   protected readonly editorMode = computed(() => (this.editingTenant() ? 'edit' : 'create'));
-  protected readonly editorTitle = computed(() => (this.editingTenant() ? `Edit ${this.editingTenant()?.name}` : 'Create a new tenant'));
+  protected readonly editorTitle = computed(() =>
+    this.editingTenant() ? `Edit ${this.editingTenant()?.name}` : 'Create a new tenant'
+  );
   protected readonly pageCount = computed(() => Math.max(1, this.service.totalPages()));
+
+  protected readonly columns: PageTableColumn[] = [
+    { key: 'name', header: 'Name' },
+    { key: 'isActive', header: 'Status' },
+    { key: 'createdOn', header: 'Created' },
+    { key: 'lastModifiedOn', header: 'Updated' },
+    { key: 'actions', header: 'Actions', align: 'right' },
+  ];
 
   constructor() {
     this.service.loadTenants();
+  }
+
+  protected trackById(_index: number, tenant: Tenant): string {
+    return tenant.id;
   }
 
   protected openCreate(): void {
@@ -61,18 +91,13 @@ export class TenantsPageComponent {
     this.service.deactivateTenant(tenant.id);
   }
 
-  protected previousPage(): void {
-    this.service.page.update((current) => Math.max(1, current - 1));
+  protected goToPage(page: number): void {
+    this.service.page.set(Math.min(Math.max(1, page), this.pageCount()));
     this.service.loadTenants();
   }
 
-  protected nextPage(): void {
-    this.service.page.update((current) => Math.min(this.pageCount(), current + 1));
-    this.service.loadTenants();
-  }
-
-  protected setPageSize(value: string): void {
-    this.service.pageSize.set(Number(value));
+  protected setPageSize(size: number): void {
+    this.service.pageSize.set(size);
     this.service.loadTenants();
   }
 }

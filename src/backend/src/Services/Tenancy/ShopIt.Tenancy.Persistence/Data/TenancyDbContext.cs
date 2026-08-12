@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using ShopIt.Framework.Domain.Events;
 using ShopIt.Tenancy.Domain.Entities;
 using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Persistence;

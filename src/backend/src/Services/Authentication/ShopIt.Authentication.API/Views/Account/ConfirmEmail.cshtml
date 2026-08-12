@@ -1,0 +1,74 @@
+@model ShopIt.Authentication.Presentation.Controllers.ConfirmEmailViewModel
+@{
+    ViewData["Title"] = "Confirm Email";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+    var otpSent = ViewData["OtpSent"] as bool? ?? false;
+    var mockOtp = ViewData["MockOtp"] as string;
+}
+
+<div class="flex flex-col space-y-2 text-center mb-6">
+    <div class="mx-auto bg-primary/10 text-primary h-12 w-12 rounded-lg flex items-center justify-center mb-2">
+        <i data-lucide="mail-check" class="h-6 w-6"></i>
+    </div>
+    <h1 class="text-2xl font-semibold tracking-tight">Confirm your email</h1>
+    <p class="text-sm text-muted-foreground">We need to verify your email address before you can sign in.</p>
+</div>
+
+<div asp-validation-summary="All" class="text-[0.8rem] font-medium text-destructive mb-4"></div>
+
+@if (otpSent)
+{
+    <div class="mb-6 space-y-4">
+        <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-500">
+            <i data-lucide="circle-check" class="h-4 w-4 shrink-0"></i>
+            <span>A 6-digit verification code has been sent to your email.</span>
+        </div>
+
+        @if (!string.IsNullOrEmpty(mockOtp))
+        {
+            <div class="text-xs italic bg-muted p-2 rounded border">
+                Mock Mode: Your verification code is
+                <span class="font-mono font-semibold text-primary tracking-widest">@mockOtp</span>
+            </div>
+        }
+
+        <form asp-controller="Account" asp-action="ConfirmEmail" asp-route-returnUrl="@returnUrl" method="post" class="space-y-4">
+            <input type="hidden" asp-for="Email" />
+
+            <div class="space-y-2">
+                <label asp-for="Code" class="text-sm font-medium leading-none">Verification code</label>
+                <input asp-for="Code" type="text" inputmode="numeric" maxlength="6" class="input-shadcn text-center tracking-[0.5em] font-mono" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;" required autofocus />
+            </div>
+
+            <button type="submit" class="btn-primary w-full">
+                <i data-lucide="badge-check" class="mr-2 h-4 w-4"></i> Verify &amp; Continue
+            </button>
+        </form>
+
+        <form asp-controller="Account" asp-action="SendEmailConfirmationOtp" asp-route-returnUrl="@returnUrl" method="post" class="text-center">
+            <input type="hidden" name="email" value="@Model.Email" />
+            <button type="submit" class="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Didn't receive it? Resend code
+            </button>
+        </form>
+    </div>
+}
+else
+{
+    <form asp-controller="Account" asp-action="SendEmailConfirmationOtp" asp-route-returnUrl="@returnUrl" method="post" class="space-y-4">
+        <div class="space-y-2">
+            <label for="email" class="text-sm font-medium leading-none">Email address</label>
+            <input name="email" id="email" type="email" value="@Model.Email" readonly class="input-shadcn bg-muted text-muted-foreground" />
+        </div>
+
+        <button type="submit" class="btn-primary w-full">
+            <i data-lucide="send" class="mr-2 h-4 w-4"></i> Send verification code
+        </button>
+    </form>
+}
+
+<div class="mt-6 text-center text-sm">
+    <a asp-action="Login" asp-route-returnUrl="@returnUrl" class="text-muted-foreground hover:text-foreground inline-flex items-center transition-colors">
+        <i data-lucide="arrow-left" class="mr-2 h-4 w-4"></i> Back to login
+    </a>
+</div>
