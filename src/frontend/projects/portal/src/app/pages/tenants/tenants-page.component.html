@@ -1,93 +1,80 @@
 <section class="flex flex-col gap-6">
   <app-page-header title="Tenants" subtitle="Browse, create, and maintain tenant records for the platform.">
-    <div class="self-start flex flex-row gap-4 justify-between">
-      <ui-button variant="default" icon="plus" (click)="openCreate()">Create tenant</ui-button>
-    </div>
+    <ui-button variant="default" icon="plus" (click)="openCreate()">Create tenant</ui-button>
   </app-page-header>
 
-  <div class="rounded-md border bg-card text-card-foreground p-6 shadow-sm">
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-8 items-end">
-      <div class="lg:col-span-4 space-y-1.5">
-        <label class="text-sm font-medium leading-none">Page size</label>
-        <select
-          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-          [value]="service.pageSize()"
-          (change)="setPageSize($any($event.target).value)">
-          <option [value]="5">5</option>
-          <option [value]="10">10</option>
-          <option [value]="20">20</option>
-        </select>
-      </div>
-
-      <div class="lg:col-span-4 flex justify-end w-fit">
-        <ui-button variant="outline" icon="refresh-cw" (click)="service.loadTenants()" class="w-full">Refresh</ui-button>
-      </div>
+  <app-page-filters>
+    <div class="lg:col-span-full flex justify-end">
+      <ui-button variant="outline" icon="refresh-cw" (click)="service.loadTenants()">Refresh</ui-button>
     </div>
-  </div>
+  </app-page-filters>
 
-  <div class="overflow-y-auto rounded-md border bg-card text-card-foreground shadow-sm">
-    <table class="w-full text-sm">
-      <thead class="border-b bg-muted/50">
-        <tr class="text-left font-medium text-muted-foreground">
-          <th class="h-12 px-4 align-middle font-medium">Name</th>
-          <th class="h-12 px-4 align-middle font-medium">Status</th>
-          <th class="h-12 px-4 align-middle font-medium">Created</th>
-          <th class="h-12 px-4 align-middle font-medium">Updated</th>
-          <th class="h-12 px-4 align-middle font-medium text-right">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="[&_tr:last-child]:border-0">
-        @for (tenant of service.tenants(); track tenant.id) {
-          <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-            <td class="p-4 align-middle font-medium">{{ tenant.name }}</td>
-            <td class="p-4 align-middle">
-              @if (tenant.isActive) {
-                <span class="inline-flex items-center rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-700">Active</span>
-              } @else {
-                <span class="inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">Inactive</span>
-              }
-            </td>
-            <td class="p-4 align-middle text-muted-foreground">{{ tenant.createdOn | date:'short' }}</td>
-            <td class="p-4 align-middle text-muted-foreground">{{ tenant.lastModifiedOn | date:'short' }}</td>
-            <td class="p-4 align-middle text-right flex justify-end gap-2">
-              <ui-button variant="outline" size="sm" routerLink="/tenants/{{ tenant.id }}">View</ui-button>
-              <ui-button variant="secondary" size="sm" (click)="editTenant(tenant)">Edit</ui-button>
-              @if (tenant.isActive) {
-                <ui-button variant="outline" size="sm" (click)="deactivateTenant(tenant)">Deactivate</ui-button>
-              } @else {
-                <ui-button variant="default" size="sm" (click)="activateTenant(tenant)">Activate</ui-button>
-              }
-            </td>
-          </tr>
+  <app-page-table
+    [columns]="columns"
+    [rows]="service.tenants()"
+    [trackBy]="trackById"
+    [page]="service.page()"
+    [pageCount]="pageCount()"
+    [pageSize]="service.pageSize()"
+    [disabled]="service.loading()"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  >
+    <ng-template appPageTableCell="name" let-tenant>
+      <span class="font-medium">{{ tenant.name }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="isActive" let-tenant>
+      @if (tenant.isActive) {
+        <span
+          class="inline-flex items-center rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-0.5 text-xs font-semibold text-green-700"
+        >
+          Active
+        </span>
+      } @else {
+        <span
+          class="inline-flex items-center rounded-full border border-muted-foreground/20 bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground"
+        >
+          Inactive
+        </span>
+      }
+    </ng-template>
+    <ng-template appPageTableCell="createdOn" let-tenant>
+      <span class="text-muted-foreground">{{ tenant.createdOn | date:'short' }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="lastModifiedOn" let-tenant>
+      <span class="text-muted-foreground">{{ tenant.lastModifiedOn | date:'short' }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="actions" let-tenant>
+      <div class="flex justify-end gap-2">
+        <ui-button variant="outline" size="sm" [routerLink]="['/tenants', tenant.id]">View</ui-button>
+        <ui-button variant="secondary" size="sm" (click)="editTenant(tenant)">Edit</ui-button>
+        @if (tenant.isActive) {
+          <ui-button variant="outline" size="sm" (click)="deactivateTenant(tenant)">Deactivate</ui-button>
+        } @else {
+          <ui-button variant="default" size="sm" (click)="activateTenant(tenant)">Activate</ui-button>
         }
-      </tbody>
-    </table>
-  </div>
-
-  <div class="flex items-center justify-between text-sm text-muted-foreground">
-    <div>Page {{ service.page() }} of {{ pageCount() }}</div>
-    <div class="flex items-center gap-2">
-      <ui-button variant="outline" size="sm" (click)="previousPage()" [disabled]="service.page() <= 1">Previous</ui-button>
-      <ui-button variant="outline" size="sm" (click)="nextPage()" [disabled]="service.page() >= pageCount()">Next</ui-button>
-    </div>
-  </div>
+      </div>
+    </ng-template>
+  </app-page-table>
 
   @if (!service.loading() && service.tenants().length === 0) {
-    <div class="rounded-xl border bg-card p-6 text-sm text-muted-foreground text-center">
+    <div class="rounded-lg border bg-card p-6 text-sm text-muted-foreground text-center">
       No tenants found. Click <span class="font-medium text-foreground">Create tenant</span> to add one.
     </div>
   }
 
   @if (service.error()) {
-    <div class="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+    <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
       <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
       {{ service.error() }}
     </div>
   }
 
   @if (editorOpen()) {
-    <aside class="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-background/80 backdrop-blur-sm sm:items-center sm:pt-0">
-      <div class="w-full max-w-lg rounded-xl border bg-card p-6 shadow-lg">
+    <aside
+      class="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-background/80 backdrop-blur-sm sm:items-center sm:pt-0"
+    >
+      <div class="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
         <app-tenant-editor
           [title]="editorTitle()"
           [submitLabel]="editorMode() === 'create' ? 'Create tenant' : 'Save changes'"
