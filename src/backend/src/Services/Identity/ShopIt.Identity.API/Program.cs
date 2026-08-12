@@ -1,15 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
-using Refit;
 using ShopIt.Framework.Domain;
-using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
-using ShopIt.Identity.Application.Contracts.Clients;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Identity.Infrastructure;
 using ShopIt.Identity.Persistence;
 using ShopIt.Identity.Persistence.Data;
 using ShopIt.Identity.Presentation;
@@ -29,6 +27,9 @@ builder.Services.AddApplication();
 builder.Services.AddPersistence("identity-db", builder.Configuration);
 // TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder
 builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
+
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddDomainServices();
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<User>(options =>
