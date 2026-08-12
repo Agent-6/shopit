@@ -4,9 +4,9 @@ namespace ShopIt.Identity.Application.Contracts.Services;
 
 public interface IIdentityServiceClient
 {
+    /// <summary>
+    /// Validates a username/password pair against the Identity service during login.
+    /// Returns <c>null</c> when the credentials are invalid or the request was not authorized.
+    /// </summary>
     Task<CredentialValidationResponse?> ValidateCredentialsAsync(CredentialValidationRequest request);
-    Task<ForgotPasswordResponse?> ForgotPasswordAsync(string email);
-    Task<bool> ResetPasswordAsync(string email, string token, string newPassword);
-    Task<SendEmailConfirmationOtpResponse?> SendEmailConfirmationOtpAsync(string email);
-    Task<bool> ConfirmEmailAsync(string email, string code);
 }

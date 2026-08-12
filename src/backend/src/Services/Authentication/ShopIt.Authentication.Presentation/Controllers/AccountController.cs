@@ -2,6 +2,10 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using ShopIt.Authentication.Application.Mocking;
+using ShopIt.Framework.Core.Events.Integration;
+using ShopIt.Framework.Core.UnitOfWork;
+using ShopIt.Identity.Application.Contracts.Events;
 using ShopIt.Identity.Application.Contracts.Models;
 using ShopIt.Identity.Application.Contracts.Services;
 
@@ -11,10 +15,23 @@ namespace ShopIt.Authentication.Presentation.Controllers;
 public class AccountController : Controller
 {
     private readonly IIdentityServiceClient _identityServiceClient;
+    private readonly IOutboxWriter _outboxWriter;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMockEmailService _mockEmailService;
+    private readonly IFlowStatusStore _flowStatusStore;
 
-    public AccountController(IIdentityServiceClient identityServiceClient)
+    public AccountController(
+        IIdentityServiceClient identityServiceClient,
+        IOutboxWriter outboxWriter,
+        IUnitOfWork unitOfWork,
+        IMockEmailService mockEmailService,
+        IFlowStatusStore flowStatusStore)
     {
         _identityServiceClient = identityServiceClient;
+        _outboxWriter = outboxWriter;
+        _unitOfWork = unitOfWork;
+        _mockEmailService = mockEmailService;
+        _flowStatusStore = flowStatusStore;
     }
 
     [HttpGet("Login")]
@@ -46,12 +63,12 @@ public class AccountController : Controller
 
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, validationResult?.UserId.ToString()!),
-            new("tenant_id", validationResult?.TenantId.ToString()!),
-            new(ClaimTypes.Name, validationResult?.UserName!),
-            new(ClaimTypes.Email, validationResult?.Email!),
+            new(ClaimTypes.NameIdentifier, validationResult.UserId.ToString()),
+            new("tenant_id", validationResult.TenantId.ToString()),
+            new(ClaimTypes.Name, validationResult.UserName),
+            new(ClaimTypes.Email, validationResult.Email),
         };
-        
+
         var newIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
         var currentPrincipal = HttpContext.User;
@@ -83,7 +100,7 @@ public class AccountController : Controller
     public IActionResult Switcher(string returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;
-        
+
         var currentPrincipal = HttpContext.User;
         if (currentPrincipal?.Identity?.IsAuthenticated != true)
         {
@@ -108,7 +125,7 @@ public class AccountController : Controller
             {
                 identities.Remove(targetIdentity);
                 identities.Insert(0, targetIdentity);
-                
+
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identities));
             }
         }
@@ -134,6 +151,10 @@ public class AccountController : Controller
         return Redirect("~/");
     }
 
+    // ------------------------------------------------------------------
+    // Forgot password (event-driven)
+    // ------------------------------------------------------------------
+
     [HttpGet("ForgotPassword")]
     public IActionResult ForgotPassword() => View();
 
@@ -147,10 +168,12 @@ public class AccountController : Controller
             return View();
         }
 
-        var response = await _identityServiceClient.ForgotPasswordAsync(email);
-        ViewData["Email"] = response?.Email ?? email;
-        ViewData["ResetToken"] = response?.Token;
+        // The Identity service generates the reset token and replies asynchronously
+        // with PasswordResetTokenGeneratedIntegrationEvent, which lands in the mock inbox.
+        var requestId = Guid.NewGuid();
+        await PublishAsync(new ForgotPasswordRequestedIntegrationEvent(requestId, email.Trim()), HttpContext.RequestAborted);
 
+        ViewData["Email"] = email.Trim();
         return View("ForgotPasswordConfirmation");
     }
 
@@ -159,7 +182,7 @@ public class AccountController : Controller
     {
         if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(token))
             return BadRequest("A token and email must be supplied for password reset.");
-            
+
         return View(new ResetPasswordRequest { Email = email, Token = token });
     }
 
@@ -176,13 +199,22 @@ public class AccountController : Controller
             return View(request);
         }
 
-        var result = await _identityServiceClient.ResetPasswordAsync(request.Email, request.Token, request.NewPassword);
-        if (result)
-            return View("ResetPasswordConfirmation");
+        // The Identity service applies the reset and replies asynchronously with
+        // PasswordResetCompletedIntegrationEvent; this page polls for the outcome.
+        var requestId = Guid.NewGuid();
+        await PublishAsync(
+            new PasswordResetRequestedIntegrationEvent(requestId, request.Email, request.Token, request.NewPassword),
+            HttpContext.RequestAborted);
 
-        ModelState.AddModelError(string.Empty, "Failed to reset password. The token may be expired or invalid.");
-        return View(request);
+        ViewData["RequestId"] = requestId;
+        ViewData["Email"] = request.Email;
+        ViewData["Token"] = request.Token;
+        return View("ResetPasswordProcessing");
     }
+
+    // ------------------------------------------------------------------
+    // Email confirmation (event-driven)
+    // ------------------------------------------------------------------
 
     [HttpGet("ConfirmEmail")]
     public IActionResult ConfirmEmail(string email, string returnUrl = null)
@@ -208,16 +240,13 @@ public class AccountController : Controller
             return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email });
         }
 
-        var response = await _identityServiceClient.SendEmailConfirmationOtpAsync(email);
-        if (response == null || string.IsNullOrEmpty(response.Code))
-        {
-            ModelState.AddModelError(string.Empty, "We could not send a verification code to this email address.");
-            return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email });
-        }
+        // The Identity service generates the OTP and replies asynchronously with
+        // EmailConfirmationOtpGeneratedIntegrationEvent, which lands in the mock inbox.
+        var requestId = Guid.NewGuid();
+        await PublishAsync(new EmailConfirmationOtpRequestedIntegrationEvent(requestId, email.Trim()), HttpContext.RequestAborted);
 
         ViewData["OtpSent"] = true;
-        ViewData["MockOtp"] = response.Code;
-        return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email });
+        return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email.Trim() });
     }
 
     [HttpPost("ConfirmEmail")]
@@ -231,16 +260,51 @@ public class AccountController : Controller
             return View(request);
         }
 
-        var confirmed = await _identityServiceClient.ConfirmEmailAsync(request.Email, request.Code);
-        if (!confirmed)
-        {
-            ViewData["OtpSent"] = true;
-            ModelState.AddModelError(string.Empty, "The verification code is invalid or has expired. Please try again.");
-            return View(request);
-        }
+        // The Identity service validates the code and replies asynchronously with
+        // UserEmailConfirmedIntegrationEvent; this page polls for the outcome.
+        var requestId = Guid.NewGuid();
+        await PublishAsync(
+            new EmailConfirmationSubmittedIntegrationEvent(requestId, request.Email, request.Code),
+            HttpContext.RequestAborted);
 
-        TempData["EmailConfirmedMessage"] = "Your email address has been confirmed. You can now sign in.";
-        return RedirectToAction("Login", new { returnUrl });
+        ViewData["RequestId"] = requestId;
+        return View("ConfirmEmailProcessing");
+    }
+
+    // ------------------------------------------------------------------
+    // Polling endpoints used by the event-driven views
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Returns the mock inbox for an address so views can display delivered emails.
+    /// </summary>
+    [HttpGet("MockEmails")]
+    public IActionResult MockEmails(string email)
+    {
+        return Json(_mockEmailService.GetInbox(email));
+    }
+
+    /// <summary>
+    /// Returns the outcome of an asynchronous flow (or null while still pending).
+    /// </summary>
+    [HttpGet("FlowStatus")]
+    public IActionResult FlowStatus(Guid requestId)
+    {
+        return Json(_flowStatusStore.Get(requestId));
+    }
+
+    /// <summary>
+    /// Enqueues an integration event into the transactional outbox. The event is
+    /// committed atomically with the request's transaction and published to Kafka
+    /// by the background <see cref="ShopIt.Framework.Persistence.Outbox.OutboxProcessor{TContext}"/>.
+    /// </summary>
+    private async Task PublishAsync(IntegrationEvent integrationEvent, CancellationToken cancellationToken)
+    {
+        await _unitOfWork.ExecuteAsync(async () =>
+        {
+            await _outboxWriter.WriteAsync(integrationEvent, cancellationToken);
+            return true;
+        }, cancellationToken);
     }
 }
 

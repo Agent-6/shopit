@@ -5,22 +5,16 @@ namespace ShopIt.Identity.Application.Contracts.Clients;
 
 /// <summary>
 /// Refit interface for calling the Identity service's internal API.
+/// Only request/response operations that cannot be event-driven live here —
+/// everything else is communicated through Kafka integration events.
 /// </summary>
 [Headers("Accept: application/json")]
 public interface IIdentityApi
 {
+    /// <summary>
+    /// Synchronously validates credentials during login. This operation is
+    /// interactive (the browser waits for the result) and therefore stays HTTP.
+    /// </summary>
     [Post("/api/internal/validate-credentials")]
     Task<ApiResponse<CredentialValidationResponse>> ValidateCredentialsAsync([Body] CredentialValidationRequest request);
-
-    [Post("/api/internal/forgot-password")]
-    Task<ApiResponse<ForgotPasswordResponse>> ForgotPasswordAsync([Body] ForgotPasswordRequest request);
-
-    [Post("/api/internal/reset-password")]
-    Task<ApiResponse<bool>> ResetPasswordAsync([Body] ResetPasswordRequest request);
-
-    [Post("/api/internal/send-email-confirmation-otp")]
-    Task<ApiResponse<SendEmailConfirmationOtpResponse>> SendEmailConfirmationOtpAsync([Body] SendEmailConfirmationOtpRequest request);
-
-    [Post("/api/internal/confirm-email")]
-    Task<ApiResponse<bool>> ConfirmEmailAsync([Body] ConfirmEmailRequest request);
 }

@@ -1,0 +1,64 @@
+@{
+    // Renders the outcome of an asynchronous, event-driven flow (password reset or
+    // email confirmation). Polls Account/FlowStatus until the Identity service replies.
+    var requestId = ViewData["FlowRequestId"] as Guid? ?? Guid.Empty;
+    var title = ViewData["FlowTitle"] as string ?? "Please wait";
+    var pendingMessage = ViewData["FlowPendingMessage"] as string ?? "We are processing your request…";
+    var successTitle = ViewData["FlowSuccessTitle"] as string ?? "Done";
+    var successMessage = ViewData["FlowSuccessMessage"] as string ?? "Your request was completed.";
+    var failureUrl = ViewData["FlowFailureUrl"] as string ?? Url.Action("Login");
+    var successUrl = ViewData["FlowSuccessUrl"] as string ?? Url.Action("Login");
+    var successUrlLabel = ViewData["FlowSuccessUrlLabel"] as string ?? "Proceed to login";
+}
+
+<div class="flex flex-col items-center justify-center space-y-4 text-center">
+    <div id="flow-spinner" class="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-2">
+        <i data-lucide="loader-circle" class="h-8 w-8 text-muted-foreground animate-spin"></i>
+    </div>
+
+    <h1 class="text-2xl font-semibold tracking-tight">@title</h1>
+    <p id="flow-pending-message" class="text-sm text-muted-foreground mb-4">@pendingMessage</p>
+
+    <div id="flow-result" class="hidden w-full space-y-4">
+        <div id="flow-success" class="hidden">
+            <div class="bg-green-500/10 text-green-600 dark:text-green-500 h-16 w-16 rounded-full flex items-center justify-center mb-2 mx-auto">
+                <i data-lucide="check-circle-2" class="h-8 w-8"></i>
+            </div>
+            <h2 class="text-xl font-semibold tracking-tight">@successTitle</h2>
+            <p id="flow-success-message" class="text-sm text-muted-foreground mb-6">@successMessage</p>
+            <a href="@successUrl" class="btn-primary w-full">
+                @successUrlLabel <i data-lucide="arrow-right" class="ml-2 h-4 w-4"></i>
+            </a>
+        </div>
+
+        <div id="flow-failure" class="hidden">
+            <div class="bg-destructive/10 text-destructive h-16 w-16 rounded-full flex items-center justify-center mb-2 mx-auto">
+                <i data-lucide="alert-circle" class="h-8 w-8"></i>
+            </div>
+            <h2 class="text-xl font-semibold tracking-tight">Something went wrong</h2>
+            <p id="flow-failure-message" class="text-sm text-muted-foreground mb-6"></p>
+            <a href="@failureUrl" class="btn-outline w-full">Try again</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function pollFlow() {
+        fetch('@Url.Action("FlowStatus", "Account")?requestId=@requestId')
+            .then(r => r.json())
+            .then(status => {
+                if (status && status.state !== 0) {
+                    const ok = status.state === 1;
+                    document.getElementById('flow-spinner').style.display = 'none';
+                    document.getElementById('flow-pending-message').classList.add('hidden');
+                    document.getElementById('flow-result').classList.remove('hidden');
+                    document.getElementById(ok ? 'flow-success' : 'flow-failure').classList.remove('hidden');
+                    document.getElementById(ok ? 'flow-success-message' : 'flow-failure-message').textContent = status.message || '';
+                    if (window.lucide) { lucide.createIcons(); }
+                } else {
+                    setTimeout(pollFlow, 2000);
+                }
+            })
+            .catch(() => setTimeout(pollFlow, 2000));
+    })();
+</script>

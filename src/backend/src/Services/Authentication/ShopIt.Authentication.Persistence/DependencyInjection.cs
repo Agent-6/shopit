@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -28,7 +29,8 @@ public static class DependencyInjection
         string databaseName,
         IConfiguration configuration,
         Action<OutboxOptions>? configureOutbox = null,
-        Action<InboxOptions>? configureInbox = null)
+        Action<InboxOptions>? configureInbox = null,
+        params Assembly[] handlerAssemblies)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -43,7 +45,7 @@ public static class DependencyInjection
             configuration,
             configureOutbox,
             configureInbox,
-            typeof(DependencyInjection).Assembly);
+            [typeof(DependencyInjection).Assembly, .. handlerAssemblies]);
 
         return services;
     }

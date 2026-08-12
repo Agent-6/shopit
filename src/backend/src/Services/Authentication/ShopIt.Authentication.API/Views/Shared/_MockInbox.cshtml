@@ -1,0 +1,56 @@
+@model string
+@{
+    // Renders the dev "mock inbox" for an email address. Emails are delivered
+    // asynchronously by Kafka integration events, so this partial polls the
+    // Account/MockEmails endpoint until something arrives.
+    var email = Model ?? string.Empty;
+}
+
+<div class="rounded-lg border border-dashed p-4 text-sm">
+    <div class="flex items-center gap-2 text-muted-foreground">
+        <i data-lucide="inbox" class="h-4 w-4 shrink-0"></i>
+        <span class="font-medium">Mock inbox</span>
+        <span class="text-xs italic">(delivered via integration events)</span>
+    </div>
+
+    <div id="mock-inbox-empty" class="mt-3 text-xs text-muted-foreground animate-pulse">
+        Waiting for email to arrive… this can take a few seconds.
+    </div>
+
+    <div id="mock-inbox-items" class="mt-3 space-y-3 hidden"></div>
+</div>
+
+<script>
+    (function pollInbox() {
+        fetch('@Url.Action("MockEmails", "Account")?email=' + encodeURIComponent('@email'))
+            .then(r => r.json())
+            .then(emails => {
+                if (emails && emails.length) {
+                    const container = document.getElementById('mock-inbox-items');
+                    const empty = document.getElementById('mock-inbox-empty');
+                    container.innerHTML = '';
+
+                    emails.forEach(e => {
+                        const link = (e.body || '').match(/\/Account\/[^\s"]*/);
+                        const body = link ? (e.body || '').replace(link[0], '').trim() : (e.body || '');
+
+                        const row = document.createElement('div');
+                        row.className = 'rounded border bg-muted/50 p-3 text-left';
+                        row.innerHTML =
+                            '<div class="text-xs font-medium">' + (e.subject || '') + '</div>' +
+                            '<div class="mt-1 text-xs text-muted-foreground break-words">' + body + '</div>' +
+                            (link
+                                ? '<a class="mt-2 inline-block text-xs font-medium text-primary hover:underline" href="' + link[0] + '">Open reset link</a>'
+                                : '');
+                        container.appendChild(row);
+                    });
+
+                    container.classList.remove('hidden');
+                    empty.classList.add('hidden');
+                } else {
+                    setTimeout(pollInbox, 2000);
+                }
+            })
+            .catch(() => setTimeout(pollInbox, 2000));
+    })();
+</script>
