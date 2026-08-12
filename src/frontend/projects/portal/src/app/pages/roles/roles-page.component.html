@@ -1,0 +1,90 @@
+<section class="flex flex-col gap-6">
+  <app-page-header title="Roles" subtitle="Define roles and grant them permissions to control access across the platform.">
+    @if (permissionService.has(perms.Roles.Create)) {
+      <ui-button variant="default" icon="plus" (click)="openCreate()">Create role</ui-button>
+    }
+  </app-page-header>
+
+  <app-page-filters>
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-12 items-end">
+      <div class="lg:col-span-6 space-y-1.5">
+        <label class="text-sm font-medium leading-none" for="roles-search">Search</label>
+        <input
+          id="roles-search"
+          type="search"
+          placeholder="Search by role name"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          [value]="service.filter()"
+          (input)="service.filter.set($any($event.target).value)"
+        />
+      </div>
+
+      <div class="lg:col-span-full flex justify-end">
+        <ui-button variant="outline" icon="refresh-cw" (click)="service.loadRoles()">Refresh</ui-button>
+      </div>
+    </div>
+  </app-page-filters>
+
+  <app-page-table
+    [columns]="columns"
+    [rows]="service.roles()"
+    [trackBy]="trackById"
+    [page]="service.page()"
+    [pageCount]="pageCount()"
+    [pageSize]="service.pageSize()"
+    [disabled]="service.loading()"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  >
+    <ng-template appPageTableCell="name" let-role>
+      <span class="font-medium">{{ role.name }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="description" let-role>
+      <span class="text-muted-foreground">{{ role.description || '—' }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="createdAt" let-role>
+      <span class="text-muted-foreground">{{ role.createdAt | date: 'medium' }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="actions" let-role>
+      <div class="flex justify-end gap-2">
+        <ui-button variant="outline" size="sm" [routerLink]="['/roles', role.id]">View</ui-button>
+        @if (permissionService.has(perms.Roles.Update)) {
+          <ui-button variant="secondary" size="sm" (click)="editRole(role)">Edit</ui-button>
+        }
+        @if (permissionService.has(perms.Roles.Delete)) {
+          <ui-button variant="destructive" size="sm" (click)="deleteRole(role)">Delete</ui-button>
+        }
+      </div>
+    </ng-template>
+  </app-page-table>
+
+  @if (!service.loading() && service.roles().length === 0) {
+    <div class="rounded-lg border bg-card p-6 text-sm text-muted-foreground text-center">
+      No roles found. Click <span class="font-medium text-foreground">Create role</span> to add one.
+    </div>
+  }
+
+  @if (service.error()) {
+    <div class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+      <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
+      {{ service.error() }}
+    </div>
+  }
+
+  @if (editorOpen()) {
+    <aside
+      class="fixed inset-0 z-50 flex items-start justify-center pt-16 bg-background/80 backdrop-blur-sm sm:items-center sm:pt-0"
+    >
+      <div class="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
+        <app-role-editor
+          [title]="editorTitle()"
+          [submitLabel]="editorMode() === 'create' ? 'Create role' : 'Save changes'"
+          [mode]="editorMode()"
+          [model]="editingRole()"
+          (submit)="saveRole($event)"
+          (cancel)="closeEditor()"
+        ></app-role-editor>
+      </div>
+    </aside>
+  }
+</section>

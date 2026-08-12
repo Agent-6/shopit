@@ -4,15 +4,19 @@ import { lastValueFrom } from 'rxjs';
 import {
   CreateUserRequest,
   DeleteUserResponse,
+  LockUserRequest,
   UpdateUserClaimsRequest,
+  UpdateUserPasswordRequest,
   UpdateUserPermissionsRequest,
   UpdateUserRequest,
+  UpdateUserRolesRequest,
   User,
   UserClaimRequest,
   UserPermissionRequest
 } from './users.model';
 import { environment } from '../../../environments/environment';
 import { PagedResponse } from '../../core/models/pagination';
+import { Role } from '../roles/role.model';
 
 @Injectable({ providedIn: 'root' })
 export class UsersService {
@@ -25,6 +29,8 @@ export class UsersService {
   readonly selectedUser = signal<User | null>(null);
   readonly permissions = signal<UserPermissionRequest[]>([]);
   readonly claims = signal<UserClaimRequest[]>([]);
+  readonly userRoles = signal<string[]>([]);
+  readonly availableRoles = signal<Role[]>([]);
   readonly page = signal(1);
   readonly pageSize = signal(10);
   readonly filter = signal('');
@@ -136,6 +142,10 @@ export class UsersService {
     }
   }
 
+  // ------------------------------------------------------------------
+  // Permissions
+  // ------------------------------------------------------------------
+
   async loadPermissions(userId: string): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
@@ -172,6 +182,10 @@ export class UsersService {
     }
   }
 
+  // ------------------------------------------------------------------
+  // Claims
+  // ------------------------------------------------------------------
+
   async loadClaims(userId: string): Promise<void> {
     this.loading.set(true);
     this.error.set(null);
@@ -204,6 +218,149 @@ export class UsersService {
       this.claims.set(claims);
     } catch (error) {
       this.error.set('Unable to update claims.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async removeClaim(userId: string, claimType: string, claimValue: string): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      const url = `${this.baseUrl}/users/${userId}/claims/${encodeURIComponent(claimType)}/${encodeURIComponent(claimValue)}`;
+      await lastValueFrom(this.http.delete<void>(url));
+      await this.loadClaims(userId);
+    } catch (error) {
+      this.error.set('Unable to remove the claim.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Roles
+  // ------------------------------------------------------------------
+
+  async loadAvailableRoles(): Promise<void> {
+    try {
+      const result = await lastValueFrom(
+        this.http.get<PagedResponse<Role>>(`${this.baseUrl}/roles`, {
+          params: new HttpParams().set('page', '1').set('pageSize', '100')
+        })
+      );
+      this.availableRoles.set(result.items ?? []);
+    } catch (error) {
+      this.error.set('Unable to load roles.');
+    }
+  }
+
+  async loadUserRoles(userId: string): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      const response = await lastValueFrom(
+        this.http.get<{ roles: string[] }>(`${this.baseUrl}/users/${userId}/roles`)
+      );
+      this.userRoles.set(response.roles ?? []);
+    } catch (error) {
+      this.error.set('Unable to load user roles.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async setUserRoles(userId: string, roleNames: string[]): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await lastValueFrom(
+        this.http.put<void>(`${this.baseUrl}/users/${userId}/roles`, { roleNames } as UpdateUserRolesRequest)
+      );
+      this.userRoles.set(roleNames);
+    } catch (error) {
+      this.error.set('Unable to update roles.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Security & status
+  // ------------------------------------------------------------------
+
+  async lockUser(userId: string, lockoutEnd?: string | null): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await lastValueFrom(
+        this.http.post<void>(`${this.baseUrl}/users/${userId}/lock`, { lockoutEnd } as LockUserRequest)
+      );
+      await this.loadUser(userId);
+    } catch (error) {
+      this.error.set('Unable to lock the account.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async unlockUser(userId: string): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await lastValueFrom(this.http.post<void>(`${this.baseUrl}/users/${userId}/unlock`, null));
+      await this.loadUser(userId);
+    } catch (error) {
+      this.error.set('Unable to unlock the account.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async activateUser(userId: string): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await lastValueFrom(this.http.post<void>(`${this.baseUrl}/users/${userId}/activate`, null));
+      await this.loadUser(userId);
+    } catch (error) {
+      this.error.set('Unable to activate the account.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async deactivateUser(userId: string): Promise<void> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await lastValueFrom(this.http.post<void>(`${this.baseUrl}/users/${userId}/deactivate`, null));
+      await this.loadUser(userId);
+    } catch (error) {
+      this.error.set('Unable to deactivate the account.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      await lastValueFrom(
+        this.http.put<void>(`${this.baseUrl}/users/${userId}/password`, { newPassword } as UpdateUserPasswordRequest)
+      );
+      return true;
+    } catch (error) {
+      this.error.set('Unable to update the password. Make sure it meets the password policy.');
+      return false;
     } finally {
       this.loading.set(false);
     }

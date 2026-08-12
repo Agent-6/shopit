@@ -5,6 +5,8 @@ import { UserEditorComponent } from './user-editor.component';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
+import { PermissionService } from '../../core/auth/permission.service';
+import { ShopItPermissions } from '../../core/auth/permissions';
 import { PageHeaderComponent } from '../../core/components/page/page-header.component';
 import { PageFiltersComponent } from '../../core/components/page/page-filters.component';
 import {
@@ -30,6 +32,8 @@ import {
 })
 export class UsersPageComponent {
   protected readonly service = inject(UsersService);
+  protected readonly permissionService = inject(PermissionService);
+  protected readonly perms = ShopItPermissions;
   protected readonly editorOpen = signal(false);
   protected readonly editingUser = signal<User | null>(null);
   protected readonly editorMode = computed(() => (this.editingUser() ? 'edit' : 'create'));
@@ -51,6 +55,10 @@ export class UsersPageComponent {
 
   protected trackById(_index: number, user: User): string {
     return user.id;
+  }
+
+  protected isLocked(user: User): boolean {
+    return !!user.lockoutEnd && new Date(user.lockoutEnd).getTime() > Date.now();
   }
 
   protected openCreate(): void {

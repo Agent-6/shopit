@@ -1,6 +1,8 @@
 <section class="flex flex-col gap-6">
   <app-page-header title="Users" subtitle="Browse, create, and maintain user accounts for the Identity API.">
-    <ui-button variant="default" icon="plus" (click)="openCreate()">Create user</ui-button>
+    @if (permissionService.has(perms.Users.Create)) {
+      <ui-button variant="default" icon="plus" (click)="openCreate()">Create user</ui-button>
+    }
   </app-page-header>
 
   <app-page-filters>
@@ -75,18 +77,29 @@
       }
     </ng-template>
     <ng-template appPageTableCell="isActive" let-user>
-      @if (user.isActive) {
-        <span class="text-primary"><ui-icon name="check" class="h-4 w-4"></ui-icon></span>
-      }
-      @if (!user.isActive) {
-        <span class="text-muted-foreground"><ui-icon name="x" class="h-4 w-4"></ui-icon></span>
-      }
+      <div class="flex items-center gap-2">
+        @if (user.isActive) {
+          <span class="text-primary"><ui-icon name="check" class="h-4 w-4"></ui-icon></span>
+        }
+        @if (!user.isActive) {
+          <span class="text-muted-foreground"><ui-icon name="x" class="h-4 w-4"></ui-icon></span>
+        }
+        @if (isLocked(user)) {
+          <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-500" title="Account is locked">
+            <ui-icon name="lock" class="h-4 w-4"></ui-icon>
+          </span>
+        }
+      </div>
     </ng-template>
     <ng-template appPageTableCell="actions" let-user>
       <div class="flex justify-end gap-2">
         <ui-button variant="outline" size="sm" [routerLink]="['/users', user.id]">View</ui-button>
-        <ui-button variant="secondary" size="sm" (click)="editUser(user)">Edit</ui-button>
-        <ui-button variant="destructive" size="sm" (click)="deleteUser(user)">Delete</ui-button>
+        @if (permissionService.has(perms.Users.Update)) {
+          <ui-button variant="secondary" size="sm" (click)="editUser(user)">Edit</ui-button>
+        }
+        @if (permissionService.has(perms.Users.Delete)) {
+          <ui-button variant="destructive" size="sm" (click)="deleteUser(user)">Delete</ui-button>
+        }
       </div>
     </ng-template>
   </app-page-table>

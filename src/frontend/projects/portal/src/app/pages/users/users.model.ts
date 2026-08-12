@@ -32,6 +32,19 @@ export interface UpdateUserRequest {
   isActive?: boolean | null;
   roles?: string[] | null;
   claims?: UserClaimRequest[] | null;
+  emailConfirmed?: boolean | null;
+}
+
+export interface UpdateUserRolesRequest {
+  roleNames: string[];
+}
+
+export interface LockUserRequest {
+  lockoutEnd?: string | null;
+}
+
+export interface UpdateUserPasswordRequest {
+  newPassword: string;
 }
 
 export interface DeleteUserResponse {
@@ -60,5 +73,10 @@ export interface User {
   claims?: UserClaimRequest[];
   emailConfirmed?: boolean;
   phoneNumberConfirmed?: boolean;
+  twoFactorEnabled?: boolean;
   isActive: boolean;
+  lockoutEnabled?: boolean;
+  lockoutEnd?: string | null;
+  createdAt?: string;
+  lastModifiedAt?: string;
 }
