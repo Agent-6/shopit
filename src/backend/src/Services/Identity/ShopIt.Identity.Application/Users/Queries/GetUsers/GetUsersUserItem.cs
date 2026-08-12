@@ -6,5 +6,13 @@ public record GetUsersUserItem(
     string Email,
     string? FirstName,
     string? LastName,
-    bool IsActive
+    bool IsActive,
+    bool EmailConfirmed,
+    string? PhoneNumber,
+    bool PhoneNumberConfirmed,
+    bool LockoutEnabled,
+    DateTimeOffset? LockoutEnd,
+    DateTime CreatedAt,
+    DateTime LastModifiedAt,
+    IEnumerable<string> Roles
 );

@@ -19,7 +19,7 @@ public class UserRepository(ApplicationDbContext dbContext) : Repository<User, G
         var query = DbSet.AsQueryable();
         if (!string.IsNullOrWhiteSpace(filter))
         {
-            query = query.Where(u => EF.Functions.ILike(u.UserName, $"%{filter}%") || EF.Functions.ILike(u.Email, $"%{filter}%"));
+            query = query.Where(u => EF.Functions.ILike((u.UserName ?? string.Empty), $"%{filter}%") || EF.Functions.ILike((u.Email ?? string.Empty), $"%{filter}%"));
         }
 
         var total = await query.CountAsync(cancellationToken);
@@ -31,5 +31,25 @@ public class UserRepository(ApplicationDbContext dbContext) : Repository<User, G
             .ToListAsync(cancellationToken);
 
         return (users, total);
+    }
+
+    public async Task<IDictionary<Guid, List<string>>> GetRoleNamesForUsersAsync(IEnumerable<Guid> userIds, CancellationToken cancellationToken = default)
+    {
+        var ids = userIds.ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, List<string>>();
+        }
+
+        var assignments = await (
+            from ur in DbContext.Set<UserRole>()
+            join r in DbContext.Set<Role>() on ur.RoleId equals r.Id
+            where ids.Contains(ur.UserId)
+            select new { ur.UserId, RoleName = r.Name ?? string.Empty })
+            .ToListAsync(cancellationToken);
+
+        return assignments
+            .GroupBy(x => x.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.RoleName).Distinct().ToList());
     }
 }

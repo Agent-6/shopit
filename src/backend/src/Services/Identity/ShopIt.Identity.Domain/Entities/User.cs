@@ -35,6 +35,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     public bool IsActive { get; private set; } = true;
     public UserStatus Status { get; private set; } = UserStatus.Active;
     public DateTime CreatedAt { get; private set; } = default!;
+    public DateTime LastModifiedAt { get; private set; } = default!;
     public string CreatedBy { get; private set; } = default!;
 
     // Navigation properties
@@ -68,6 +69,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
             TenantId = tenantId,
             SecurityStamp = Guid.NewGuid().ToString(),
             CreatedAt = DateTime.UtcNow,
+            LastModifiedAt = DateTime.UtcNow,
             CreatedBy = createdBy,
             Status = UserStatus.Active,
             IsActive = true
@@ -110,6 +112,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         NormalizedEmail = newEmail.ToUpperInvariant();
         EmailConfirmed = false;
         SecurityStamp = Guid.NewGuid().ToString();
+        LastModifiedAt = DateTime.UtcNow;
 
         RaiseDomainEvent(new UserEmailChangedDomainEvent(Id, newEmail));
     }
@@ -164,6 +167,33 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         {
             AccessFailedCount = 0;
         }
+    }
+
+    /// <summary>
+    /// Locks the account until the specified time (admin-initiated lockout).
+    /// </summary>
+    public void LockAccount(DateTimeOffset until)
+    {
+        if (LockoutEnd == until)
+            return;
+
+        LockoutEnd = until;
+        LastModifiedAt = DateTime.UtcNow;
+        RaiseDomainEvent(new UserLockedOutDomainEvent(Id, until));
+    }
+
+    /// <summary>
+    /// Unlocks the account and resets the failed access counter (admin-initiated).
+    /// </summary>
+    public void UnlockAccount()
+    {
+        if (LockoutEnd == null && AccessFailedCount == 0)
+            return;
+
+        LockoutEnd = null;
+        AccessFailedCount = 0;
+        LastModifiedAt = DateTime.UtcNow;
+        RaiseDomainEvent(new UserUnlockedDomainEvent(Id));
     }
 
     // Login tracking
@@ -283,6 +313,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     {
         IsActive = false;
         Status = UserStatus.Inactive;
+        LastModifiedAt = DateTime.UtcNow;
         RaiseDomainEvent(new UserDeactivatedDomainEvent(Id, reason));
     }
 
@@ -290,6 +321,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     {
         IsActive = true;
         Status = UserStatus.Active;
+        LastModifiedAt = DateTime.UtcNow;
         RaiseDomainEvent(new UserActivatedDomainEvent(Id));
     }
 
@@ -308,6 +340,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         if (profilePictureUrl is not null)
             ProfilePictureUrl = profilePictureUrl;
 
+        LastModifiedAt = DateTime.UtcNow;
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, firstName, lastName));
     }
 }

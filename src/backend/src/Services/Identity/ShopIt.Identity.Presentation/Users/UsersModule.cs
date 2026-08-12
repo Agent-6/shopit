@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Framework.Presentation.Modules;
+using ShopIt.Identity.Domain.Permissions;
+using ShopIt.Identity.Presentation.Authorization;
 using ShopIt.Identity.Presentation.Users.Enums;
 using ShopIt.Identity.Presentation.Users.Requests;
 using ShopIt.Identity.Presentation.Users.Responses;
@@ -19,19 +21,52 @@ public class UsersModule : EndpointsModule
 
     public override void RegisterEndpoints(IEndpointRouteBuilder app)
     {
-        // User CRUD Operations
-        app.MapGet("/", GetUsers).RequireAuthorization();
-        app.MapGet("/{userId:guid}", GetUserById).RequireAuthorization();
-        app.MapPost("/", CreateUser).RequireAuthorization();
-        app.MapPut("/{userId:guid}", UpdateUser).RequireAuthorization();
-        app.MapDelete("/{userId:guid}", DeleteUser).RequireAuthorization();
-        // User Permissions
-        app.MapGet("/{userId:guid}/permissions", GetUserPermissions).RequireAuthorization();
-        app.MapPut("/{userId:guid}/permissions", UpdateUserPermissions).RequireAuthorization();
+        // Current user (any authenticated user can read their own permissions)
+        app.MapGet("/me/permissions", GetMyPermissions).RequireAuthorization();
 
-        // User Claims
-        app.MapGet("/{userId:guid}/claims", GetUserClaims).RequireAuthorization();
-        app.MapPut("/{userId:guid}/claims", UpdateUserClaims).RequireAuthorization();
+        // User CRUD Operations
+        app.MapGet("/", GetUsers).RequirePermission(ShopItIdentityPermissions.Users.View);
+        app.MapGet("/{userId:guid}", GetUserById).RequirePermission(ShopItIdentityPermissions.Users.View);
+        app.MapPost("/", CreateUser).RequirePermission(ShopItIdentityPermissions.Users.Create);
+        app.MapPut("/{userId:guid}", UpdateUser).RequirePermission(ShopItIdentityPermissions.Users.Update);
+        app.MapDelete("/{userId:guid}", DeleteUser).RequirePermission(ShopItIdentityPermissions.Users.Delete);
+
+        // User Permissions (reads are view-level so the user detail page renders; mutations require management)
+        app.MapGet("/{userId:guid}/permissions", GetUserPermissions).RequirePermission(ShopItIdentityPermissions.Users.View);
+        app.MapPut("/{userId:guid}/permissions", UpdateUserPermissions).RequirePermission(ShopItIdentityPermissions.Users.ManagePermissions);
+
+        // User Claims (the catch-all claimValue segment tolerates '/' inside claim values)
+        app.MapGet("/{userId:guid}/claims", GetUserClaims).RequirePermission(ShopItIdentityPermissions.Users.View);
+        app.MapPut("/{userId:guid}/claims", UpdateUserClaims).RequirePermission(ShopItIdentityPermissions.Users.ManageClaims);
+        app.MapDelete("/{userId:guid}/claims/{claimType}/{*claimValue}", RemoveUserClaim).RequirePermission(ShopItIdentityPermissions.Users.ManageClaims);
+
+        // User Roles
+        app.MapGet("/{userId:guid}/roles", GetUserRoles).RequirePermission(ShopItIdentityPermissions.Users.View);
+        app.MapPut("/{userId:guid}/roles", UpdateUserRoles).RequirePermission(ShopItIdentityPermissions.Users.ManageRoles);
+
+        // User Security & Status
+        app.MapPost("/{userId:guid}/lock", LockUser).RequirePermission(ShopItIdentityPermissions.Users.LockUnlock);
+        app.MapPost("/{userId:guid}/unlock", UnlockUser).RequirePermission(ShopItIdentityPermissions.Users.LockUnlock);
+        app.MapPost("/{userId:guid}/activate", ActivateUser).RequirePermission(ShopItIdentityPermissions.Users.Update);
+        app.MapPost("/{userId:guid}/deactivate", DeactivateUser).RequirePermission(ShopItIdentityPermissions.Users.Update);
+        app.MapPut("/{userId:guid}/password", UpdateUserPassword).RequirePermission(ShopItIdentityPermissions.Users.ResetPassword);
+    }
+
+    private async Task<IResult> GetMyPermissions(ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var res = await dispatcher.QueryAsync(
+                new ShopIt.Identity.Application.Users.Queries.GetMyPermissions.GetMyPermissionsQuery(),
+                cancellationToken);
+
+            return Results.Ok(new GetMyPermissionsResponse(res.Permissions.ToList()));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Authenticated but no interactive user (e.g. a client-credentials token).
+            return Results.Unauthorized();
+        }
     }
 
     private async Task<IResult> GetUsers(
@@ -54,13 +89,14 @@ public class UsersModule : EndpointsModule
                 u.FirstName,
                 u.LastName,
                 u.IsActive,
-                EmailConfirmed: false,
-                PhoneNumber: null,
-                PhoneNumberConfirmed: false,
-                LockoutEnabled: false,
-                LockoutEnd: null,
-                CreatedAt: DateTime.UtcNow,
-                LastModifiedAt: DateTime.UtcNow
+                u.EmailConfirmed,
+                u.PhoneNumber,
+                u.PhoneNumberConfirmed,
+                u.LockoutEnabled,
+                u.LockoutEnd,
+                u.CreatedAt,
+                u.LastModifiedAt,
+                u.Roles.ToList()
             )).ToList(),
             TotalCount = result.TotalCount,
             Page = result.Page,
@@ -75,9 +111,7 @@ public class UsersModule : EndpointsModule
     {
         var user = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUser.GetUserQuery(userId), cancellationToken);
         var claims = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserClaims.GetUserClaimsQuery(userId), cancellationToken);
-        var perms = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserPermissions.GetUserPermissionsQuery(userId), cancellationToken);
-
-        var roles = perms.InheritedPermissions.Select(p => p.Source).Distinct().ToList();
+        var roles = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserRoles.GetUserRolesQuery(userId), cancellationToken);
 
         var response = new UserDetailResponse(
             Id: user.Id,
@@ -86,15 +120,15 @@ public class UsersModule : EndpointsModule
             FirstName: user.FirstName,
             LastName: user.LastName,
             IsActive: user.IsActive,
-            EmailConfirmed: false,
-            PhoneNumber: null,
-            PhoneNumberConfirmed: false,
-            TwoFactorEnabled: false,
-            LockoutEnabled: false,
-            LockoutEnd: null,
-            CreatedAt: DateTime.UtcNow,
-            LastModifiedAt: DateTime.UtcNow,
-            Roles: roles,
+            EmailConfirmed: user.EmailConfirmed,
+            PhoneNumber: user.PhoneNumber,
+            PhoneNumberConfirmed: user.PhoneNumberConfirmed,
+            TwoFactorEnabled: user.TwoFactorEnabled,
+            LockoutEnabled: user.LockoutEnabled,
+            LockoutEnd: user.LockoutEnd,
+            CreatedAt: user.CreatedAt,
+            LastModifiedAt: user.LastModifiedAt,
+            Roles: roles.Roles.ToList(),
             Claims: claims.Claims.Select(c => new UserClaimResponse(c.Type, c.Value)).ToList()
         );
 
@@ -109,7 +143,9 @@ public class UsersModule : EndpointsModule
             request.Password,
             request.FirstName ?? string.Empty,
             request.LastName ?? string.Empty,
-            request.PhoneNumber
+            request.PhoneNumber,
+            request.Roles,
+            request.Claims?.Select(c => new ShopIt.Identity.Application.Users.Commands.CreateUser.CreateUserClaimItem(c.ClaimType, c.ClaimValue))
         );
 
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
@@ -127,7 +163,10 @@ public class UsersModule : EndpointsModule
             request.FirstName,
             request.LastName,
             request.PhoneNumber,
-            request.IsActive
+            request.IsActive,
+            request.Roles,
+            request.Claims?.Select(c => new ShopIt.Identity.Application.Users.Commands.UpdateUser.UpdateUserClaimItem(c.ClaimType, c.ClaimValue)),
+            request.EmailConfirmed
         );
 
         var res = await dispatcher.SendAsync(cmd, cancellationToken);
@@ -153,6 +192,10 @@ public class UsersModule : EndpointsModule
         return TypedResults.Ok(new DeleteUserResponse(res.Id, res.IsDeleted, res.DeletedType));
     }
 
+    // ------------------------------------------------------------------
+    // Permissions
+    // ------------------------------------------------------------------
+
     private async Task<IResult> GetUserPermissions(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
         var perms = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserPermissions.GetUserPermissionsQuery(userId), cancellationToken);
@@ -172,6 +215,10 @@ public class UsersModule : EndpointsModule
         return Results.Ok(new UpdateUserPermissionsResponse(res.UserId, res.GrantedPermissions.ToList(), res.RevokedPermissions.ToList(), res.UpdatedAt));
     }
 
+    // ------------------------------------------------------------------
+    // Claims
+    // ------------------------------------------------------------------
+
     private async Task<IResult> GetUserClaims(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
         var res = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserClaims.GetUserClaimsQuery(userId), cancellationToken);
@@ -188,5 +235,87 @@ public class UsersModule : EndpointsModule
         var res = await dispatcher.SendAsync(cmd, cancellationToken);
 
         return Results.Ok(new UpdateUserClaimsResponse(res.UserId, res.UpdatedClaims.Select(c => new UserClaimRequest(c.Type, c.Value)).ToList(), res.RemovedClaims.Select(c => c.Type + ":" + c.Value).ToList(), res.UpdatedAt));
+    }
+
+    private async Task<IResult> RemoveUserClaim(Guid userId, string claimType, string claimValue, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.SendAsync(
+            new ShopIt.Identity.Application.Users.Commands.RemoveUserClaim.RemoveUserClaimCommand(userId, claimType, claimValue),
+            cancellationToken);
+
+        return Results.Ok(new RemoveUserClaimResponse(res.UserId, res.ClaimType, res.ClaimValue, res.Removed));
+    }
+
+    // ------------------------------------------------------------------
+    // Roles
+    // ------------------------------------------------------------------
+
+    private async Task<IResult> GetUserRoles(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserRoles.GetUserRolesQuery(userId), cancellationToken);
+        return Results.Ok(new GetUserRolesResponse(res.UserId, res.Roles.ToList()));
+    }
+
+    private async Task<IResult> UpdateUserRoles(Guid userId, UpdateUserRolesRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.SendAsync(
+            new ShopIt.Identity.Application.Users.Commands.UpdateUserRoles.UpdateUserRolesCommand(userId, request.RoleNames),
+            cancellationToken);
+
+        return Results.Ok(new UpdateUserRolesResponse(res.UserId, res.Roles.ToList(), res.UpdatedAt));
+    }
+
+    // ------------------------------------------------------------------
+    // Security & Status
+    // ------------------------------------------------------------------
+
+    private async Task<IResult> LockUser(Guid userId, LockUserRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.SendAsync(
+            new ShopIt.Identity.Application.Users.Commands.LockUser.LockUserCommand(userId, request.LockoutEnd),
+            cancellationToken);
+
+        return Results.Ok(new LockUserResponse(res.UserId, res.LockoutEnd));
+    }
+
+    private async Task<IResult> UnlockUser(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.SendAsync(
+            new ShopIt.Identity.Application.Users.Commands.UnlockUser.UnlockUserCommand(userId),
+            cancellationToken);
+
+        return Results.Ok(new UnlockUserResponse(res.UserId, res.IsUnlocked));
+    }
+
+    private async Task<IResult> ActivateUser(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.SendAsync(
+            new ShopIt.Identity.Application.Users.Commands.ActivateUser.ActivateUserCommand(userId),
+            cancellationToken);
+
+        return Results.Ok(new ActivateUserResponse(res.UserId, res.IsActive));
+    }
+
+    private async Task<IResult> DeactivateUser(Guid userId, DeactivateUserRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.SendAsync(
+            new ShopIt.Identity.Application.Users.Commands.DeactivateUser.DeactivateUserCommand(userId, request.Reason),
+            cancellationToken);
+
+        return Results.Ok(new DeactivateUserResponse(res.UserId, res.IsActive));
+    }
+
+    private async Task<IResult> UpdateUserPassword(Guid userId, UpdateUserPasswordRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var res = await dispatcher.SendAsync(
+            new ShopIt.Identity.Application.Users.Commands.UpdateUserPassword.UpdateUserPasswordCommand(userId, request.NewPassword),
+            cancellationToken);
+
+        if (!res.Succeeded)
+        {
+            return Results.BadRequest(new UpdateUserPasswordResponse(res.UserId, false, res.Error));
+        }
+
+        return Results.Ok(new UpdateUserPasswordResponse(res.UserId, true, null));
     }
 }

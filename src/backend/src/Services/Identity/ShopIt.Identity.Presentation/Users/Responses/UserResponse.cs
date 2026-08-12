@@ -14,5 +14,6 @@ public record UserResponse(
     bool LockoutEnabled,
     DateTimeOffset? LockoutEnd,
     DateTime CreatedAt,
-    DateTime LastModifiedAt
+    DateTime LastModifiedAt,
+    List<string> Roles
 );
