@@ -53,9 +53,15 @@ var tenancy = builder.AddProject<Projects.ShopIt_Tenancy_API>("tenancy-api")
     .WithReference(tenancyDb)
     .WithReference(seq)
     .WithReference(kafka)
+    // Tenancy enforces Identity's permission model: it needs the auth server for
+    // client-credentials tokens and the Identity service for permission lookups.
+    .WithReference(auth)
+    .WithReference(identity)
     .WaitFor(tenancyDb)
     .WaitFor(kafka)
-    .WaitFor(seq);
+    .WaitFor(seq)
+    .WaitFor(auth)
+    .WaitFor(identity);
 
 var gateway = builder.AddYarp("gateway")
     .WithHostPort(5000)

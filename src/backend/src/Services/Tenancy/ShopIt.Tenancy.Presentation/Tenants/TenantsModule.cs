@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Framework.Presentation.Modules;
+using ShopIt.Tenancy.Presentation.Authorization;
 using ShopIt.Tenancy.Application.Tenants.Commands.ActivateTenant;
 using ShopIt.Tenancy.Application.Tenants.Commands.CreateTenant;
 using ShopIt.Tenancy.Application.Tenants.Commands.DeactivateTenant;
@@ -22,13 +23,13 @@ public class TenantsModule : EndpointsModule
 
     public override void RegisterEndpoints(IEndpointRouteBuilder app)
     {
-        app.MapGet("/", GetTenants);
-        app.MapGet("/{tenantId:guid}", GetTenantById);
-        app.MapPost("/", CreateTenant);
-        app.MapPut("/{tenantId:guid}", UpdateTenant);
-        app.MapDelete("/{tenantId:guid}", DeleteTenant);
-        app.MapPut("/{tenantId:guid}/activate", ActivateTenant);
-        app.MapPut("/{tenantId:guid}/deactivate", DeactivateTenant);
+        app.MapGet("/", GetTenants).RequirePermission(ShopItTenancyPermissions.View);
+        app.MapGet("/{tenantId:guid}", GetTenantById).RequirePermission(ShopItTenancyPermissions.View);
+        app.MapPost("/", CreateTenant).RequirePermission(ShopItTenancyPermissions.Create);
+        app.MapPut("/{tenantId:guid}", UpdateTenant).RequirePermission(ShopItTenancyPermissions.Update);
+        app.MapDelete("/{tenantId:guid}", DeleteTenant).RequirePermission(ShopItTenancyPermissions.Delete);
+        app.MapPut("/{tenantId:guid}/activate", ActivateTenant).RequirePermission(ShopItTenancyPermissions.ActivateDeactivate);
+        app.MapPut("/{tenantId:guid}/deactivate", DeactivateTenant).RequirePermission(ShopItTenancyPermissions.ActivateDeactivate);
     }
 
     private async Task<IResult> GetTenants(
