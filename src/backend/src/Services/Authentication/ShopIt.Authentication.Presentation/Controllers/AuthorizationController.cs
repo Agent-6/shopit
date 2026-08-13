@@ -90,6 +90,28 @@ public class AuthorizationController(IOpenIddictScopeManager scopeManager) : Con
                 authenticationSchemes: [CookieAuthenticationDefaults.AuthenticationScheme]);
         }
 
+        // Account switcher: when the browser holds more than one active SSO account
+        // (multi-identity sso_cookie), let the user pick which one to authorize BEFORE
+        // showing the consent page. SwitchAccount sets a one-shot cookie that marks this
+        // authorize round as "already chosen", so the redirect back here does not loop.
+        // GET only — the consent POST must not bounce back into the switcher.
+        if (HttpMethods.IsGet(Request.Method))
+        {
+            if (Request.Cookies.ContainsKey(AccountController.AccountSwitcherCookieName))
+            {
+                Response.Cookies.Delete(AccountController.AccountSwitcherCookieName);
+            }
+            else
+            {
+                var identities = result.Principal!.Identities.Where(i => i.IsAuthenticated).ToList();
+                if (identities.Count > 1)
+                {
+                    var returnUrl = Request.PathBase + Request.Path + QueryString.Create(Request.Query.ToList());
+                    return RedirectToAction("Switcher", "Account", new { returnUrl });
+                }
+            }
+        }
+
         // POST request means the user submitted the consent form
         if (HttpMethods.IsPost(Request.Method))
         {

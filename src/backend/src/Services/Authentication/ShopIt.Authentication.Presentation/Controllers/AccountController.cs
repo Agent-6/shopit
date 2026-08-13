@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using ShopIt.Authentication.Application.Mocking;
@@ -15,6 +16,12 @@ namespace ShopIt.Authentication.Presentation.Controllers;
 [Route("[controller]")]
 public class AccountController : Controller
 {
+    /// <summary>
+    /// One-shot cookie set by the account switcher after the user picks an account. The
+    /// authorize endpoint checks it to avoid re-showing the switcher for the same round.
+    /// </summary>
+    public const string AccountSwitcherCookieName = "shopit_account_selected";
+
     private readonly IIdentityServiceClient _identityServiceClient;
     private readonly IOutboxWriter _outboxWriter;
     private readonly IUnitOfWork _unitOfWork;
@@ -230,6 +237,17 @@ public class AccountController : Controller
                 identities.Insert(0, targetIdentity);
 
                 await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identities));
+
+                // Mark this authorize round as "already chosen" so the authorize endpoint
+                // does not bounce straight back into the switcher after the redirect.
+                HttpContext.Response.Cookies.Append(AccountSwitcherCookieName, "1", new CookieOptions
+                {
+                    HttpOnly = true,
+                    SameSite = SameSiteMode.Lax,
+                    Secure = true,
+                    IsEssential = true,
+                    MaxAge = TimeSpan.FromMinutes(5),
+                });
             }
         }
 
