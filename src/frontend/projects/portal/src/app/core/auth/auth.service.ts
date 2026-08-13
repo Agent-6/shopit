@@ -21,6 +21,13 @@ export class AuthService {
     this.oauthService.initCodeFlow();
   }
 
+  public switchAccount() {
+    // Start a fresh code flow asking the auth server to show the account chooser,
+    // even when the user is already signed in. The prompt is passed per-call (not via
+    // customQueryParams) so silent refresh requests never carry it.
+    this.oauthService.initCodeFlow('', { prompt: 'select_account' });
+  }
+
   public logOut() {
     this.oauthService.revokeTokenAndLogout(true).then(() => {
       window.location.reload();

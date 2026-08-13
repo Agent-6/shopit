@@ -143,17 +143,27 @@ import { ShopItPermissions } from '../../core/auth/permissions';
               <div class="text-xs text-muted-foreground truncate mt-1">{{ userEmail }}</div>
             </div>
 
-            <button (click)="logout()" class="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md focus:outline-none transition-colors" title="Log Out">
-              <ui-icon name="log-out" class="h-4 w-4"></ui-icon>
-            </button>
+            <div class="flex items-center gap-1 shrink-0">
+              <button (click)="switchAccount()" class="p-2 hover:bg-accent hover:text-accent-foreground rounded-md focus:outline-none transition-colors" title="Switch account">
+                <ui-icon name="user-switch" class="h-4 w-4"></ui-icon>
+              </button>
+              <button (click)="logout()" class="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md focus:outline-none transition-colors" title="Log Out">
+                <ui-icon name="log-out" class="h-4 w-4"></ui-icon>
+              </button>
+            </div>
           }
         </div>
 
-        <!-- Logout button when collapsed -->
+        <!-- Switch account + logout buttons when collapsed -->
         @if (!isExpanded()) {
-          <button (click)="logout()" class="mx-auto mt-2 p-2 hover:bg-destructive/10 hover:text-destructive rounded-md focus:outline-none transition-colors" title="Log Out">
-            <ui-icon name="log-out" class="h-4 w-4"></ui-icon>
-          </button>
+          <div class="mx-auto mt-2 flex items-center gap-1">
+            <button (click)="switchAccount()" class="p-2 hover:bg-accent hover:text-accent-foreground rounded-md focus:outline-none transition-colors" title="Switch account">
+              <ui-icon name="user-switch" class="h-4 w-4"></ui-icon>
+            </button>
+            <button (click)="logout()" class="p-2 hover:bg-destructive/10 hover:text-destructive rounded-md focus:outline-none transition-colors" title="Log Out">
+              <ui-icon name="log-out" class="h-4 w-4"></ui-icon>
+            </button>
+          </div>
         }
 
       </div>
@@ -207,6 +217,10 @@ export class SidebarComponent {
 
   setTheme(theme: string) {
     this.themeService.setTheme(theme as Theme);
+  }
+
+  switchAccount() {
+    this.authService.switchAccount();
   }
 
   logout() {
