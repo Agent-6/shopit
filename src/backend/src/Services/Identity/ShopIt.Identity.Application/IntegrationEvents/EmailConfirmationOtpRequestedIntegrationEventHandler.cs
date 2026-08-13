@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
 
@@ -10,8 +11,8 @@ namespace ShopIt.Identity.Application.IntegrationEvents;
 /// <summary>
 /// Consumes <see cref="EmailConfirmationOtpRequestedIntegrationEvent"/> from the
 /// Authentication service, generates and stores a 6-digit verification code, then publishes
-/// <see cref="EmailConfirmationOtpGeneratedIntegrationEvent"/> so the code can be delivered
-/// (via email / mock email) to the user.
+/// a <see cref="ShopIt.Notifications.Application.Contracts.Events.SendEmailIntegrationEvent"/>
+/// so the Notifications service delivers the code to the user.
 /// </summary>
 public class EmailConfirmationOtpRequestedIntegrationEventHandler(
     UserManager<User> userManager,
@@ -66,11 +67,7 @@ public class EmailConfirmationOtpRequestedIntegrationEventHandler(
         _logger.LogInformation("Email confirmation code generated for {Email} (expires at {ExpiresAt}).", user.Email, expiresAt);
 
         await _outboxWriter.WriteAsync(
-            new EmailConfirmationOtpGeneratedIntegrationEvent(
-                integrationEvent.RequestId,
-                user.Id,
-                user.Email!,
-                code),
+            EmailMessageFactory.EmailConfirmationOtp(user.Id, user.Email!, code),
             cancellationToken);
     }
 }

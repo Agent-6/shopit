@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
+    <ProjectReference Include="..\..\Notifications\ShopIt.Notifications.Application.Contracts\ShopIt.Notifications.Application.Contracts.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Domain\ShopIt.Identity.Domain.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Application.Contracts\ShopIt.Identity.Application.Contracts.csproj" />
   </ItemGroup>

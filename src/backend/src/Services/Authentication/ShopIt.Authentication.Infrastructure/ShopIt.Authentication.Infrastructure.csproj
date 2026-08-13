@@ -16,6 +16,7 @@
     <ProjectReference Include="..\ShopIt.Authentication.Application\ShopIt.Authentication.Application.csproj" />
     <ProjectReference Include="..\ShopIt.Authentication.Persistence\ShopIt.Authentication.Persistence.csproj" />
     <ProjectReference Include="..\..\Identity\ShopIt.Identity.Application.Contracts\ShopIt.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="..\..\Notifications\ShopIt.Notifications.Application.Contracts\ShopIt.Notifications.Application.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

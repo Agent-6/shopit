@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Application.Users.Activation;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Enums;
@@ -11,20 +13,22 @@ namespace ShopIt.Identity.Application.IntegrationEvents;
 
 /// <summary>
 /// Consumes <see cref="ResendInvitationRequestedIntegrationEvent"/> from the Authentication
-/// service, issues a fresh activation token for the invited user and re-publishes
-/// <see cref="UserInvitedIntegrationEvent"/> so the invitation email is delivered again.
+/// service, issues a fresh activation token for the invited user and re-publishes the
+/// invitation notification so the Notifications service delivers the email again.
 /// </summary>
 public class ResendInvitationRequestedIntegrationEventHandler(
     UserManager<User> userManager,
     IActivationTokenProvider tokenProvider,
     IOutboxWriter outboxWriter,
     ICurrentTenant currentTenant,
+    IOptions<EmailNotificationOptions> options,
     ILogger<ResendInvitationRequestedIntegrationEventHandler> logger) : IIntegrationEventHandler<ResendInvitationRequestedIntegrationEvent>
 {
     private readonly UserManager<User> _userManager = userManager;
     private readonly IActivationTokenProvider _tokenProvider = tokenProvider;
     private readonly IOutboxWriter _outboxWriter = outboxWriter;
     private readonly ICurrentTenant _currentTenant = currentTenant;
+    private readonly EmailNotificationOptions _options = options.Value;
     private readonly ILogger<ResendInvitationRequestedIntegrationEventHandler> _logger = logger;
 
     public async Task HandleAsync(ResendInvitationRequestedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
@@ -57,13 +61,10 @@ public class ResendInvitationRequestedIntegrationEventHandler(
             user.Email, activationToken.ExpiresAt);
 
         await _outboxWriter.WriteAsync(
-            new UserInvitedIntegrationEvent(
-                integrationEvent.RequestId,
+            EmailMessageFactory.Invitation(
+                _options,
                 user.Id,
-                user.TenantId,
                 user.Email!,
-                user.FirstName ?? string.Empty,
-                user.LastName ?? string.Empty,
                 activationToken.Token,
                 activationToken.ExpiresAt),
             cancellationToken);

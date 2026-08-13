@@ -6,7 +6,7 @@ namespace ShopIt.Identity.Application.Users.Commands.InviteUser;
 /// <summary>
 /// Provisions a new user via the admin invitation flow: the account is created in
 /// <c>PendingActivation</c> state (no password), an activation token is issued, and a
-/// <c>UserInvitedIntegrationEvent</c> is published so the invitation email can be delivered.
+/// notification event is published so the Notifications service delivers the invitation email.
 /// </summary>
 public record InviteUserCommand(
     string Email,

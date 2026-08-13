@@ -70,7 +70,7 @@ public class InviteUserCommandHandler(
         }
 
         // The UserInvitedDomainEvent raised by User.Invite() is dispatched on commit; the
-        // UserInvitedEventHandler publishes UserInvitedIntegrationEvent into the outbox.
+        // UserInvitedEventHandler publishes the invitation notification into the outbox.
         return new InviteUserResult(
             user.Id,
             user.Email!,

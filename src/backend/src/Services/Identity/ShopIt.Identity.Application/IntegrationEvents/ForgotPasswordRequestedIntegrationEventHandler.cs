@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
 
@@ -9,19 +11,21 @@ namespace ShopIt.Identity.Application.IntegrationEvents;
 
 /// <summary>
 /// Consumes <see cref="ForgotPasswordRequestedIntegrationEvent"/> from the Authentication
-/// service, generates a password reset token and publishes
-/// <see cref="PasswordResetTokenGeneratedIntegrationEvent"/> so the token can be delivered
-/// (via email / mock email) to the user.
+/// service, generates a password reset token and publishes a
+/// <see cref="ShopIt.Notifications.Application.Contracts.Events.SendEmailIntegrationEvent"/>
+/// so the Notifications service delivers the reset link to the user.
 /// </summary>
 public class ForgotPasswordRequestedIntegrationEventHandler(
     UserManager<User> userManager,
     IOutboxWriter outboxWriter,
     ICurrentTenant currentTenant,
+    IOptions<EmailNotificationOptions> options,
     ILogger<ForgotPasswordRequestedIntegrationEventHandler> logger) : IIntegrationEventHandler<ForgotPasswordRequestedIntegrationEvent>
 {
     private readonly UserManager<User> _userManager = userManager;
     private readonly ICurrentTenant _currentTenant = currentTenant;
     private readonly IOutboxWriter _outboxWriter = outboxWriter;
+    private readonly EmailNotificationOptions _options = options.Value;
     private readonly ILogger<ForgotPasswordRequestedIntegrationEventHandler> _logger = logger;
 
     public async Task HandleAsync(ForgotPasswordRequestedIntegrationEvent integrationEvent, CancellationToken cancellationToken)
@@ -42,15 +46,11 @@ public class ForgotPasswordRequestedIntegrationEventHandler(
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
         _logger.LogInformation(
-            "Password reset token generated for {Email}. Mock delivery: /Account/ResetPassword?email={Email}&token={Token}",
-            user.Email, user.Email, token);
+            "Password reset token generated for {Email}.",
+            user.Email);
 
         await _outboxWriter.WriteAsync(
-            new PasswordResetTokenGeneratedIntegrationEvent(
-                integrationEvent.RequestId,
-                user.Id,
-                user.Email!,
-                token),
+            EmailMessageFactory.PasswordReset(_options, user.Id, user.Email!, token),
             cancellationToken);
     }
 }

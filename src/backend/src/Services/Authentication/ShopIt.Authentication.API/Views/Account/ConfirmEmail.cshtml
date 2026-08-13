@@ -20,11 +20,11 @@
     <div class="mb-6 space-y-4">
         <div class="flex items-center gap-2 text-sm text-green-600 dark:text-green-500">
             <i data-lucide="circle-check" class="h-4 w-4 shrink-0"></i>
-            <span>A 6-digit verification code has been requested. It is delivered asynchronously by the Identity service — check the mock inbox below.</span>
+            <span>A 6-digit verification code has been requested. It is delivered asynchronously by the Identity service — check the development email tool below.</span>
         </div>
 
         <div class="text-left">
-            @await Html.PartialAsync("_MockInbox", Model.Email)
+            @await Html.PartialAsync("_MailpitHint")
         </div>
 
         <form asp-controller="Account" asp-action="ConfirmEmail" asp-route-returnUrl="@returnUrl" method="post" class="space-y-4 pt-2">

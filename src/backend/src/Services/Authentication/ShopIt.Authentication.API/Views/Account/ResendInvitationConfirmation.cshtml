@@ -12,11 +12,11 @@
 
     <p class="text-sm text-muted-foreground mb-6">
         If an account exists for <span class="font-medium text-foreground">@email</span>, a fresh
-        invitation link has been sent to it — watch the mock inbox below.
+        invitation link has been sent to it — check the development email tool below.
     </p>
 
     <div class="w-full text-left">
-        @await Html.PartialAsync("_MockInbox", email)
+        @await Html.PartialAsync("_MailpitHint")
     </div>
 
     <a asp-action="Login" class="btn-outline w-full mt-4">

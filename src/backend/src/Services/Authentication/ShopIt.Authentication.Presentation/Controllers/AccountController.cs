@@ -25,7 +25,6 @@ public class AccountController : Controller
     private readonly IIdentityServiceClient _identityServiceClient;
     private readonly IOutboxWriter _outboxWriter;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IMockEmailService _mockEmailService;
     private readonly IFlowStatusStore _flowStatusStore;
     private readonly IOpenIddictApplicationManager _applicationManager;
 
@@ -33,14 +32,12 @@ public class AccountController : Controller
         IIdentityServiceClient identityServiceClient,
         IOutboxWriter outboxWriter,
         IUnitOfWork unitOfWork,
-        IMockEmailService mockEmailService,
         IFlowStatusStore flowStatusStore,
         IOpenIddictApplicationManager applicationManager)
     {
         _identityServiceClient = identityServiceClient;
         _outboxWriter = outboxWriter;
         _unitOfWork = unitOfWork;
-        _mockEmailService = mockEmailService;
         _flowStatusStore = flowStatusStore;
         _applicationManager = applicationManager;
     }
@@ -193,8 +190,8 @@ public class AccountController : Controller
             return RedirectToAction("Login", new { returnUrl });
         }
 
-        // The Identity service issues a fresh activation token and re-publishes
-        // UserInvitedIntegrationEvent, which delivers a new invitation email.
+        // The Identity service issues a fresh activation token and re-publishes the
+        // invitation notification, which delivers a new invitation email.
         var requestId = Guid.NewGuid();
         await PublishAsync(new ResendInvitationRequestedIntegrationEvent(requestId, email.Trim()), HttpContext.RequestAborted);
 
@@ -289,8 +286,8 @@ public class AccountController : Controller
             return View();
         }
 
-        // The Identity service generates the reset token and replies asynchronously
-        // with PasswordResetTokenGeneratedIntegrationEvent, which lands in the mock inbox.
+        // The Identity service generates the reset token and publishes a notification
+        // event, which delivers the reset link through the Notifications service.
         var requestId = Guid.NewGuid();
         await PublishAsync(new ForgotPasswordRequestedIntegrationEvent(requestId, email.Trim()), HttpContext.RequestAborted);
 
@@ -361,8 +358,8 @@ public class AccountController : Controller
             return View("ConfirmEmail", new ConfirmEmailViewModel { Email = email });
         }
 
-        // The Identity service generates the OTP and replies asynchronously with
-        // EmailConfirmationOtpGeneratedIntegrationEvent, which lands in the mock inbox.
+        // The Identity service generates the OTP and publishes a notification event,
+        // which delivers the code through the Notifications service.
         var requestId = Guid.NewGuid();
         await PublishAsync(new EmailConfirmationOtpRequestedIntegrationEvent(requestId, email.Trim()), HttpContext.RequestAborted);
 
@@ -395,15 +392,6 @@ public class AccountController : Controller
     // ------------------------------------------------------------------
     // Polling endpoints used by the event-driven views
     // ------------------------------------------------------------------
-
-    /// <summary>
-    /// Returns the mock inbox for an address so views can display delivered emails.
-    /// </summary>
-    [HttpGet("MockEmails")]
-    public IActionResult MockEmails(string email)
-    {
-        return Json(_mockEmailService.GetInbox(email));
-    }
 
     /// <summary>
     /// Returns the outcome of an asynchronous flow (or null while still pending).

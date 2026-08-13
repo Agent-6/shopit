@@ -30,6 +30,12 @@
         <Project Path="src/Services/Identity/ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Presentation/ShopIt.Identity.Presentation.csproj" />
       </Folder>
+  <Folder Name="/src/Services/Notifications/">
+    <Project Path="src/Services/Notifications/ShopIt.Notifications.API/ShopIt.Notifications.API.csproj" />
+    <Project Path="src/Services/Notifications/ShopIt.Notifications.Application/ShopIt.Notifications.Application.csproj" />
+    <Project Path="src/Services/Notifications/ShopIt.Notifications.Application.Contracts/ShopIt.Notifications.Application.Contracts.csproj" />
+    <Project Path="src/Services/Notifications/ShopIt.Notifications.Persistence/ShopIt.Notifications.Persistence.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Tenancy/">
     <Project Path="src/Services/Tenancy/ShopIt.Tenancy.API/ShopIt.Tenancy.API.csproj" Id="6b5a94c3-9add-4ddd-950c-839fd82783d0" />
     <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Application/ShopIt.Tenancy.Application.csproj" Id="251a74ac-ff59-4907-8c6b-dd49534efcb5" />

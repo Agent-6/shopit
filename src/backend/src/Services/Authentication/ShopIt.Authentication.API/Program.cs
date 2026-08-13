@@ -15,17 +15,16 @@ builder.AddServiceDefaults();
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add DbContext and Kafka-based integration event infrastructure
+// Add DbContext and Kafka-based integration event infrastructure. Email delivery moved
+// to the Notifications service, so the Authentication service only consumes the flow
+// outcomes it needs to drive its polling views and send completion notifications.
 builder.Services.AddPersistence(
     "auth-db",
     builder.Configuration,
     configureInbox: inbox => inbox.Topics.AddRange(new[]
     {
-        nameof(PasswordResetTokenGeneratedIntegrationEvent),
         nameof(PasswordResetCompletedIntegrationEvent),
-        nameof(EmailConfirmationOtpGeneratedIntegrationEvent),
         nameof(UserEmailConfirmedIntegrationEvent),
-        nameof(UserInvitedIntegrationEvent),
     }),
     handlerAssemblies: typeof(ShopIt.Authentication.Infrastructure.DependencyInjection).Assembly);
 

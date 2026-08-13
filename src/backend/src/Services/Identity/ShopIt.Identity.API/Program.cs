@@ -6,6 +6,7 @@ using ShopIt.Framework.Domain;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Application.Users;
 using ShopIt.Identity.Domain.Entities;
@@ -29,6 +30,11 @@ builder.AddServiceDefaults();
 builder.Services.AddDomainServices();
 builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplication();
+
+// Where the Notification email links (activation / password reset) point. The pages
+// live in the Authentication service, so its public base URL is configured here.
+builder.Services.AddOptions<EmailNotificationOptions>()
+    .Bind(builder.Configuration.GetSection(EmailNotificationOptions.SectionName));
 
 builder.Services.AddPersistence(
     "identity-db",

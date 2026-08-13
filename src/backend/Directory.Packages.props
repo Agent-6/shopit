@@ -6,6 +6,7 @@
     <PackageVersion Include="Aspire.Hosting.Yarp" Version="13.4.6" />
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.6" />
     <PackageVersion Include="Aspire.Seq" Version="13.4.6" />
+    <PackageVersion Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.4.0" />
     <PackageVersion Include="Confluent.Kafka" Version="2.15.0" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />

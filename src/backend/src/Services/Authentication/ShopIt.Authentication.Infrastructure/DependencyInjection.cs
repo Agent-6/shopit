@@ -37,8 +37,7 @@ public static class DependencyInjection
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
 
-        // In-memory dev stores used by the event-driven account flows.
-        services.AddSingleton<IMockEmailService, MockEmailService>();
+        // In-memory dev store used by the event-driven account flows.
         services.AddSingleton<IFlowStatusStore, FlowStatusStore>();
 
         services.AddTransient<IdentityModelTokenHandler>();
@@ -48,6 +47,7 @@ public static class DependencyInjection
             .ConfigureHttpClient(c => c.BaseAddress = new("https+http://identity-api"))
             .AddHttpMessageHandler<IdentityModelTokenHandler>();
         services.AddScoped<IIdentityServiceClient, IdentityServiceClient>();
+
 
         services.AddOpenIddict()
             .AddCore(options =>
