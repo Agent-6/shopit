@@ -23,7 +23,7 @@ public class UpdateRolePermissionsCommandHandler(
         if (role is null) throw new KeyNotFoundException("Role not found");
 
         var knownPermissions = _permissionCatalog.GetAll()
-            .Select(p => p.Name)
+            .Select(p => p.Name.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var granted = new List<string>();

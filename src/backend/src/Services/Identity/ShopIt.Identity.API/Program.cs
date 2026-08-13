@@ -6,11 +6,13 @@ using ShopIt.Framework.Domain;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Application.DataSeeding;
 using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Application.Users;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Permissions;
+using ShopIt.Identity.Domain.Roles;
 using ShopIt.Identity.Domain.Tenancy;
 using ShopIt.Identity.Domain.Users;
 using ShopIt.Identity.Infrastructure;
@@ -36,6 +38,9 @@ builder.Services.AddApplication();
 builder.Services.AddOptions<EmailNotificationOptions>()
     .Bind(builder.Configuration.GetSection(EmailNotificationOptions.SectionName));
 
+builder.Services.AddOptions<SeedOptions>()
+    .Bind(builder.Configuration.GetSection(SeedOptions.SectionName));
+
 builder.Services.AddPersistence(
     "identity-db",
     builder.Configuration,
@@ -46,6 +51,7 @@ builder.Services.AddPersistence(
         nameof(EmailConfirmationOtpRequestedIntegrationEvent),
         nameof(EmailConfirmationSubmittedIntegrationEvent),
         nameof(ResendInvitationRequestedIntegrationEvent),
+        nameof(TenantCreatedIntegrationEvent),
     }),
     handlerAssemblies: typeof(ShopIt.Identity.Application.DependencyInjection).Assembly);
 // TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder
@@ -205,83 +211,62 @@ app.Run();
 
 static async Task SeedRoles(IServiceProvider services)
 {
-    var permissionCatalog = services.GetRequiredService<IPermissionDefinitionProvider>();
-
-    var allPermissions = permissionCatalog.GetAll().Select(p => p.Name);
-
-    // Standard permission sets granted to each default role. Admin gets everything;
-    // Manager gets read + operational permissions; User gets read-only access.
-    var rolePermissions = new Dictionary<string, IEnumerable<string>>(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Admin"] = allPermissions.ToList(),
-        ["Manager"] = new[]
-        {
-            ShopItIdentityPermissions.Users.View,
-            ShopItIdentityPermissions.Users.Create,
-            ShopItIdentityPermissions.Users.Update,
-            ShopItIdentityPermissions.Users.ManageRoles,
-            ShopItIdentityPermissions.Roles.View,
-            ShopItIdentityPermissions.Roles.Create,
-            ShopItIdentityPermissions.Roles.Update,
-            ShopItIdentityPermissions.Tenants.View,
-            ShopItIdentityPermissions.Tenants.Create,
-            ShopItIdentityPermissions.Tenants.Update,
-        },
-        ["User"] = new[]
-        {
-            ShopItIdentityPermissions.Users.View,
-            ShopItIdentityPermissions.Roles.View,
-            ShopItIdentityPermissions.Tenants.View,
-        },
-    };
+    var roleDefinitions = services.GetRequiredService<IRoleDefinitionProvider>();
 
     // Host (system-wide) roles.
-    foreach (var (roleName, permissions) in rolePermissions)
+    foreach (var definition in roleDefinitions.GetAll())
     {
-        await EnsureRoleAsync(services, roleName, Guid.Empty, permissions);
+        await EnsureRoleAsync(services, definition, Guid.Empty);
     }
 
     // Tenant-scoped copies of the static roles for the seeded tenant, so that role lookups
     // (tenant-filtered at request time) resolve for that tenant — e.g. a host admin can
     // assign "Admin" to a tenant user and it will resolve within the tenant.
     var tenantId = new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E");
-    foreach (var (roleName, permissions) in rolePermissions)
+    foreach (var definition in roleDefinitions.GetAll())
     {
-        await EnsureRoleAsync(services, roleName, tenantId, permissions);
+        await EnsureRoleAsync(services, definition, tenantId);
     }
 }
 
 /// <summary>
 /// Ensures a role exists in the given tenant and seeds its permission claims idempotently.
-/// The role lookup is scoped to <paramref name="tenantId"/> so a same-named role from
-/// another tenant is never matched. Runs on every startup, so the default roles keep
+/// The role definition (name + default permission set) comes from the
+/// <see cref="IRoleDefinitionProvider"/>. Runs on every startup, so the default roles keep
 /// their standard permission set — deliberate "defaults reset" semantics for system roles.
 /// </summary>
-static async Task EnsureRoleAsync(IServiceProvider services, string roleName, Guid tenantId, IEnumerable<string> permissions)
+static async Task EnsureRoleAsync(IServiceProvider services, RoleDefinition definition, Guid tenantId)
 {
     var currentTenant = services.GetRequiredService<ICurrentTenant>();
     var roleManager = services.GetRequiredService<RoleManager<Role>>();
+    var permissionCatalog = services.GetRequiredService<IPermissionDefinitionProvider>();
 
     using (currentTenant.Change(new TenantInfo(tenantId, "Seed")))
     {
-        var role = await roleManager.FindByNameAsync(roleName);
+        var role = await roleManager.FindByNameAsync(definition.Name);
         if (role is null)
         {
             role = Role.Create(
                 Guid.NewGuid(),
-                roleName,
+                definition.Name,
                 tenantId,
-                "system"
+                "system",
+                definition.Description
             );
             await roleManager.CreateAsync(role);
         }
+
+        // Admin (DefaultPermissions == null) is granted every permission in the catalog.
+        var toGrant = definition.GrantsAllPermissions
+            ? permissionCatalog.GetAll().Select(p => p.Name.Value)
+            : definition.DefaultPermissions!.Select(p => p.Value);
 
         // Seed permission claims idempotently (permissions are stored as claims).
         var existing = (await roleManager.GetClaimsAsync(role))
             .Select(c => c.Type)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var permission in permissions)
+        foreach (var permission in toGrant)
         {
             if (existing.Contains(permission))
             {

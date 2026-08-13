@@ -2,18 +2,36 @@ namespace ShopIt.Identity.Domain.Permissions;
 
 /// <summary>
 /// Groups related permissions together so they can be presented as a section
-/// (e.g. "User Management") in permission management UIs.
+/// (e.g. "User Management") in permission management UIs. Keyed by a
+/// <see cref="PermissionGroupName"/> value object.
 /// </summary>
 public class PermissionGroupDefinition
 {
-    public string Name { get; }
+    public PermissionGroupName Name { get; }
     public string DisplayName { get; }
-    public IReadOnlyList<PermissionDefinition> Permissions { get; }
 
-    public PermissionGroupDefinition(string name, string displayName, IEnumerable<PermissionDefinition> permissions)
+    private readonly List<PermissionDefinition> _permissions = [];
+    public IReadOnlyList<PermissionDefinition> Permissions => _permissions;
+
+    public PermissionGroupDefinition(
+        PermissionGroupName name,
+        string displayName,
+        IEnumerable<PermissionDefinition>? permissions = null)
     {
         Name = name;
         DisplayName = displayName;
-        Permissions = permissions.ToList();
+        if (permissions is not null)
+            _permissions.AddRange(permissions);
+    }
+
+    /// <summary>
+    /// Appends a permission to the group. Mutations flow through the fluent
+    /// <c>AddPermission</c> extension methods on <see cref="PermissionGroupDefinition"/>
+    /// and <see cref="PermissionName"/>.
+    /// </summary>
+    internal PermissionDefinition Append(PermissionDefinition permission)
+    {
+        _permissions.Add(permission);
+        return permission;
     }
 }
