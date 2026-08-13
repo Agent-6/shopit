@@ -3,6 +3,8 @@ import { RouterModule } from '@angular/router';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { ThemeService, Theme } from '../../shared/services/theme.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { PermissionService } from '../../core/auth/permission.service';
+import { ShopItPermissions } from '../../core/auth/permissions';
 
 @Component({
   selector: 'app-sidebar',
@@ -36,6 +38,7 @@ import { AuthService } from '../../core/auth/auth.service';
       </div>
 
       <nav class="flex-1 overflow-y-auto py-4 flex flex-col gap-1 px-2">
+        @if (permissionService.has(perms.Users.View)) {
         <a routerLink="/users"
            routerLinkActive="bg-accent text-accent-foreground"
            class="flex items-center rounded-md hover:bg-muted text-muted-foreground transition-all duration-300 overflow-hidden shrink-0 h-10"
@@ -48,7 +51,39 @@ import { AuthService } from '../../core/auth/auth.service';
             <span class="font-medium whitespace-nowrap transition-opacity duration-300">Users</span>
           }
         </a>
+        }
 
+        @if (permissionService.has(perms.Roles.View)) {
+        <a routerLink="/roles"
+           routerLinkActive="bg-accent text-accent-foreground"
+           class="flex items-center rounded-md hover:bg-muted text-muted-foreground transition-all duration-300 overflow-hidden shrink-0 h-10"
+           [class.gap-3]="isExpanded()"
+           [class.px-2]="isExpanded()"
+           [class.justify-center]="!isExpanded()"
+           title="Roles">
+          <ui-icon name="shield" class="h-5 w-5 shrink-0"></ui-icon>
+          @if (isExpanded()) {
+            <span class="font-medium whitespace-nowrap transition-opacity duration-300">Roles</span>
+          }
+        </a>
+        }
+
+        @if (permissionService.has(perms.Roles.ManagePermissions)) {
+        <a routerLink="/permissions"
+           routerLinkActive="bg-accent text-accent-foreground"
+           class="flex items-center rounded-md hover:bg-muted text-muted-foreground transition-all duration-300 overflow-hidden shrink-0 h-10"
+           [class.gap-3]="isExpanded()"
+           [class.px-2]="isExpanded()"
+           [class.justify-center]="!isExpanded()"
+           title="Permissions">
+          <ui-icon name="shield-check" class="h-5 w-5 shrink-0"></ui-icon>
+          @if (isExpanded()) {
+            <span class="font-medium whitespace-nowrap transition-opacity duration-300">Permissions</span>
+          }
+        </a>
+        }
+
+        @if (permissionService.has(perms.Tenants.View)) {
         <a routerLink="/tenants"
            routerLinkActive="bg-accent text-accent-foreground"
            class="flex items-center rounded-md hover:bg-muted text-muted-foreground transition-all duration-300 overflow-hidden shrink-0 h-10"
@@ -61,6 +96,7 @@ import { AuthService } from '../../core/auth/auth.service';
             <span class="font-medium whitespace-nowrap transition-opacity duration-300">Tenants</span>
           }
         </a>
+        }
       </nav>
 
       <div class="p-2 border-t border-border shrink-0 flex flex-col gap-2 relative overflow-hidden">
@@ -130,6 +166,8 @@ export class SidebarComponent {
 
   themeService = inject(ThemeService);
   authService = inject(AuthService);
+  permissionService = inject(PermissionService);
+  perms = ShopItPermissions;
 
   get currentTheme() {
     return this.themeService.current;

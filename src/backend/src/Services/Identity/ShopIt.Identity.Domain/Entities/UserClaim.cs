@@ -12,7 +12,7 @@ public class UserClaim : IdentityUserClaim<Guid>, IEntity<int>, ITenantEntity
     // Public parameterless constructor for Identity
     public UserClaim() : base() { }
 
-    internal static UserClaim Create(User user, string claimType, string claimValue)
+    public static UserClaim Create(User user, string claimType, string claimValue)
     {
 
         var userClaim = new UserClaim()

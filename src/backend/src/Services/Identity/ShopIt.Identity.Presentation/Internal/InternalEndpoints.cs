@@ -1,35 +1,62 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
+using ShopIt.Framework.Core.CQRS;
 using ShopIt.Identity.Application.Contracts.Models;
+using ShopIt.Identity.Application.Permissions;
+using ShopIt.Identity.Application.Users.Commands.CompleteActivation;
 using ShopIt.Identity.Domain.Entities;
+using ShopIt.Identity.Domain.Enums;
 
 namespace ShopIt.Identity.Presentation.Internal;
 
 public static class InternalEndpoints
 {
-    private const string EmailConfirmationOtpProvider = "EmailConfirmation";
-    private const string EmailConfirmationOtpName = "Otp";
-    private static readonly TimeSpan OtpLifetime = TimeSpan.FromMinutes(10);
+    /// <summary>
+    /// Policy restricting internal endpoints to the backend client-credentials token
+    /// (<c>shopit-backend</c>), so interactive user tokens cannot call them.
+    /// </summary>
+    public const string InternalPolicyName = "InternalOnly";
 
     public static IEndpointRouteBuilder MapInternalEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/internal")
-            .RequireAuthorization()
+            .RequireAuthorization(InternalPolicyName)
             .WithTags("Internal");
 
+        // Only interactive request/response operations live here. Password reset and
+        // email confirmation flows are event-driven via the Kafka outbox/inbox pattern.
         group.MapPost("/validate-credentials", ValidateCredentials);
-        group.MapPost("/forgot-password", ForgotPassword);
-        group.MapPost("/reset-password", ResetPassword);
-        group.MapPost("/send-email-confirmation-otp", SendEmailConfirmationOtp);
-        group.MapPost("/confirm-email", ConfirmEmail);
+
+        // Called synchronously by the Authentication service when the invited user submits
+        // their new password on the activation page. Validates the token, stores the
+        // password, activates the account and returns the account so the caller can sign
+        // the user in (zero extra login steps).
+        group.MapPost("/activate-user", CompleteActivation);
+
+        // Lets other backend services (e.g. Tenancy) enforce Identity's permission model
+        // without exposing user tokens. Callable only with service/client credentials.
+        group.MapGet("/users/{userId:guid}/permissions", GetUserPermissionsInternal);
 
         return app;
+    }
+
+    private static async Task<IResult> GetUserPermissionsInternal(
+        Guid userId,
+        UserManager<User> userManager,
+        IPermissionResolver permissionResolver,
+        CancellationToken cancellationToken)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            return Results.NotFound();
+        }
+
+        var permissions = await permissionResolver.GetGrantedPermissionsAsync(user, cancellationToken);
+        return Results.Ok(new { permissions = permissions.ToList() });
     }
 
     private static async Task<IResult> ValidateCredentials(
@@ -49,6 +76,26 @@ public static class InternalEndpoints
             return Results.NotFound();
         }
 
+        // Phase 4 safeguard: an invited user has no password yet, so this check must come
+        // BEFORE password validation — otherwise the 401 would mask the real reason. A user
+        // in PendingActivation (or a disabled account) gets a distinct failure so the Auth
+        // UI can point them back to their inbox instead of a generic "invalid credentials".
+        if (user.Status == UserStatus.PendingActivation || !user.IsActive)
+        {
+            var (errorCode, message) = user.Status == UserStatus.PendingActivation
+                ? ("ACCOUNT_NOT_ACTIVATED", "User has not activated their account.")
+                : ("ACCOUNT_DISABLED", "This account has been deactivated.");
+
+            return Results.Ok(new CredentialValidationResponse(
+                Success: false,
+                ErrorCode: errorCode,
+                Message: message,
+                UserId: user.Id,
+                TenantId: user.TenantId,
+                UserName: user.UserName,
+                Email: user.Email));
+        }
+
         var passwordValid = await userManager.CheckPasswordAsync(user, request.Password);
 
         if (!passwordValid)
@@ -57,167 +104,43 @@ public static class InternalEndpoints
         }
 
         var result = new CredentialValidationResponse(
-            user.Id,
-            user.TenantId,
-            user.UserName!,
-            user.Email!,
-            user.EmailConfirmed);
+            Success: true,
+            ErrorCode: null,
+            Message: null,
+            UserId: user.Id,
+            TenantId: user.TenantId,
+            UserName: user.UserName!,
+            Email: user.Email!,
+            EmailConfirmed: user.EmailConfirmed);
 
         return Results.Ok(result);
     }
 
-    private static async Task<IResult> ForgotPassword(
-        [FromBody] ForgotPasswordRequest request,
-        UserManager<User> userManager,
-        ILoggerFactory loggerFactory,
+    private static async Task<IResult> CompleteActivation(
+        [FromBody] ActivateUserRequest request,
+        IDispatcher dispatcher,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.Email))
+        if (request.UserId == Guid.Empty || string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.Password))
         {
-            return Results.BadRequest("Email is required.");
+            return Results.BadRequest("UserId, token and password are required.");
         }
 
-        var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null)
-        {
-            // Don't reveal whether an account exists.
-            return Results.Ok(new ForgotPasswordResponse(request.Email, null));
-        }
+        var result = await dispatcher.SendAsync(
+            new CompleteActivationCommand(request.UserId, request.Token, request.Password),
+            cancellationToken);
 
-        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        // Always 200 with the structured outcome — the caller distinguishes success via
+        // Succeeded / ErrorCode rather than HTTP status codes.
+        var response = new ActivateUserResponse(
+            result.Succeeded,
+            result.UserId,
+            result.TenantId,
+            result.UserName,
+            result.Email,
+            result.ErrorCode,
+            result.Error);
 
-        // TODO: replace with a real email sender.
-        loggerFactory.CreateLogger("Identity.Internal")
-            .LogInformation("Password reset requested for {Email}. Mock email: /Account/ResetPassword?email={Email}&token={Token}",
-                user.Email, user.Email, token);
-
-        return Results.Ok(new ForgotPasswordResponse(user.Email!, token));
-    }
-
-    private static async Task<IResult> ResetPassword(
-        [FromBody] ResetPasswordRequest request,
-        UserManager<User> userManager,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(request.Email)
-            || string.IsNullOrWhiteSpace(request.Token)
-            || string.IsNullOrWhiteSpace(request.NewPassword))
-        {
-            return Results.BadRequest("Email, token and new password are required.");
-        }
-
-        var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null)
-        {
-            return Results.BadRequest("Invalid password reset attempt.");
-        }
-
-        var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
-        return Results.Ok(result.Succeeded);
-    }
-
-    private static async Task<IResult> SendEmailConfirmationOtp(
-        [FromBody] SendEmailConfirmationOtpRequest request,
-        UserManager<User> userManager,
-        ILoggerFactory loggerFactory,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(request.Email))
-        {
-            return Results.BadRequest("Email is required.");
-        }
-
-        var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null)
-        {
-            // Don't reveal whether an account exists.
-            return Results.Ok(new SendEmailConfirmationOtpResponse(request.Email, null));
-        }
-
-        if (user.EmailConfirmed)
-        {
-            return Results.Ok(new SendEmailConfirmationOtpResponse(user.Email!, null));
-        }
-
-        var code = Random.Shared.Next(100000, 1000000).ToString("D6");
-        var expiresAt = DateTime.UtcNow.Add(OtpLifetime);
-
-        var result = await userManager.SetAuthenticationTokenAsync(
-            user,
-            EmailConfirmationOtpProvider,
-            EmailConfirmationOtpName,
-            $"{code}|{expiresAt:O}");
-
-        if (!result.Succeeded)
-        {
-            return Results.BadRequest("Failed to generate a verification code.");
-        }
-
-        // TODO: replace with a real email sender.
-        loggerFactory.CreateLogger("Identity.Internal")
-            .LogInformation("Email confirmation code for {Email}: {Code} (expires at {ExpiresAt})",
-                user.Email, code, expiresAt);
-
-        return Results.Ok(new SendEmailConfirmationOtpResponse(user.Email!, code));
-    }
-
-    private static async Task<IResult> ConfirmEmail(
-        [FromBody] ConfirmEmailRequest request,
-        UserManager<User> userManager,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Code))
-        {
-            return Results.BadRequest("Email and verification code are required.");
-        }
-
-        var user = await userManager.FindByEmailAsync(request.Email);
-        if (user is null)
-        {
-            return Results.BadRequest("Invalid email confirmation attempt.");
-        }
-
-        if (user.EmailConfirmed)
-        {
-            await userManager.RemoveAuthenticationTokenAsync(user, EmailConfirmationOtpProvider, EmailConfirmationOtpName);
-            return Results.Ok(true);
-        }
-
-        var stored = await userManager.GetAuthenticationTokenAsync(user, EmailConfirmationOtpProvider, EmailConfirmationOtpName);
-        if (string.IsNullOrEmpty(stored))
-        {
-            return Results.BadRequest("No verification code has been issued. Request a new code.");
-        }
-
-        var separatorIndex = stored.IndexOf('|');
-        if (separatorIndex < 0
-            || !DateTimeOffset.TryParse(stored[(separatorIndex + 1)..], out var expiresAt)
-            || expiresAt < DateTimeOffset.UtcNow
-            || !CodesMatch(request.Code, stored[..separatorIndex]))
-        {
-            return Results.BadRequest("The verification code is invalid or has expired.");
-        }
-
-        user.ConfirmEmail();
-
-        // Rotate the security stamp so any tokens issued before confirmation (e.g. password reset
-        // tokens) are invalidated, then discard the OTP. Both operations persist the user changes.
-        var stampResult = await userManager.UpdateSecurityStampAsync(user);
-        var removeResult = await userManager.RemoveAuthenticationTokenAsync(user, EmailConfirmationOtpProvider, EmailConfirmationOtpName);
-
-        if (!stampResult.Succeeded || !removeResult.Succeeded)
-        {
-            return Results.BadRequest("Failed to confirm the email address.");
-        }
-
-        return Results.Ok(true);
-    }
-
-    private static bool CodesMatch(string provided, string expected)
-    {
-        var providedBytes = Encoding.UTF8.GetBytes(provided);
-        var expectedBytes = Encoding.UTF8.GetBytes(expected);
-        return providedBytes.Length == expectedBytes.Length
-            && CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes);
+        return Results.Ok(response);
     }
 }

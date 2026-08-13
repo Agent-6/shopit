@@ -12,7 +12,7 @@ public class RoleClaim : IdentityRoleClaim<Guid>, IEntity<int>, ITenantEntity
     // Public parameterless constructor for Identity
     public RoleClaim() : base() { }
 
-    internal static RoleClaim Create(Role role, string claimType, string claimValue)
+    public static RoleClaim Create(Role role, string claimType, string claimValue)
     {
         var roleClaim = new RoleClaim()
         {

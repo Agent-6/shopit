@@ -1,3 +1,4 @@
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,13 +20,15 @@ public static class DependencyInjection
     /// <param name="configuration">The configuration object to retrieve connection strings from.</param>
     /// <param name="configureOutbox">Optional action to configure outbox options.</param>
     /// <param name="configureInbox">Optional action to configure inbox options.</param>
+    /// <param name="handlerAssemblies">Additional assemblies to scan for integration event handlers.</param>
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddPersistence(
         this IServiceCollection services,
         string databaseName,
         IConfiguration configuration,
         Action<OutboxOptions>? configureOutbox = null,
-        Action<InboxOptions>? configureInbox = null)
+        Action<InboxOptions>? configureInbox = null,
+        params Assembly[] handlerAssemblies)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
         {
@@ -40,7 +43,7 @@ public static class DependencyInjection
             configuration,
             configureOutbox,
             configureInbox,
-            typeof(DependencyInjection).Assembly);
+            [typeof(DependencyInjection).Assembly, .. handlerAssemblies]);
 
         return services;
     }

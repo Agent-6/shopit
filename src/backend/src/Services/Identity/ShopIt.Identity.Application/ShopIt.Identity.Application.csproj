@@ -1,12 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.Abstractions" />
     <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Domain\ShopIt.Identity.Domain.csproj" />
+    <ProjectReference Include="..\ShopIt.Identity.Application.Contracts\ShopIt.Identity.Application.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

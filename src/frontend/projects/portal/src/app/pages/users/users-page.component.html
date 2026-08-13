@@ -1,6 +1,8 @@
 <section class="flex flex-col gap-6">
   <app-page-header title="Users" subtitle="Browse, create, and maintain user accounts for the Identity API.">
-    <ui-button variant="default" icon="plus" (click)="openCreate()">Create user</ui-button>
+    @if (permissionService.has(perms.Users.Create)) {
+      <ui-button variant="default" icon="user-plus" (click)="openCreate()">Invite user</ui-button>
+    }
   </app-page-header>
 
   <app-page-filters>
@@ -67,6 +69,20 @@
     <ng-template appPageTableCell="email" let-user>
       <span class="text-muted-foreground">{{ user.email }}</span>
     </ng-template>
+    <ng-template appPageTableCell="status" let-user>
+      @if (user.status === 'PendingActivation') {
+        <span class="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-500" title="Awaiting activation">
+          <ui-icon name="clock" class="h-3 w-3"></ui-icon>
+          Pending
+        </span>
+      } @else if (user.status === 'Suspended') {
+        <span class="inline-flex items-center rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-0.5 text-xs font-medium text-red-600 dark:text-red-500">Suspended</span>
+      } @else if (user.status === 'Inactive') {
+        <span class="inline-flex items-center rounded-full border border-muted bg-muted/40 px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Inactive</span>
+      } @else {
+        <span class="inline-flex items-center rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-500">Active</span>
+      }
+    </ng-template>
     <ng-template appPageTableCell="roles" let-user>
       @if (user.roles?.length) {
         <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
@@ -75,25 +91,36 @@
       }
     </ng-template>
     <ng-template appPageTableCell="isActive" let-user>
-      @if (user.isActive) {
-        <span class="text-primary"><ui-icon name="check" class="h-4 w-4"></ui-icon></span>
-      }
-      @if (!user.isActive) {
-        <span class="text-muted-foreground"><ui-icon name="x" class="h-4 w-4"></ui-icon></span>
-      }
+      <div class="flex items-center gap-2">
+        @if (user.isActive) {
+          <span class="text-primary"><ui-icon name="check" class="h-4 w-4"></ui-icon></span>
+        }
+        @if (!user.isActive) {
+          <span class="text-muted-foreground"><ui-icon name="x" class="h-4 w-4"></ui-icon></span>
+        }
+        @if (isLocked(user)) {
+          <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-500" title="Account is locked">
+            <ui-icon name="lock" class="h-4 w-4"></ui-icon>
+          </span>
+        }
+      </div>
     </ng-template>
     <ng-template appPageTableCell="actions" let-user>
       <div class="flex justify-end gap-2">
         <ui-button variant="outline" size="sm" [routerLink]="['/users', user.id]">View</ui-button>
-        <ui-button variant="secondary" size="sm" (click)="editUser(user)">Edit</ui-button>
-        <ui-button variant="destructive" size="sm" (click)="deleteUser(user)">Delete</ui-button>
+        @if (permissionService.has(perms.Users.Update)) {
+          <ui-button variant="secondary" size="sm" (click)="editUser(user)">Edit</ui-button>
+        }
+        @if (permissionService.has(perms.Users.Delete)) {
+          <ui-button variant="destructive" size="sm" (click)="deleteUser(user)">Delete</ui-button>
+        }
       </div>
     </ng-template>
   </app-page-table>
 
   @if (!service.loading() && service.users().length === 0) {
     <div class="rounded-lg border bg-card p-6 text-sm text-muted-foreground text-center">
-      No users found. Click <span class="font-medium text-foreground">Create user</span> to add an account.
+      No users found. Click <span class="font-medium text-foreground">Invite user</span> to add an account.
     </div>
   }
 
@@ -111,7 +138,7 @@
       <div class="w-full max-w-lg rounded-lg border bg-card p-6 shadow-lg">
         <app-user-editor
           [title]="editorTitle()"
-          [submitLabel]="editorMode() === 'create' ? 'Create user' : 'Save changes'"
+          [submitLabel]="editorMode() === 'create' ? 'Send invitation' : 'Save changes'"
           [mode]="editorMode()"
           [model]="editingUser()"
           (submit)="saveUser($event)"

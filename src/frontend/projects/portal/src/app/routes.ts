@@ -13,6 +13,22 @@ export const APP_ROUTES = {
       url: (id: string) => `/users/${id}`,
     },
   },
+  roles: {
+    list: {
+      path: 'roles',
+      url: '/roles',
+    },
+    detail: {
+      path: 'roles/:id',
+      url: (id: string) => `/roles/${id}`,
+    },
+  },
+  permissions: {
+    matrix: {
+      path: 'permissions',
+      url: '/permissions',
+    },
+  },
   tenants: {
     list: {
       path: 'tenants',

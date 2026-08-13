@@ -7,6 +7,7 @@ public record UserDetailResponse(
     string? FirstName,
     string? LastName,
     bool IsActive,
+    string Status,
     bool EmailConfirmed,
     string? PhoneNumber,
     bool PhoneNumberConfirmed,

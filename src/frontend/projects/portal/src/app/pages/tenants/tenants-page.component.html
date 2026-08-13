@@ -1,6 +1,8 @@
 <section class="flex flex-col gap-6">
   <app-page-header title="Tenants" subtitle="Browse, create, and maintain tenant records for the platform.">
-    <ui-button variant="default" icon="plus" (click)="openCreate()">Create tenant</ui-button>
+    @if (permissionService.has(perms.Tenants.Create)) {
+      <ui-button variant="default" icon="plus" (click)="openCreate()">Create tenant</ui-button>
+    }
   </app-page-header>
 
   <app-page-filters>
@@ -47,11 +49,15 @@
     <ng-template appPageTableCell="actions" let-tenant>
       <div class="flex justify-end gap-2">
         <ui-button variant="outline" size="sm" [routerLink]="['/tenants', tenant.id]">View</ui-button>
-        <ui-button variant="secondary" size="sm" (click)="editTenant(tenant)">Edit</ui-button>
-        @if (tenant.isActive) {
-          <ui-button variant="outline" size="sm" (click)="deactivateTenant(tenant)">Deactivate</ui-button>
-        } @else {
-          <ui-button variant="default" size="sm" (click)="activateTenant(tenant)">Activate</ui-button>
+        @if (permissionService.has(perms.Tenants.Update)) {
+          <ui-button variant="secondary" size="sm" (click)="editTenant(tenant)">Edit</ui-button>
+        }
+        @if (permissionService.has(perms.Tenants.ActivateDeactivate)) {
+          @if (tenant.isActive) {
+            <ui-button variant="outline" size="sm" (click)="deactivateTenant(tenant)">Deactivate</ui-button>
+          } @else {
+            <ui-button variant="default" size="sm" (click)="activateTenant(tenant)">Activate</ui-button>
+          }
         }
       </div>
     </ng-template>

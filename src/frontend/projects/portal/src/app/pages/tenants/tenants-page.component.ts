@@ -9,6 +9,8 @@ import {
 } from '../../core/components/page/page-table.component';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
+import { PermissionService } from '../../core/auth/permission.service';
+import { ShopItPermissions } from '../../core/auth/permissions';
 import { TenantEditorComponent } from './tenant-editor.component';
 import { CreateTenantRequest, Tenant, UpdateTenantRequest } from './tenant.model';
 import { TenantService } from './tenant.service';
@@ -32,6 +34,8 @@ import { DatePipe } from '@angular/common';
 })
 export class TenantsPageComponent {
   protected readonly service = inject(TenantService);
+  protected readonly permissionService = inject(PermissionService);
+  protected readonly perms = ShopItPermissions;
   protected readonly editorOpen = signal(false);
   protected readonly editingTenant = signal<Tenant | null>(null);
   protected readonly editorMode = computed(() => (this.editingTenant() ? 'edit' : 'create'));

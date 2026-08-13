@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { PermissionService } from '../core/auth/permission.service';
 import { SidebarComponent } from './sidebar/sidebar.component';
 
 @Component({
@@ -17,4 +18,12 @@ import { SidebarComponent } from './sidebar/sidebar.component';
     </div>
   `
 })
-export class LayoutComponent { }
+export class LayoutComponent {
+  private readonly permissionService = inject(PermissionService);
+
+  constructor() {
+    // Kick off loading the caller's permissions so sidebar/route gating can react.
+    // Route guards await the same promise, so navigation is blocked until it resolves.
+    this.permissionService.load();
+  }
+}

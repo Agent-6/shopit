@@ -1,11 +1,14 @@
 using Microsoft.EntityFrameworkCore;
+using OpenIddict.Validation.AspNetCore;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Presentation;
 using ShopIt.Tenancy.Application;
+using ShopIt.Tenancy.Infrastructure;
 using ShopIt.Tenancy.Persistence;
 using ShopIt.Tenancy.Persistence.Data;
 using ShopIt.Tenancy.Presentation;
+using ShopIt.Tenancy.Presentation.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +23,27 @@ builder.Services.AddApplication();
 builder.Services.AddPersistence("tenancy-db", builder.Configuration);
 builder.EnrichNpgsqlDbContext<TenancyDbContext>();
 
+// Validate access tokens issued by the authentication server (introspection) and resolve
+// the caller's permissions from the Identity service.
+builder.Services.AddOpenIddict()
+    .AddValidation(options =>
+    {
+        options.SetIssuer("https://localhost:7234/");
+
+        options.UseIntrospection()
+               .SetClientId("identity-api")
+               .SetClientSecret("SECRET");
+
+        options.UseSystemNetHttp();
+        options.UseAspNetCore();
+    });
+
+builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+builder.Services.AddAuthorization();
+builder.Services.AddTenantPermissionAuthorization();
+builder.Services.AddTenancyInfrastructure(builder.Configuration);
+builder.Services.AddHttpContextAccessor();
+
 
 var app = builder.Build();
 
@@ -29,6 +53,9 @@ app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapEndpoints();
 

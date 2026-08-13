@@ -1,6 +1,8 @@
 import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
+import { PermissionService } from '../../core/auth/permission.service';
+import { ShopItPermissions } from '../../core/auth/permissions';
 import { TenantEditorComponent } from './tenant-editor.component';
 import { Tenant } from './tenant.model';
 import { TenantService } from './tenant.service';
@@ -24,16 +26,32 @@ import { TenantService } from './tenant.service';
 
       @if (selectedTenant()) {
         <section class="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <div class="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
-            <app-tenant-editor
-              [title]="'Edit ' + (selectedTenant()?.name ?? 'tenant')"
-              [submitLabel]="'Save tenant'"
-              [mode]="'edit'"
-              [model]="selectedTenant()"
-              (submit)="handleTenantSave($event)"
-              (cancel)="router.navigate(['/tenants'])"
-            ></app-tenant-editor>
-          </div>
+          @if (permissionService.has(perms.Tenants.Update)) {
+            <div class="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
+              <app-tenant-editor
+                [title]="'Edit ' + (selectedTenant()?.name ?? 'tenant')"
+                [submitLabel]="'Save tenant'"
+                [mode]="'edit'"
+                [model]="selectedTenant()"
+                (submit)="handleTenantSave($event)"
+                (cancel)="router.navigate(['/tenants'])"
+              ></app-tenant-editor>
+            </div>
+          } @else {
+            <section class="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
+              <h2 class="text-xl font-semibold tracking-tight">Tenant</h2>
+              <dl class="mt-6 space-y-3 text-sm">
+                <div class="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+                  <dt class="text-muted-foreground">Name</dt>
+                  <dd class="font-medium">{{ selectedTenant()?.name }}</dd>
+                </div>
+                <div class="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+                  <dt class="text-muted-foreground">Status</dt>
+                  <dd class="font-medium">{{ selectedTenant()?.isActive ? 'Active' : 'Inactive' }}</dd>
+                </div>
+              </dl>
+            </section>
+          }
 
           <div class="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
             <h2 class="text-xl font-semibold tracking-tight">Account status</h2>
@@ -45,13 +63,17 @@ import { TenantService } from './tenant.service';
                 <p class="mt-1 text-sm text-muted-foreground">{{ selectedTenant()?.isActive ? 'Active' : 'Inactive' }}</p>
               </div>
 
-              <div class="flex flex-wrap gap-3">
-                @if (selectedTenant()?.isActive) {
-                  <ui-button variant="outline" (click)="deactivateTenant()">Deactivate tenant</ui-button>
-                } @else {
-                  <ui-button variant="default" (click)="activateTenant()">Activate tenant</ui-button>
-                }
-              </div>
+              @if (permissionService.has(perms.Tenants.ActivateDeactivate)) {
+                <div class="flex flex-wrap gap-3">
+                  @if (selectedTenant()?.isActive) {
+                    <ui-button variant="outline" (click)="deactivateTenant()">Deactivate tenant</ui-button>
+                  } @else {
+                    <ui-button variant="default" (click)="activateTenant()">Activate tenant</ui-button>
+                  }
+                </div>
+              } @else {
+                <p class="text-xs text-muted-foreground">You have read-only access to tenant status.</p>
+              }
             </div>
           </div>
         </section>
@@ -65,6 +87,8 @@ export class TenantDetailComponent {
   private readonly route = inject(ActivatedRoute);
   protected readonly router = inject(Router);
   protected readonly service = inject(TenantService);
+  protected readonly permissionService = inject(PermissionService);
+  protected readonly perms = ShopItPermissions;
 
   protected readonly selectedTenant = this.service.selectedTenant;
   protected readonly tenantName = computed(() => this.selectedTenant()?.name ?? 'Tenant details');

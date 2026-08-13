@@ -6,6 +6,7 @@
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Application\ShopIt.Tenancy.Application.csproj" />
+    <ProjectReference Include="..\ShopIt.Tenancy.Infrastructure\ShopIt.Tenancy.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Persistence\ShopIt.Tenancy.Persistence.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Presentation\ShopIt.Tenancy.Presentation.csproj" />
   </ItemGroup>
@@ -16,6 +17,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.OpenApi" />
+    <PackageReference Include="OpenIddict.AspNetCore" />
   </ItemGroup>
 
 </Project>

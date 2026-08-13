@@ -16,6 +16,9 @@ public class AuthorizationController(IOpenIddictScopeManager scopeManager) : Con
     [HttpPost("~/connect/token"), Produces("application/json")]
     public async Task<IActionResult> Exchange()
     {
+        var request = HttpContext.GetOpenIddictServerRequest()
+            ?? throw new InvalidOperationException("The OpenID Connect request cannot be retrieved.");
+
         var result = await HttpContext.AuthenticateAsync(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
         if (!result.Succeeded)
         {
@@ -24,7 +27,40 @@ public class AuthorizationController(IOpenIddictScopeManager scopeManager) : Con
                 authenticationSchemes: [OpenIddictServerAspNetCoreDefaults.AuthenticationScheme]);
         }
 
-        return SignIn(result.Principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        // client_credentials: OpenIddict validates the client credentials but the
+        // principal it returns carries no subject claim (and isn't marked authenticated).
+        // Build the token principal explicitly with the client id as the subject — the
+        // pattern from the official OpenIddict client_credentials sample.
+        if (request.IsClientCredentialsGrantType())
+        {
+            var identity = new ClaimsIdentity(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            identity.AddClaim(
+                OpenIddictConstants.Claims.Subject,
+                request.ClientId!,
+                OpenIddictConstants.Destinations.AccessToken);
+
+            var principal = new ClaimsPrincipal(identity);
+            principal.SetScopes(request.GetScopes());
+
+            // Resolve the resources (audiences) associated with the requested scopes
+            // so introspection/validation can map the token to the right API.
+            var resources = await _scopeManager.ListResourcesAsync(principal.GetScopes()).ToListAsync();
+            principal.SetResources(resources);
+
+            return SignIn(principal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+        }
+
+        // authorization_code / refresh_token: the handler attaches the user's subject,
+        // but ASP.NET Core 9+ (RequireAuthenticatedSignIn) rejects SignInAsync with
+        // unauthenticated principals, so mark the identity explicitly.
+        var userPrincipal = result.Principal!;
+        if (userPrincipal.Identity?.IsAuthenticated != true)
+        {
+            userPrincipal = new ClaimsPrincipal(
+                new ClaimsIdentity(userPrincipal.Claims, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme));
+        }
+
+        return SignIn(userPrincipal, OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
     }
 
     [HttpGet("~/connect/authorize")]

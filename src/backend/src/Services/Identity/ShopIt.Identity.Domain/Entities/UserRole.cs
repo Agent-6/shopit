@@ -14,7 +14,7 @@ public class UserRole : IdentityUserRole<Guid>, IEntity, ITenantEntity
 
     public object GetId() => new { UserId, RoleId };
 
-    internal static UserRole Create(User user, Role role)
+    public static UserRole Create(User user, Role role)
     {
         var userRole = new UserRole()
         {

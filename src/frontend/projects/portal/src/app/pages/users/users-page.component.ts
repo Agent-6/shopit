@@ -1,10 +1,12 @@
 import { RouterLink } from '@angular/router';
 import { UsersService } from './users.service';
-import { CreateUserRequest, UpdateUserRequest, User } from './users.model';
+import { InviteUserRequest, UpdateUserRequest, User } from './users.model';
 import { UserEditorComponent } from './user-editor.component';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
+import { PermissionService } from '../../core/auth/permission.service';
+import { ShopItPermissions } from '../../core/auth/permissions';
 import { PageHeaderComponent } from '../../core/components/page/page-header.component';
 import { PageFiltersComponent } from '../../core/components/page/page-filters.component';
 import {
@@ -30,16 +32,19 @@ import {
 })
 export class UsersPageComponent {
   protected readonly service = inject(UsersService);
+  protected readonly permissionService = inject(PermissionService);
+  protected readonly perms = ShopItPermissions;
   protected readonly editorOpen = signal(false);
   protected readonly editingUser = signal<User | null>(null);
   protected readonly editorMode = computed(() => (this.editingUser() ? 'edit' : 'create'));
   protected readonly editorTitle = computed(() =>
-    this.editingUser() ? `Edit ${this.editingUser()?.username}` : 'Create a new user'
+    this.editingUser() ? `Edit ${this.editingUser()?.username}` : 'Invite a new user'
   );
 
   protected readonly columns: PageTableColumn[] = [
     { key: 'username', header: 'Username' },
     { key: 'email', header: 'Email' },
+    { key: 'status', header: 'Status' },
     { key: 'roles', header: 'Roles' },
     { key: 'isActive', header: 'Active' },
     { key: 'actions', header: 'Actions', align: 'right' },
@@ -51,6 +56,10 @@ export class UsersPageComponent {
 
   protected trackById(_index: number, user: User): string {
     return user.id;
+  }
+
+  protected isLocked(user: User): boolean {
+    return !!user.lockoutEnd && new Date(user.lockoutEnd).getTime() > Date.now();
   }
 
   protected openCreate(): void {
@@ -67,14 +76,14 @@ export class UsersPageComponent {
     this.editorOpen.set(false);
   }
 
-  protected async saveUser(payload: CreateUserRequest | UpdateUserRequest): Promise<void> {
+  protected async saveUser(payload: InviteUserRequest | UpdateUserRequest): Promise<void> {
     if (this.editingUser()) {
       const user = this.editingUser();
       if (user) {
         await this.service.updateUser(user.id, payload as UpdateUserRequest);
       }
     } else {
-      await this.service.createUser(payload as CreateUserRequest);
+      await this.service.inviteUser(payload as InviteUserRequest);
     }
     this.closeEditor();
   }

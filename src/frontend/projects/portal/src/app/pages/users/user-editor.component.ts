@@ -1,8 +1,8 @@
 import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
-import { User, UserClaimRequest, CreateUserRequest, UpdateUserRequest } from './users.model';
+import { User, UserClaimRequest, InviteUserRequest, UpdateUserRequest } from './users.model';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
 
-type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> & { password?: string | null };
+type UserEditorState = Partial<InviteUserRequest> & Partial<UpdateUserRequest>;
 
 @Component({
   selector: 'app-user-editor',
@@ -18,16 +18,25 @@ type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> &
       </div>
 
       <div class="grid gap-4">
-        <div class="grid gap-2">
-          <label class="text-sm font-medium leading-none">Username</label>
-          <input
-            type="text"
-            class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            [value]="form().username"
-            (input)="updateField('username', $any($event.target).value)"
-            required
-          />
-        </div>
+        @if (mode === 'edit') {
+          <div class="grid gap-2">
+            <label class="text-sm font-medium leading-none">Username</label>
+            <input
+              type="text"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              [value]="form().username"
+              (input)="updateField('username', $any($event.target).value)"
+              required
+            />
+          </div>
+        }
+
+        @if (mode === 'create') {
+          <div class="rounded-md border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-muted-foreground">
+            The invited user will receive an email with an activation link and will choose their
+            own password — no password is set here.
+          </div>
+        }
 
         <div class="grid gap-2">
           <label class="text-sm font-medium leading-none">Email</label>
@@ -39,19 +48,6 @@ type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> &
             required
           />
         </div>
-
-        @if (mode === 'create') {
-          <div class="grid gap-2">
-            <label class="text-sm font-medium leading-none">Password</label>
-            <input
-              type="password"
-              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              [value]="form().password ?? ''"
-              (input)="updateField('password', $any($event.target).value)"
-              required
-            />
-          </div>
-        }
 
         <div class="grid gap-4 md:grid-cols-2">
           <div class="grid gap-2">
@@ -95,17 +91,19 @@ type UserEditorState = Partial<CreateUserRequest> & Partial<UpdateUserRequest> &
           />
         </div>
 
-        <div class="flex items-center gap-3 py-2">
-          <label class="inline-flex items-center gap-2 text-sm font-medium leading-none cursor-pointer">
-            <input
-              type="checkbox"
-              class="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              [checked]="form().isActive ?? true"
-              (change)="updateField('isActive', $any($event.target).checked)"
-            />
-            <span>Active account</span>
-          </label>
-        </div>
+        @if (mode === 'edit') {
+          <div class="flex items-center gap-3 py-2">
+            <label class="inline-flex items-center gap-2 text-sm font-medium leading-none cursor-pointer">
+              <input
+                type="checkbox"
+                class="peer h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                [checked]="form().isActive ?? true"
+                (change)="updateField('isActive', $any($event.target).checked)"
+              />
+              <span>Active account</span>
+            </label>
+          </div>
+        }
 
         <div class="space-y-4 rounded-xl border bg-card p-4">
           <div class="flex items-center justify-between">
@@ -150,13 +148,12 @@ export class UserEditorComponent implements OnChanges {
   @Input() submitLabel = 'Save user';
   @Input() mode: 'create' | 'edit' = 'create';
   @Input() model?: User | null = null;
-  @Output() submit = new EventEmitter<CreateUserRequest | UpdateUserRequest>();
+  @Output() submit = new EventEmitter<InviteUserRequest | UpdateUserRequest>();
   @Output() cancel = new EventEmitter<void>();
 
   protected readonly form = signal<UserEditorState>({
     username: '',
     email: '',
-    password: '',
     firstName: null,
     lastName: null,
     phoneNumber: null,
@@ -180,7 +177,6 @@ export class UserEditorComponent implements OnChanges {
       : {
           username: '',
           email: '',
-          password: '',
           firstName: null,
           lastName: null,
           phoneNumber: null,
@@ -192,7 +188,7 @@ export class UserEditorComponent implements OnChanges {
     this.form.set(nextModel);
   }
 
-  updateField<Key extends keyof CreateUserRequest | keyof UpdateUserRequest>(field: Key, value: any): void {
+  updateField<Key extends keyof InviteUserRequest | keyof UpdateUserRequest>(field: Key, value: any): void {
     this.form.update((current) => ({ ...current, [field]: value }));
   }
 
@@ -229,10 +225,13 @@ export class UserEditorComponent implements OnChanges {
   submitForm(): void {
     const current = { ...this.form() };
 
-    if (this.mode === 'edit') {
-      delete current.password;
+    // The create (invite) payload carries no username/password — the identity service
+    // derives the username from the email and the user chooses their password via the link.
+    if (this.mode === 'create') {
+      delete (current as any).username;
+      delete (current as any).isActive;
     }
 
-    this.submit.emit(current as CreateUserRequest | UpdateUserRequest);
+    this.submit.emit(current as InviteUserRequest | UpdateUserRequest);
   }
 }

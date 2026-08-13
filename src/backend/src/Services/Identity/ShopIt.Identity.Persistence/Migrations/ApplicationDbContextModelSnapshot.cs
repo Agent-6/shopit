@@ -121,11 +121,11 @@ namespace ShopIt.Identity.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedName")
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("NormalizedName", "TenantId")
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("AspNetRoles", (string)null);
                 });
@@ -155,11 +155,12 @@ namespace ShopIt.Identity.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
-
                     b.HasIndex("RoleId1");
 
                     b.HasIndex("TenantId");
+
+                    b.HasIndex("RoleId", "ClaimType", "ClaimValue")
+                        .IsUnique();
 
                     b.ToTable("AspNetRoleClaims", (string)null);
                 });
@@ -198,6 +199,9 @@ namespace ShopIt.Identity.Persistence.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LastName")
@@ -247,14 +251,14 @@ namespace ShopIt.Identity.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NormalizedEmail")
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("NormalizedEmail", "TenantId")
                         .HasDatabaseName("EmailIndex");
 
-                    b.HasIndex("NormalizedUserName")
+                    b.HasIndex("NormalizedUserName", "TenantId")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
-
-                    b.HasIndex("TenantId");
 
                     b.ToTable("AspNetUsers", (string)null);
                 });

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenIddict.Abstractions;
 using Refit;
+using ShopIt.Authentication.Application.Mocking;
 using ShopIt.Authentication.Persistence.Data;
 using ShopIt.Framework.Infrastructure;
 using ShopIt.Identity.Application.Contracts.Clients;
@@ -35,6 +36,10 @@ public static class DependencyInjection
 
         services.AddMemoryCache();
         services.AddHttpContextAccessor();
+
+        // In-memory dev stores used by the event-driven account flows.
+        services.AddSingleton<IMockEmailService, MockEmailService>();
+        services.AddSingleton<IFlowStatusStore, FlowStatusStore>();
 
         services.AddTransient<IdentityModelTokenHandler>();
 

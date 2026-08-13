@@ -8,5 +8,6 @@ public record UpdateUserRequest(
     string? PhoneNumber = null,
     bool? IsActive = null,
     List<string>? Roles = null,
-    List<UserClaimRequest>? Claims = null
+    List<UserClaimRequest>? Claims = null,
+    bool? EmailConfirmed = null
 );

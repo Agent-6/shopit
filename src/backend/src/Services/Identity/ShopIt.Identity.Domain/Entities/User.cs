@@ -35,6 +35,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     public bool IsActive { get; private set; } = true;
     public UserStatus Status { get; private set; } = UserStatus.Active;
     public DateTime CreatedAt { get; private set; } = default!;
+    public DateTime LastModifiedAt { get; private set; } = default!;
     public string CreatedBy { get; private set; } = default!;
 
     // Navigation properties
@@ -68,12 +69,48 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
             TenantId = tenantId,
             SecurityStamp = Guid.NewGuid().ToString(),
             CreatedAt = DateTime.UtcNow,
+            LastModifiedAt = DateTime.UtcNow,
             CreatedBy = createdBy,
             Status = UserStatus.Active,
             IsActive = true
         };
 
         user.RaiseDomainEvent(new UserCreatedDomainEvent(user));
+        return user;
+    }
+
+    /// <summary>
+    /// Creates a user via the admin invitation flow. The account starts in
+    /// <see cref="UserStatus.PendingActivation"/> (inactive, email unverified) and can only
+    /// sign in after the invited user completes activation with a valid token and password.
+    /// </summary>
+    /// <param name="activationToken">Time-limited, cryptographically signed activation token.</param>
+    /// <param name="activationTokenExpiresAt">UTC expiry of <paramref name="activationToken"/>.</param>
+    public static User Invite(
+        Guid id,
+        string email,
+        string userName,
+        Guid tenantId,
+        string createdBy,
+        string activationToken,
+        DateTimeOffset activationTokenExpiresAt)
+    {
+        var user = new User(id)
+        {
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            TenantId = tenantId,
+            SecurityStamp = Guid.NewGuid().ToString(),
+            CreatedAt = DateTime.UtcNow,
+            LastModifiedAt = DateTime.UtcNow,
+            CreatedBy = createdBy,
+            Status = UserStatus.PendingActivation,
+            IsActive = false
+        };
+
+        user.RaiseDomainEvent(new UserInvitedDomainEvent(user, activationToken, activationTokenExpiresAt));
         return user;
     }
 
@@ -110,6 +147,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         NormalizedEmail = newEmail.ToUpperInvariant();
         EmailConfirmed = false;
         SecurityStamp = Guid.NewGuid().ToString();
+        LastModifiedAt = DateTime.UtcNow;
 
         RaiseDomainEvent(new UserEmailChangedDomainEvent(Id, newEmail));
     }
@@ -164,6 +202,33 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         {
             AccessFailedCount = 0;
         }
+    }
+
+    /// <summary>
+    /// Locks the account until the specified time (admin-initiated lockout).
+    /// </summary>
+    public void LockAccount(DateTimeOffset until)
+    {
+        if (LockoutEnd == until)
+            return;
+
+        LockoutEnd = until;
+        LastModifiedAt = DateTime.UtcNow;
+        RaiseDomainEvent(new UserLockedOutDomainEvent(Id, until));
+    }
+
+    /// <summary>
+    /// Unlocks the account and resets the failed access counter (admin-initiated).
+    /// </summary>
+    public void UnlockAccount()
+    {
+        if (LockoutEnd == null && AccessFailedCount == 0)
+            return;
+
+        LockoutEnd = null;
+        AccessFailedCount = 0;
+        LastModifiedAt = DateTime.UtcNow;
+        RaiseDomainEvent(new UserUnlockedDomainEvent(Id));
     }
 
     // Login tracking
@@ -283,6 +348,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     {
         IsActive = false;
         Status = UserStatus.Inactive;
+        LastModifiedAt = DateTime.UtcNow;
         RaiseDomainEvent(new UserDeactivatedDomainEvent(Id, reason));
     }
 
@@ -290,7 +356,24 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     {
         IsActive = true;
         Status = UserStatus.Active;
-        RaiseDomainEvent(new UserActivatedDomainEvent(Id));
+        LastModifiedAt = DateTime.UtcNow;
+        RaiseDomainEvent(new UserActivatedDomainEvent(Id, Email ?? string.Empty));
+    }
+
+    /// <summary>
+    /// Completes the invitation flow: verifies the email address and flips the account to
+    /// <see cref="UserStatus.Active"/>. The password hash is set beforehand (e.g. via
+    /// <c>UserManager.AddPasswordAsync</c>) so it is validated against the password policy.
+    /// Only valid for users in <see cref="UserStatus.PendingActivation"/>.
+    /// </summary>
+    public void CompleteActivation()
+    {
+        EmailConfirmed = true;
+        IsActive = true;
+        Status = UserStatus.Active;
+        LastModifiedAt = DateTime.UtcNow;
+
+        RaiseDomainEvent(new UserActivatedDomainEvent(Id, Email ?? string.Empty));
     }
 
     public void Suspend(DateTime suspendedUntil, string reason)
@@ -308,6 +391,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         if (profilePictureUrl is not null)
             ProfilePictureUrl = profilePictureUrl;
 
+        LastModifiedAt = DateTime.UtcNow;
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, firstName, lastName));
     }
 }

@@ -6,5 +6,15 @@ public record GetUserResult(
     string Email,
     string? FirstName,
     string? LastName,
-    bool IsActive
+    bool IsActive,
+    string Status,
+    bool EmailConfirmed,
+    string? PhoneNumber,
+    bool PhoneNumberConfirmed,
+    bool TwoFactorEnabled,
+    bool LockoutEnabled,
+    DateTimeOffset? LockoutEnd,
+    int AccessFailedCount,
+    DateTime CreatedAt,
+    DateTime LastModifiedAt
 );

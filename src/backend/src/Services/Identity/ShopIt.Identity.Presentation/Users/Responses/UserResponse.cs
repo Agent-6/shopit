@@ -8,11 +8,13 @@ public record UserResponse(
     string? FirstName,
     string? LastName,
     bool IsActive,
+    string Status,
     bool EmailConfirmed,
     string? PhoneNumber,
     bool PhoneNumberConfirmed,
     bool LockoutEnabled,
     DateTimeOffset? LockoutEnd,
     DateTime CreatedAt,
-    DateTime LastModifiedAt
+    DateTime LastModifiedAt,
+    List<string> Roles
 );

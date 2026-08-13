@@ -1,0 +1,20 @@
+@{
+    ViewData["Title"] = "Invalid Invitation";
+}
+
+<div class="flex flex-col items-center justify-center space-y-4 text-center">
+    <div class="bg-destructive/10 text-destructive h-16 w-16 rounded-full flex items-center justify-center mb-2">
+        <i data-lucide="shield-alert" class="h-8 w-8"></i>
+    </div>
+
+    <h1 class="text-2xl font-semibold tracking-tight">This invitation link is invalid</h1>
+
+    <p class="text-sm text-muted-foreground mb-4">
+        The link you followed is malformed or has already been used. If you believe this is a mistake,
+        ask your administrator to send you a new invitation.
+    </p>
+
+    <a asp-action="Login" class="btn-outline w-full">
+        <i data-lucide="arrow-left" class="mr-2 h-4 w-4"></i> Back to login
+    </a>
+</div>

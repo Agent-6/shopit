@@ -55,6 +55,11 @@ public static class DependencyInjection
     public static IServiceCollection AddPersistenceServices<TContext>(this IServiceCollection services, IConfiguration configuration, params Assembly[] assemblies)
         where TContext : DbContext
     {
+        // EF Core's AddDbContext registers only the concrete context type. Bridge it to
+        // the non-generic DbContext base so framework services that resolve DbContext
+        // (e.g. IOutboxWriter registered by AddInfrastructureServices) work with any
+        // context type.
+        services.AddScoped<DbContext>(sp => sp.GetRequiredService<TContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork<TContext>>();
         services.AddRepositories(assemblies);
         return services;

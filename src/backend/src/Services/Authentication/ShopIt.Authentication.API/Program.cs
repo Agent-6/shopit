@@ -6,6 +6,7 @@ using ShopIt.Authentication.Persistence.Data;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Persistence.Outbox;
+using ShopIt.Identity.Application.Contracts.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,18 @@ builder.AddServiceDefaults();
 builder.Services.AddControllersWithViews();
 
 // Add DbContext and Kafka-based integration event infrastructure
-builder.Services.AddPersistence("auth-db", builder.Configuration);
+builder.Services.AddPersistence(
+    "auth-db",
+    builder.Configuration,
+    configureInbox: inbox => inbox.Topics.AddRange(new[]
+    {
+        nameof(PasswordResetTokenGeneratedIntegrationEvent),
+        nameof(PasswordResetCompletedIntegrationEvent),
+        nameof(EmailConfirmationOtpGeneratedIntegrationEvent),
+        nameof(UserEmailConfirmedIntegrationEvent),
+        nameof(UserInvitedIntegrationEvent),
+    }),
+    handlerAssemblies: typeof(ShopIt.Authentication.Infrastructure.DependencyInjection).Assembly);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();

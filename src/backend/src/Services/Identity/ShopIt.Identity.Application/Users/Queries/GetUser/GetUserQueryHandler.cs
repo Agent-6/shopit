@@ -30,7 +30,17 @@ public class GetUserQueryHandler(
             Email: user.Email ?? string.Empty,
             FirstName: user.FirstName,
             LastName: user.LastName,
-            IsActive: user.IsActive
+            IsActive: user.IsActive,
+            Status: user.Status.ToString(),
+            EmailConfirmed: user.EmailConfirmed,
+            PhoneNumber: user.PhoneNumber,
+            PhoneNumberConfirmed: user.PhoneNumberConfirmed,
+            TwoFactorEnabled: user.TwoFactorEnabled,
+            LockoutEnabled: user.LockoutEnabled,
+            LockoutEnd: user.LockoutEnd,
+            AccessFailedCount: user.AccessFailedCount,
+            CreatedAt: user.CreatedAt,
+            LastModifiedAt: user.LastModifiedAt
         );
     }
 }
