@@ -66,11 +66,6 @@ export interface UpdateUserPermissionsRequest {
   permissions: UserPermissionRequest[];
 }
 
-export interface UpdateUserClaimsRequest {
-  claims: UserClaimRequest[];
-  removedClaims?: string[] | null;
-}
-
 export interface User {
   id: string;
   username: string;

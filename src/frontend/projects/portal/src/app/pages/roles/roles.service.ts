@@ -1,7 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable, signal, computed } from '@angular/core';
 import { lastValueFrom } from 'rxjs';
-import { CreateRoleRequest, Role, RoleClaimRequest, RoleDetail, UpdateRoleRequest } from './role.model';
+import { CreateRoleRequest, Role, RoleDetail, UpdateRoleRequest } from './role.model';
 import { environment } from '../../../environments/environment';
 import { PagedResponse } from '../../core/models/pagination';
 
@@ -113,18 +113,4 @@ export class RolesService {
     }
   }
 
-  async saveRoleClaims(roleId: string, claims: RoleClaimRequest[]): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-
-    try {
-      await lastValueFrom(
-        this.http.put<void>(`${this.baseUrl}/${roleId}/claims`, { claims } as { claims: RoleClaimRequest[] })
-      );
-    } catch (error) {
-      this.error.set('Unable to update role claims.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
 }

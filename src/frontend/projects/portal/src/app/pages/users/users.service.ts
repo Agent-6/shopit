@@ -6,13 +6,11 @@ import {
   DeleteUserResponse,
   InviteUserRequest,
   LockUserRequest,
-  UpdateUserClaimsRequest,
   UpdateUserPasswordRequest,
   UpdateUserPermissionsRequest,
   UpdateUserRequest,
   UpdateUserRolesRequest,
   User,
-  UserClaimRequest,
   UserPermissionRequest
 } from './users.model';
 import { environment } from '../../../environments/environment';
@@ -29,7 +27,6 @@ export class UsersService {
   readonly error = signal<string | null>(null);
   readonly selectedUser = signal<User | null>(null);
   readonly permissions = signal<UserPermissionRequest[]>([]);
-  readonly claims = signal<UserClaimRequest[]>([]);
   readonly userRoles = signal<string[]>([]);
   readonly availableRoles = signal<Role[]>([]);
   readonly page = signal(1);
@@ -194,62 +191,6 @@ export class UsersService {
       this.permissions.set(permissions);
     } catch (error) {
       this.error.set('Unable to update permissions.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  // ------------------------------------------------------------------
-  // Claims
-  // ------------------------------------------------------------------
-
-  async loadClaims(userId: string): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-
-    try {
-      const response = await lastValueFrom(
-        this.http.get<UserClaimRequest[] | { claims: UserClaimRequest[] }>(
-          `${this.baseUrl}/users/${userId}/claims`
-        )
-      );
-      this.claims.set(Array.isArray(response) ? response : response.claims ?? []);
-    } catch (error) {
-      this.error.set('Unable to load claims.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  async saveClaims(userId: string, claims: UserClaimRequest[], removedClaims: string[] = []): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-
-    try {
-      await lastValueFrom(
-        this.http.put<void>(`${this.baseUrl}/users/${userId}/claims`, {
-          claims,
-          removedClaims: removedClaims.length ? removedClaims : null
-        } as UpdateUserClaimsRequest)
-      );
-      this.claims.set(claims);
-    } catch (error) {
-      this.error.set('Unable to update claims.');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
-  async removeClaim(userId: string, claimType: string, claimValue: string): Promise<void> {
-    this.loading.set(true);
-    this.error.set(null);
-
-    try {
-      const url = `${this.baseUrl}/users/${userId}/claims/${encodeURIComponent(claimType)}/${encodeURIComponent(claimValue)}`;
-      await lastValueFrom(this.http.delete<void>(url));
-      await this.loadClaims(userId);
-    } catch (error) {
-      this.error.set('Unable to remove the claim.');
     } finally {
       this.loading.set(false);
     }

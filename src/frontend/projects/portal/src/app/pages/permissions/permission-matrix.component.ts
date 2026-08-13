@@ -275,18 +275,17 @@ export class PermissionMatrixComponent implements OnDestroy {
 
     const granted = this.pending()[roleId] ?? [];
 
-    // Preserve non-permission claims (custom claims) when persisting the role.
-    const otherClaims = role.claims
-      .filter((claim) => !this.catalogNames().has(claim.type))
-      .map((claim) => ({ claimType: claim.type, claimValue: claim.value }));
-
-    const claims = [
-      ...granted.map((name) => ({ claimType: name, claimValue: 'true' })),
-      ...otherClaims,
-    ];
+    // Send the full catalog so unchecked permissions are revoked; custom claims are
+    // preserved by the backend (the permissions endpoint only touches catalog claims).
+    const permissions = this.catalogNames().size > 0
+      ? [...this.catalogNames()].map((name) => ({
+          permissionName: name,
+          isGranted: granted.includes(name),
+        }))
+      : [];
 
     this.savingRole.set(roleId);
-    const ok = await this.service.saveRoleClaims(roleId, claims);
+    const ok = await this.service.saveRolePermissions(roleId, permissions);
     this.savingRole.set(null);
 
     if (ok) {

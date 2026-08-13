@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { UsersService } from './users.service';
-import { UserClaimRequest, UserPermissionRequest, UpdateUserRequest } from './users.model';
+import { UserPermissionRequest, UpdateUserRequest } from './users.model';
 import { UserEditorComponent } from './user-editor.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
@@ -124,36 +124,18 @@ import { ShopItPermissions } from '../../core/auth/permissions';
               </section>
             }
 
-            @if (permissionService.has(perms.Users.ManageClaims)) {
+            @if ((selectedUser()?.claims?.length ?? 0) > 0) {
               <section class="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
                 <h2 class="text-xl font-semibold tracking-tight">Claims</h2>
-                <p class="mt-2 text-sm text-muted-foreground">Add, edit, or remove claim values. Removing a claim persists immediately.</p>
+                <p class="mt-2 text-sm text-muted-foreground">Claims currently set on this account.</p>
 
-                <div class="mt-6 space-y-4">
-                  @for (claim of claims(); track claim; let i = $index) {
-                    <div class="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-                      <input
-                        type="text"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        [value]="claim.claimType"
-                        (input)="updateClaim(i, 'claimType', $any($event.target).value)"
-                        placeholder="Claim type"
-                      />
-                      <input
-                        type="text"
-                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        [value]="claim.claimValue"
-                        (input)="updateClaim(i, 'claimValue', $any($event.target).value)"
-                        placeholder="Claim value"
-                      />
-                      <ui-button variant="destructive" size="icon" (click)="removeClaim(claim)" title="Remove claim">X</ui-button>
+                <div class="mt-6 space-y-3">
+                  @for (claim of selectedUser()?.claims ?? []; track claim) {
+                    <div class="flex items-center justify-between gap-3 rounded-lg border border-border bg-background px-4 py-3">
+                      <dt class="text-muted-foreground text-sm">{{ claim.claimType }}</dt>
+                      <dd class="font-medium text-sm break-all text-right">{{ claim.claimValue }}</dd>
                     </div>
                   }
-                </div>
-
-                <div class="mt-4 flex flex-wrap gap-3 pt-4 border-t border-border">
-                  <ui-button variant="secondary" (click)="addClaim()">Add claim</ui-button>
-                  <ui-button variant="default" (click)="saveClaims()">Save claims</ui-button>
                 </div>
               </section>
             }
@@ -275,7 +257,6 @@ export class UserDetailComponent {
   protected readonly perms = ShopItPermissions;
 
   protected readonly permissions = signal<UserPermissionRequest[]>([]);
-  protected readonly claims = signal<UserClaimRequest[]>([]);
   protected readonly selectedRoles = signal<string[]>([]);
   protected readonly newPassword = signal('');
 
@@ -308,14 +289,9 @@ export class UserDetailComponent {
     if (this.permissionService.has(ShopItPermissions.Users.ManagePermissions)) {
       loads.push(this.service.loadPermissions(userId));
     }
-    if (this.permissionService.has(ShopItPermissions.Users.ManageClaims)) {
-      loads.push(this.service.loadClaims(userId));
-    }
-
     await Promise.all(loads);
 
     this.permissions.set(this.service.permissions());
-    this.claims.set(this.service.claims());
     this.selectedRoles.set(this.service.userRoles());
   }
 
@@ -371,45 +347,6 @@ export class UserDetailComponent {
       return;
     }
     await this.service.savePermissions(user.id, this.permissions());
-  }
-
-  // ------------------------------------------------------------------
-  // Claims
-  // ------------------------------------------------------------------
-
-  protected addClaim(): void {
-    this.claims.update((current) => [...current, { claimType: '', claimValue: '' }]);
-  }
-
-  protected updateClaim(index: number, field: keyof UserClaimRequest, value: string): void {
-    this.claims.update((current) => {
-      const next = [...current];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
-  }
-
-  protected async removeClaim(claim: UserClaimRequest): Promise<void> {
-    const user = this.selectedUser();
-    if (!user) {
-      return;
-    }
-
-    const confirmed = confirm(`Remove claim "${claim.claimType}: ${claim.claimValue}"?`);
-    if (!confirmed) {
-      return;
-    }
-
-    await this.service.removeClaim(user.id, claim.claimType, claim.claimValue);
-    this.claims.set(this.service.claims());
-  }
-
-  protected async saveClaims(): Promise<void> {
-    const user = this.selectedUser();
-    if (!user) {
-      return;
-    }
-    await this.service.saveClaims(user.id, this.claims(), []);
   }
 
   // ------------------------------------------------------------------

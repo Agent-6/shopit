@@ -1,6 +1,6 @@
-export interface RoleClaimRequest {
-  claimType: string;
-  claimValue: string;
+export interface RoleClaim {
+  type: string;
+  value: string;
 }
 
 export interface CreateRoleRequest {
@@ -21,9 +21,6 @@ export interface Role {
 }
 
 export interface RoleDetail extends Role {
-  claims: RoleClaimRequest[];
+  claims: RoleClaim[];
 }
 
-export interface UpdateRoleClaimsRequest {
-  claims: RoleClaimRequest[];
-}

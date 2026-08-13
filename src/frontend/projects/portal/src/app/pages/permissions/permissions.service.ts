@@ -4,9 +4,9 @@ import { lastValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { PermissionMatrix } from './permissions.model';
 
-export interface RoleClaimPayload {
-  claimType: string;
-  claimValue: string;
+export interface RolePermissionUpdate {
+  permissionName: string;
+  isGranted: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -31,13 +31,13 @@ export class PermissionsService {
     }
   }
 
-  /** Saves a role's full claim list (permission claims + preserved custom claims). */
-  async saveRoleClaims(roleId: string, claims: RoleClaimPayload[]): Promise<boolean> {
+  /** Grants/revokes catalog permissions on a role (custom claims are preserved server-side). */
+  async saveRolePermissions(roleId: string, permissions: RolePermissionUpdate[]): Promise<boolean> {
     this.error.set(null);
 
     try {
       await lastValueFrom(
-        this.http.put<void>(`${this.baseUrl}/roles/${roleId}/claims`, { claims })
+        this.http.put<void>(`${this.baseUrl}/roles/${roleId}/permissions`, { permissions })
       );
       return true;
     } catch (error) {
