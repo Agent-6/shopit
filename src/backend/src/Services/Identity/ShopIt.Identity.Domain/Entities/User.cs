@@ -79,6 +79,41 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         return user;
     }
 
+    /// <summary>
+    /// Creates a user via the admin invitation flow. The account starts in
+    /// <see cref="UserStatus.PendingActivation"/> (inactive, email unverified) and can only
+    /// sign in after the invited user completes activation with a valid token and password.
+    /// </summary>
+    /// <param name="activationToken">Time-limited, cryptographically signed activation token.</param>
+    /// <param name="activationTokenExpiresAt">UTC expiry of <paramref name="activationToken"/>.</param>
+    public static User Invite(
+        Guid id,
+        string email,
+        string userName,
+        Guid tenantId,
+        string createdBy,
+        string activationToken,
+        DateTimeOffset activationTokenExpiresAt)
+    {
+        var user = new User(id)
+        {
+            Email = email,
+            NormalizedEmail = email.ToUpperInvariant(),
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            TenantId = tenantId,
+            SecurityStamp = Guid.NewGuid().ToString(),
+            CreatedAt = DateTime.UtcNow,
+            LastModifiedAt = DateTime.UtcNow,
+            CreatedBy = createdBy,
+            Status = UserStatus.PendingActivation,
+            IsActive = false
+        };
+
+        user.RaiseDomainEvent(new UserInvitedDomainEvent(user, activationToken, activationTokenExpiresAt));
+        return user;
+    }
+
     // Password management
     public void SetPassword(string passwordHash)
     {
@@ -322,7 +357,23 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         IsActive = true;
         Status = UserStatus.Active;
         LastModifiedAt = DateTime.UtcNow;
-        RaiseDomainEvent(new UserActivatedDomainEvent(Id));
+        RaiseDomainEvent(new UserActivatedDomainEvent(Id, Email ?? string.Empty));
+    }
+
+    /// <summary>
+    /// Completes the invitation flow: verifies the email address and flips the account to
+    /// <see cref="UserStatus.Active"/>. The password hash is set beforehand (e.g. via
+    /// <c>UserManager.AddPasswordAsync</c>) so it is validated against the password policy.
+    /// Only valid for users in <see cref="UserStatus.PendingActivation"/>.
+    /// </summary>
+    public void CompleteActivation()
+    {
+        EmailConfirmed = true;
+        IsActive = true;
+        Status = UserStatus.Active;
+        LastModifiedAt = DateTime.UtcNow;
+
+        RaiseDomainEvent(new UserActivatedDomainEvent(Id, Email ?? string.Empty));
     }
 
     public void Suspend(DateTime suspendedUntil, string reason)

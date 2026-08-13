@@ -28,6 +28,7 @@ public class UsersModule : EndpointsModule
         app.MapGet("/", GetUsers).RequirePermission(ShopItIdentityPermissions.Users.View);
         app.MapGet("/{userId:guid}", GetUserById).RequirePermission(ShopItIdentityPermissions.Users.View);
         app.MapPost("/", CreateUser).RequirePermission(ShopItIdentityPermissions.Users.Create);
+        app.MapPost("/invite", InviteUser).RequirePermission(ShopItIdentityPermissions.Users.Create);
         app.MapPut("/{userId:guid}", UpdateUser).RequirePermission(ShopItIdentityPermissions.Users.Update);
         app.MapDelete("/{userId:guid}", DeleteUser).RequirePermission(ShopItIdentityPermissions.Users.Delete);
 
@@ -89,6 +90,7 @@ public class UsersModule : EndpointsModule
                 u.FirstName,
                 u.LastName,
                 u.IsActive,
+                u.Status,
                 u.EmailConfirmed,
                 u.PhoneNumber,
                 u.PhoneNumberConfirmed,
@@ -120,6 +122,7 @@ public class UsersModule : EndpointsModule
             FirstName: user.FirstName,
             LastName: user.LastName,
             IsActive: user.IsActive,
+            Status: user.Status,
             EmailConfirmed: user.EmailConfirmed,
             PhoneNumber: user.PhoneNumber,
             PhoneNumberConfirmed: user.PhoneNumberConfirmed,
@@ -151,6 +154,23 @@ public class UsersModule : EndpointsModule
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
 
         var response = new CreateUserResponse(result.Id, result.Username, result.Email, DateTime.UtcNow);
+        return Results.Created($"/users/{response.Id}", response);
+    }
+
+    private async Task<IResult> InviteUser(InviteUserRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    {
+        var cmd = new ShopIt.Identity.Application.Users.Commands.InviteUser.InviteUserCommand(
+            request.Email,
+            request.FirstName ?? string.Empty,
+            request.LastName ?? string.Empty,
+            request.PhoneNumber,
+            request.Roles,
+            request.Claims?.Select(c => new ShopIt.Identity.Application.Users.Commands.CreateUser.CreateUserClaimItem(c.ClaimType, c.ClaimValue))
+        );
+
+        var result = await dispatcher.SendAsync(cmd, cancellationToken);
+
+        var response = new InviteUserResponse(result.Id, result.Email, result.Status, result.InvitationExpiresAt);
         return Results.Created($"/users/{response.Id}", response);
     }
 

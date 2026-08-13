@@ -2,6 +2,8 @@
 @{
     ViewData["Title"] = "Log in";
     var returnUrl = ViewData["ReturnUrl"] as string;
+    var showResendInvitation = ViewData["ShowResendInvitation"] as bool? ?? false;
+    var pendingEmail = ViewData["PendingEmail"] as string;
 }
 
 <div class="flex flex-col space-y-2 text-center mb-6">
@@ -40,3 +42,23 @@
         <i data-lucide="log-in" class="mr-2 h-4 w-4"></i> Sign In
     </button>
 </form>
+
+@if (showResendInvitation)
+{
+    <div class="mt-6 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-3">
+        <div class="flex items-center gap-2 text-sm font-medium text-amber-700 dark:text-amber-500">
+            <i data-lucide="mail-question" class="h-4 w-4 shrink-0"></i>
+            <span>Didn't receive your invitation email?</span>
+        </div>
+        <p class="mt-1 text-xs text-muted-foreground">
+            We'll send a fresh activation link to <span class="font-medium">@pendingEmail</span>.
+        </p>
+        <form asp-controller="Account" asp-action="ResendInvitation" method="post" class="mt-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="email" value="@pendingEmail" />
+            <button type="submit" class="btn-outline w-full">
+                <i data-lucide="mail-check" class="mr-2 h-4 w-4"></i> Resend Invitation
+            </button>
+        </form>
+    </div>
+}

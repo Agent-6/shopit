@@ -4,6 +4,7 @@ import { lastValueFrom } from 'rxjs';
 import {
   CreateUserRequest,
   DeleteUserResponse,
+  InviteUserRequest,
   LockUserRequest,
   UpdateUserClaimsRequest,
   UpdateUserPasswordRequest,
@@ -100,6 +101,22 @@ export class UsersService {
       return created;
     } catch (error) {
       this.error.set('Unable to create user. Please validate your input.');
+      return null;
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async inviteUser(payload: InviteUserRequest): Promise<User | null> {
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      const created = await lastValueFrom(this.http.post<User>(`${this.baseUrl}/users/invite`, payload));
+      await this.loadUsers();
+      return created;
+    } catch (error) {
+      this.error.set('Unable to send the invitation. Please validate the email and try again.');
       return null;
     } finally {
       this.loading.set(false);

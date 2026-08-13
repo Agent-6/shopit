@@ -5,13 +5,14 @@ import { UserClaimRequest, UserPermissionRequest, UpdateUserRequest } from './us
 import { UserEditorComponent } from './user-editor.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
+import { UiIconComponent } from '../../shared/components/ui-icon.component';
 import { PermissionService } from '../../core/auth/permission.service';
 import { ShopItPermissions } from '../../core/auth/permissions';
 
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [RouterLink, UserEditorComponent, UiButtonComponent, DatePipe],
+  imports: [RouterLink, UserEditorComponent, UiButtonComponent, UiIconComponent, DatePipe],
   template: `
     <div class="space-y-6">
       <header class="rounded-xl border bg-card text-card-foreground p-6 shadow-sm">
@@ -24,14 +25,21 @@ import { ShopItPermissions } from '../../core/auth/permissions';
             <h1 class="text-3xl font-semibold tracking-tight">{{ userName() }}</h1>
 
             @if (selectedUser()) {
-              <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
-                    [class.border-green-500/40]="selectedUser()?.isActive"
-                    [class.text-green-600]="selectedUser()?.isActive"
-                    [class.dark:text-green-500]="selectedUser()?.isActive"
-                    [class.border-destructive/40]="!selectedUser()?.isActive"
-                    [class.text-destructive]="!selectedUser()?.isActive">
-                {{ selectedUser()?.isActive ? 'Active' : 'Inactive' }}
-              </span>
+              @if (selectedUser()?.status === 'PendingActivation') {
+                <span class="inline-flex items-center gap-1 rounded-full border border-amber-500/40 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-500">
+                  <ui-icon name="clock" class="h-3 w-3"></ui-icon>
+                  Pending activation
+                </span>
+              } @else {
+                <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold"
+                      [class.border-green-500/40]="selectedUser()?.isActive"
+                      [class.text-green-600]="selectedUser()?.isActive"
+                      [class.dark:text-green-500]="selectedUser()?.isActive"
+                      [class.border-destructive/40]="!selectedUser()?.isActive"
+                      [class.text-destructive]="!selectedUser()?.isActive">
+                  {{ selectedUser()?.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              }
 
               @if (isLocked()) {
                 <span class="inline-flex items-center rounded-full border border-amber-500/40 px-2.5 py-0.5 text-xs font-semibold text-amber-600 dark:text-amber-500">

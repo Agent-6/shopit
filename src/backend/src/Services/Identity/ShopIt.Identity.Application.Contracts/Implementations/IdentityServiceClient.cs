@@ -22,4 +22,22 @@ public class IdentityServiceClient(IIdentityApi identityApi) : IIdentityServiceC
             return null;
         }
     }
+
+    public async Task<ActivateUserResponse?> ActivateUserAsync(ActivateUserRequest request)
+    {
+        try
+        {
+            var response = await _identityApi.ActivateUserAsync(request);
+            return response.IsSuccessful ? response.Content : null;
+        }
+        catch (ApiException ex) when (ex.StatusCode is System.Net.HttpStatusCode.Unauthorized
+                                       or System.Net.HttpStatusCode.Forbidden)
+        {
+            return null;
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
 }

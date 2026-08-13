@@ -22,6 +22,15 @@ export interface CreateUserRequest {
   isActive?: boolean | null;
 }
 
+export interface InviteUserRequest {
+  email: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  phoneNumber?: string | null;
+  roles?: string[] | null;
+  claims?: UserClaimRequest[] | null;
+}
+
 export interface UpdateUserRequest {
   username?: string | null;
   email?: string | null;
@@ -75,6 +84,8 @@ export interface User {
   phoneNumberConfirmed?: boolean;
   twoFactorEnabled?: boolean;
   isActive: boolean;
+  /** Active | Inactive | Suspended | PendingActivation */
+  status?: string;
   lockoutEnabled?: boolean;
   lockoutEnd?: string | null;
   createdAt?: string;

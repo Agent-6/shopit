@@ -1,0 +1,25 @@
+@{
+    ViewData["Title"] = "Invitation Sent";
+    var email = ViewData["Email"] as string;
+}
+
+<div class="flex flex-col items-center justify-center space-y-4 text-center">
+    <div class="bg-green-500/10 text-green-600 dark:text-green-500 h-16 w-16 rounded-full flex items-center justify-center mb-2">
+        <i data-lucide="mail-open" class="h-8 w-8"></i>
+    </div>
+
+    <h1 class="text-2xl font-semibold tracking-tight">New invitation sent</h1>
+
+    <p class="text-sm text-muted-foreground mb-6">
+        If an account exists for <span class="font-medium text-foreground">@email</span>, a fresh
+        invitation link has been sent to it — watch the mock inbox below.
+    </p>
+
+    <div class="w-full text-left">
+        @await Html.PartialAsync("_MockInbox", email)
+    </div>
+
+    <a asp-action="Login" class="btn-outline w-full mt-4">
+        <i data-lucide="arrow-left" class="mr-2 h-4 w-4"></i> Return to login
+    </a>
+</div>

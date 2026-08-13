@@ -44,7 +44,15 @@ public class UnitOfWork<TContext>(TContext context, IDomainEventDispatcher domai
 
         // 3. Dispatch domain events (handlers may write to the outbox table, etc.)
         if (domainEvents.Count > 0)
+        {
             await _domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
+
+            // 3b. Persist changes made by domain event handlers. Handlers typically add
+            //     OutboxMessage rows via IOutboxWriter (which only tracks them, it does not
+            //     save) — without this second save the transaction commits with those rows
+            //     left only in the ChangeTracker, and the integration event is silently lost.
+            await _context.SaveChangesAsync(cancellationToken);
+        }
 
         if (_transaction is null) throw new InvalidOperationException("No transaction to commit.");
 

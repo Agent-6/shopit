@@ -25,6 +25,7 @@ builder.Services.AddPersistence(
         nameof(PasswordResetCompletedIntegrationEvent),
         nameof(EmailConfirmationOtpGeneratedIntegrationEvent),
         nameof(UserEmailConfirmedIntegrationEvent),
+        nameof(UserInvitedIntegrationEvent),
     }),
     handlerAssemblies: typeof(ShopIt.Authentication.Infrastructure.DependencyInjection).Assembly);
 

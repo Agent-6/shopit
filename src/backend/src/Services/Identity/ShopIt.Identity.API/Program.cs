@@ -39,6 +39,7 @@ builder.Services.AddPersistence(
         nameof(PasswordResetRequestedIntegrationEvent),
         nameof(EmailConfirmationOtpRequestedIntegrationEvent),
         nameof(EmailConfirmationSubmittedIntegrationEvent),
+        nameof(ResendInvitationRequestedIntegrationEvent),
     }),
     handlerAssemblies: typeof(ShopIt.Identity.Application.DependencyInjection).Assembly);
 // TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder

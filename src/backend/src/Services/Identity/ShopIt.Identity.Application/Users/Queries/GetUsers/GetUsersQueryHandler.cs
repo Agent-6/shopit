@@ -26,6 +26,7 @@ public class GetUsersQueryHandler(
             u.FirstName,
             u.LastName,
             u.IsActive,
+            u.Status.ToString(),
             u.EmailConfirmed,
             u.PhoneNumber,
             u.PhoneNumberConfirmed,

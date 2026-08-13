@@ -31,6 +31,7 @@ public class GetUserQueryHandler(
             FirstName: user.FirstName,
             LastName: user.LastName,
             IsActive: user.IsActive,
+            Status: user.Status.ToString(),
             EmailConfirmed: user.EmailConfirmed,
             PhoneNumber: user.PhoneNumber,
             PhoneNumberConfirmed: user.PhoneNumberConfirmed,

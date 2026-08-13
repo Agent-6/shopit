@@ -17,4 +17,11 @@ public interface IIdentityApi
     /// </summary>
     [Post("/api/internal/validate-credentials")]
     Task<ApiResponse<CredentialValidationResponse>> ValidateCredentialsAsync([Body] CredentialValidationRequest request);
+
+    /// <summary>
+    /// Synchronously completes the invitation flow (token + password). The browser waits
+    /// for the result so the Authentication service can sign the user in right away.
+    /// </summary>
+    [Post("/api/internal/activate-user")]
+    Task<ApiResponse<ActivateUserResponse>> ActivateUserAsync([Body] ActivateUserRequest request);
 }
