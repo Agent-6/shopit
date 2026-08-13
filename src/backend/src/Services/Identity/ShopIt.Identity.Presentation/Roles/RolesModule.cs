@@ -27,9 +27,8 @@ public class RolesModule : EndpointsModule
         app.MapPut("/{roleId:guid}", UpdateRole).RequirePermission(ShopItIdentityPermissions.Roles.Update);
         app.MapDelete("/{roleId:guid}", DeleteRole).RequirePermission(ShopItIdentityPermissions.Roles.Delete);
 
-        // Role claims (permissions assigned to a role)
-        app.MapGet("/{roleId:guid}/claims", GetRoleClaims).RequirePermission(ShopItIdentityPermissions.Roles.View);
-        app.MapPut("/{roleId:guid}/claims", UpdateRoleClaims).RequirePermission(ShopItIdentityPermissions.Roles.ManagePermissions);
+        // Role permissions (manages permission claims without touching custom claims)
+        app.MapPut("/{roleId:guid}/permissions", UpdateRolePermissions).RequirePermission(ShopItIdentityPermissions.Roles.ManagePermissions);
     }
 
     private async Task<IResult> GetRoles(
@@ -105,26 +104,17 @@ public class RolesModule : EndpointsModule
         return TypedResults.Ok(new DeleteRoleResponse(result.Id, result.IsDeleted));
     }
 
-    private async Task<IResult> GetRoleClaims(Guid roleId, IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    private async Task<IResult> UpdateRolePermissions(Guid roleId, UpdateRolePermissionsRequest request, IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
-        var result = await dispatcher.QueryAsync(
-            new ShopIt.Identity.Application.Roles.Queries.GetRoleClaims.GetRoleClaimsQuery(roleId),
-            cancellationToken);
-
-        var claims = result.Claims.Select(c => new RoleClaimResponse(c.Type, c.Value)).ToList();
-        return Results.Ok(new GetRoleClaimsResponse(roleId, claims));
-    }
-
-    private async Task<IResult> UpdateRoleClaims(Guid roleId, UpdateRoleClaimsRequest request, IDispatcher dispatcher, CancellationToken cancellationToken = default)
-    {
-        var claims = request.Claims.Select(c => new ShopIt.Identity.Application.Roles.Commands.UpdateRoleClaims.RoleClaimUpdateItem(c.ClaimType, c.ClaimValue));
+        var items = request.Permissions.Select(p => new ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions.PermissionUpdateItem(p.PermissionName, p.IsGranted));
         var result = await dispatcher.SendAsync(
-            new ShopIt.Identity.Application.Roles.Commands.UpdateRoleClaims.UpdateRoleClaimsCommand(roleId, claims),
+            new ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions.UpdateRolePermissionsCommand(roleId, items),
             cancellationToken);
 
-        var response = new UpdateRoleClaimsResponse(
+        var response = new UpdateRolePermissionsResponse(
             result.RoleId,
-            result.Claims.Select(c => new RoleClaimResponse(c.Type, c.Value)).ToList(),
+            result.GrantedPermissions.ToList(),
+            result.RevokedPermissions.ToList(),
             result.UpdatedAt);
         return Results.Ok(response);
     }

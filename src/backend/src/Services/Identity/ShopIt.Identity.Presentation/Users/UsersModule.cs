@@ -36,11 +36,6 @@ public class UsersModule : EndpointsModule
         app.MapGet("/{userId:guid}/permissions", GetUserPermissions).RequirePermission(ShopItIdentityPermissions.Users.View);
         app.MapPut("/{userId:guid}/permissions", UpdateUserPermissions).RequirePermission(ShopItIdentityPermissions.Users.ManagePermissions);
 
-        // User Claims (the catch-all claimValue segment tolerates '/' inside claim values)
-        app.MapGet("/{userId:guid}/claims", GetUserClaims).RequirePermission(ShopItIdentityPermissions.Users.View);
-        app.MapPut("/{userId:guid}/claims", UpdateUserClaims).RequirePermission(ShopItIdentityPermissions.Users.ManageClaims);
-        app.MapDelete("/{userId:guid}/claims/{claimType}/{*claimValue}", RemoveUserClaim).RequirePermission(ShopItIdentityPermissions.Users.ManageClaims);
-
         // User Roles
         app.MapGet("/{userId:guid}/roles", GetUserRoles).RequirePermission(ShopItIdentityPermissions.Users.View);
         app.MapPut("/{userId:guid}/roles", UpdateUserRoles).RequirePermission(ShopItIdentityPermissions.Users.ManageRoles);
@@ -233,37 +228,6 @@ public class UsersModule : EndpointsModule
         var res = await dispatcher.SendAsync(cmd, cancellationToken);
 
         return Results.Ok(new UpdateUserPermissionsResponse(res.UserId, res.GrantedPermissions.ToList(), res.RevokedPermissions.ToList(), res.UpdatedAt));
-    }
-
-    // ------------------------------------------------------------------
-    // Claims
-    // ------------------------------------------------------------------
-
-    private async Task<IResult> GetUserClaims(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
-    {
-        var res = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserClaims.GetUserClaimsQuery(userId), cancellationToken);
-        var claims = res.Claims.Select(c => new UserClaimResponse(c.Type, c.Value)).ToList();
-        return Results.Ok(new GetUserClaimsResponse(userId, claims));
-    }
-
-    private async Task<IResult> UpdateUserClaims(Guid userId, UpdateUserClaimsRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
-    {
-        var claims = request.Claims.Select(c => new ShopIt.Identity.Application.Users.Commands.UpdateUserClaims.UserClaimUpdateItem(c.ClaimType, c.ClaimValue));
-        var removed = request.RemovedClaims?.Select(rc => new ShopIt.Identity.Application.Users.Commands.UpdateUserClaims.UserClaimUpdateItem(rc.Split(':')[0], rc.Split(':').ElementAtOrDefault(1) ?? string.Empty)) ?? Enumerable.Empty<ShopIt.Identity.Application.Users.Commands.UpdateUserClaims.UserClaimUpdateItem>();
-
-        var cmd = new ShopIt.Identity.Application.Users.Commands.UpdateUserClaims.UpdateUserClaimsCommand(userId, claims, removed);
-        var res = await dispatcher.SendAsync(cmd, cancellationToken);
-
-        return Results.Ok(new UpdateUserClaimsResponse(res.UserId, res.UpdatedClaims.Select(c => new UserClaimRequest(c.Type, c.Value)).ToList(), res.RemovedClaims.Select(c => c.Type + ":" + c.Value).ToList(), res.UpdatedAt));
-    }
-
-    private async Task<IResult> RemoveUserClaim(Guid userId, string claimType, string claimValue, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
-    {
-        var res = await dispatcher.SendAsync(
-            new ShopIt.Identity.Application.Users.Commands.RemoveUserClaim.RemoveUserClaimCommand(userId, claimType, claimValue),
-            cancellationToken);
-
-        return Results.Ok(new RemoveUserClaimResponse(res.UserId, res.ClaimType, res.ClaimValue, res.Removed));
     }
 
     // ------------------------------------------------------------------

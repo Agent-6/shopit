@@ -10,8 +10,11 @@ public record UpdateRoleRequest(
     string? Description = null
 );
 
-public record RoleClaimRequest(string ClaimType, string ClaimValue);
+public record RolePermissionRequest(
+    string PermissionName,
+    bool IsGranted
+);
 
-public record UpdateRoleClaimsRequest(
-    List<RoleClaimRequest> Claims
+public record UpdateRolePermissionsRequest(
+    List<RolePermissionRequest> Permissions
 );

@@ -18,8 +18,6 @@ public record GetRolesResponse
 
 public record RoleClaimResponse(string Type, string Value);
 
-public record GetRoleClaimsResponse(Guid RoleId, List<RoleClaimResponse> Claims);
-
 public record RoleDetailResponse(
     Guid Id,
     string Name,
@@ -44,8 +42,9 @@ public record UpdateRoleResponse(
 
 public record DeleteRoleResponse(Guid Id, bool IsDeleted);
 
-public record UpdateRoleClaimsResponse(
+public record UpdateRolePermissionsResponse(
     Guid RoleId,
-    List<RoleClaimResponse> Claims,
+    IEnumerable<string> GrantedPermissions,
+    IEnumerable<string> RevokedPermissions,
     DateTime UpdatedAt
 );

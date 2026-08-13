@@ -12,8 +12,6 @@ public record ActivateUserResponse(Guid UserId, bool IsActive);
 
 public record DeactivateUserResponse(Guid UserId, bool IsActive);
 
-public record RemoveUserClaimResponse(Guid UserId, string ClaimType, string ClaimValue, bool Removed);
-
 public record UpdateUserPasswordResponse(Guid UserId, bool Succeeded, string? Error);
 
 public record GetMyPermissionsResponse(IReadOnlyCollection<string> Permissions);
