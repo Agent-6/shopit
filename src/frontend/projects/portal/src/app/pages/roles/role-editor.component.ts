@@ -1,5 +1,6 @@
-import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
-import { Role, CreateRoleRequest, UpdateRoleRequest } from './role.model';
+import { Component, computed, EventEmitter, inject, Input, OnChanges, Output, signal } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
+import { Role, RoleMultiTenancySide, CreateRoleRequest, UpdateRoleRequest } from './role.model';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
 
 type RoleEditorState = Partial<CreateRoleRequest> & Partial<UpdateRoleRequest>;
@@ -40,6 +41,25 @@ type RoleEditorState = Partial<CreateRoleRequest> & Partial<UpdateRoleRequest>;
             placeholder="What this role is for"
           ></textarea>
         </div>
+
+        @if (mode === 'create') {
+          <div class="grid gap-2">
+            <label class="text-sm font-medium leading-none">Multi-tenancy side</label>
+            <select
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              [value]="form().multiTenancySide ?? 'Both'"
+              (change)="updateField('multiTenancySide', $any($event.target).value)"
+            >
+              @for (option of sideOptions(); track option) {
+                <option [value]="option">{{ sideLabel(option) }}</option>
+              }
+            </select>
+            <p class="text-xs text-muted-foreground">
+              Roles are provisioned only on the side they are available on. Both-side roles are created wherever
+              the seeder runs; host-only and tenant-only roles stay on their side.
+            </p>
+          </div>
+        }
       </div>
 
       <div class="flex justify-end pt-4 border-t border-border">
@@ -56,16 +76,29 @@ export class RoleEditorComponent implements OnChanges {
   @Output() submit = new EventEmitter<CreateRoleRequest | UpdateRoleRequest>();
   @Output() cancel = new EventEmitter<void>();
 
+  private readonly authService = inject(AuthService);
+
   protected readonly form = signal<RoleEditorState>({
     name: '',
-    description: null
+    description: null,
+    multiTenancySide: 'Both'
   });
+
+  protected readonly sideOptions = computed<RoleMultiTenancySide[]>(() =>
+    this.authService.currentSide === 'Host'
+      ? ['Both', 'Host']
+      : ['Both', 'Tenant']
+  );
+
+  protected sideLabel(side: RoleMultiTenancySide): string {
+    return side === 'Host' ? 'Host only' : side === 'Tenant' ? 'Tenant only' : 'Both sides';
+  }
 
   ngOnChanges(): void {
     this.form.set(
       this.model
         ? { name: this.model.name, description: this.model.description ?? null }
-        : { name: '', description: null }
+        : { name: '', description: null, multiTenancySide: 'Both' }
     );
   }
 

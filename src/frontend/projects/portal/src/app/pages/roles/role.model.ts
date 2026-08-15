@@ -1,3 +1,5 @@
+export type RoleMultiTenancySide = 'Both' | 'Host' | 'Tenant';
+
 export interface RoleClaim {
   type: string;
   value: string;
@@ -6,6 +8,7 @@ export interface RoleClaim {
 export interface CreateRoleRequest {
   name: string;
   description?: string | null;
+  multiTenancySide?: RoleMultiTenancySide;
 }
 
 export interface UpdateRoleRequest {
@@ -18,6 +21,7 @@ export interface Role {
   name: string;
   description?: string | null;
   createdAt: Date;
+  multiTenancySide?: RoleMultiTenancySide;
 }
 
 export interface RoleDetail extends Role {
