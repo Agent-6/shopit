@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Entities;
 using ShopIt.Framework.Domain.Events;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Domain.Events.RoleEvents;
 using ShopIt.Identity.Domain.Tenancy;
 
@@ -28,6 +29,15 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
     public DateTime CreatedAt { get; private set; } = default!;
     public string CreatedBy { get; private set; } = default!;
 
+    /// <summary>
+    /// The multi-tenancy side(s) this role is available on. Built-in roles take the
+    /// side declared on their <c>RoleDefinition</c>; runtime-created roles default to
+    /// <see cref="PermissionMultiTenancySide.Both"/>. A role physically lives in one
+    /// tenant, so the effective side is still that tenant's; the declared side gates
+    /// where the role is provisioned and who may be assigned it.
+    /// </summary>
+    public PermissionMultiTenancySide MultiTenancySide { get; private set; } = PermissionMultiTenancySide.Both;
+
 
     private readonly List<RoleClaim> _roleClaims = [];
     public IReadOnlyCollection<RoleClaim> RoleClaims => _roleClaims.AsReadOnly();
@@ -43,7 +53,13 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
         Id = id;
     }
 
-    public static Role Create(Guid id, string name, Guid tenantId, string createdBy, string? description = null)
+    public static Role Create(
+        Guid id,
+        string name,
+        Guid tenantId,
+        string createdBy,
+        string? description = null,
+        PermissionMultiTenancySide multiTenancySide = PermissionMultiTenancySide.Both)
     {
         var role = new Role(id)
         {
@@ -51,6 +67,7 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
             NormalizedName = name.ToUpperInvariant(),
             TenantId = tenantId,
             Description = description,
+            MultiTenancySide = multiTenancySide,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };

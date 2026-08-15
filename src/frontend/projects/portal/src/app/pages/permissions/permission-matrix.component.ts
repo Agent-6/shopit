@@ -2,11 +2,18 @@ import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { PageHeaderComponent } from '../../core/components/page/page-header.component';
 import { UiButtonComponent } from '../../shared/components/ui-button.component';
 import { UiIconComponent } from '../../shared/components/ui-icon.component';
-import { PermissionGroup } from './permissions.model';
+import {
+  MatrixRole,
+  PermissionDefinition,
+  PermissionGroup,
+  PermissionMultiTenancySide,
+} from './permissions.model';
 import { PermissionsService } from './permissions.service';
 
 const CHECKBOX_CLASS =
   'h-4 w-4 shrink-0 rounded-sm border border-primary ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
+
+const HOST_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
 @Component({
   selector: 'app-permission-matrix',
@@ -16,7 +23,7 @@ const CHECKBOX_CLASS =
     <section class="flex flex-col gap-6">
       <app-page-header
         title="Permission matrix"
-        subtitle="Grant permissions to roles. Changes are applied per role when you save it."
+        subtitle="Grant permissions to roles. Changes are applied per role when you save it. Permissions scoped to the host or tenant side are only grantable to roles on that side."
       >
         <ui-button variant="outline" icon="refresh-cw" (click)="load()">Refresh</ui-button>
       </app-page-header>
@@ -67,7 +74,26 @@ const CHECKBOX_CLASS =
                       <th class="px-3 py-3 min-w-[150px] align-top">
                         <div class="flex flex-col items-center gap-1.5">
                           <span class="font-semibold">{{ role.name }}</span>
-                          <span class="text-xs text-muted-foreground">{{ grantedCount(role.id) }}/{{ permissionCount() }}</span>
+                          <span class="text-xs text-muted-foreground">
+                            {{ grantedCount(role.id) }}/{{ applicableCount(role) }}
+                            @if (sideLabel(role) !== 'Both') {
+                              <span class="ml-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide">
+                                {{ sideLabel(role) }}
+                              </span>
+                            }
+                            @if (role.multiTenancySide && role.multiTenancySide !== 'Both' && role.multiTenancySide !== sideLabel(role)) {
+                              <span
+                                class="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                                [class]="
+                                  role.multiTenancySide === 'Host'
+                                    ? 'bg-indigo-100 text-indigo-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                "
+                              >
+                                {{ role.multiTenancySide === 'Host' ? 'host only' : 'tenant only' }}
+                              </span>
+                            }
+                          </span>
                           @if (savedRole() === role.id) {
                             <span class="inline-flex items-center gap-1 text-xs font-medium text-green-600">
                               <ui-icon name="check" class="h-3.5 w-3.5"></ui-icon>
@@ -96,13 +122,17 @@ const CHECKBOX_CLASS =
                       </td>
                       @for (role of roles(); track role.id) {
                         <td class="px-3 py-2 text-center">
-                          <input
-                            type="checkbox"
-                            class="{{ CHECKBOX_CLASS }}"
-                            [checked]="isGroupGranted(role.id, group)"
-                            [title]="isGroupGranted(role.id, group) ? 'Revoke all in this group' : 'Grant all in this group'"
-                            (change)="toggleGroup(role.id, group, $any($event.target).checked)"
-                          />
+                          @if (applicablePermissions(role, group).length === 0) {
+                            <span class="text-xs text-muted-foreground/50">—</span>
+                          } @else {
+                            <input
+                              type="checkbox"
+                              class="{{ CHECKBOX_CLASS }}"
+                              [checked]="isGroupGranted(role.id, group)"
+                              [title]="isGroupGranted(role.id, group) ? 'Revoke all in this group' : 'Grant all in this group'"
+                              (change)="toggleGroup(role.id, group, $any($event.target).checked)"
+                            />
+                          }
                         </td>
                       }
                     </tr>
@@ -113,17 +143,38 @@ const CHECKBOX_CLASS =
                           @if (permission.description) {
                             <p class="text-xs text-muted-foreground mt-0.5">{{ permission.description }}</p>
                           }
-                          <code class="text-[10px] text-muted-foreground/80">{{ permission.name }}</code>
+                          <div class="flex items-center gap-2 mt-0.5">
+                            <code class="text-[10px] text-muted-foreground/80">{{ permission.name }}</code>
+                            @if ((permission.multiTenancySide ?? 'Both') !== 'Both') {
+                              <span
+                                class="rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                                [class]="
+                                  permission.multiTenancySide === 'Host'
+                                    ? 'bg-indigo-100 text-indigo-700'
+                                    : 'bg-emerald-100 text-emerald-700'
+                                "
+                              >
+                                {{ permission.multiTenancySide === 'Host' ? 'host only' : 'tenant only' }}
+                              </span>
+                            }
+                          </div>
                         </td>
                         @for (role of roles(); track role.id) {
                           <td class="px-3 py-2.5 text-center">
-                            <input
-                              type="checkbox"
-                              class="{{ CHECKBOX_CLASS }}"
-                              [checked]="isGranted(role.id, permission.name)"
-                              [title]="'Grant ' + permission.name + ' to ' + role.name"
-                              (change)="toggle(role.id, permission.name, $any($event.target).checked)"
-                            />
+                            @if (isApplicable(role, permission)) {
+                              <input
+                                type="checkbox"
+                                class="{{ CHECKBOX_CLASS }}"
+                                [checked]="isGranted(role.id, permission.name)"
+                                [title]="'Grant ' + permission.name + ' to ' + role.name"
+                                (change)="toggle(role.id, permission.name, $any($event.target).checked)"
+                              />
+                            } @else {
+                              <span
+                                class="text-xs text-muted-foreground/40"
+                                [title]="'Not available on the ' + sideLabel(role) + ' side'"
+                              >—</span>
+                            }
                           </td>
                         }
                       </tr>
@@ -189,9 +240,51 @@ export class PermissionMatrixComponent implements OnDestroy {
     for (const role of this.roles()) {
       next[role.id] = role.claims
         .filter((claim) => this.catalogNames().has(claim.type))
+        .filter((claim) => this.isApplicable(role, this.findPermission(claim.type)))
         .map((claim) => claim.type);
     }
     this.pending.set(next);
+  }
+
+  // ------------------------------------------------------------------
+  // Multi-tenancy side helpers
+  // ------------------------------------------------------------------
+
+  protected sideLabel(role: MatrixRole): PermissionMultiTenancySide {
+    return this.isHostRole(role) ? 'Host' : 'Tenant';
+  }
+
+  private isHostRole(role: MatrixRole): boolean {
+    return role.tenantId === HOST_TENANT_ID;
+  }
+
+  private findPermission(name: string): PermissionDefinition | undefined {
+    for (const group of this.groups()) {
+      const permission = group.permissions.find((p) => p.name === name);
+      if (permission) {
+        return permission;
+      }
+    }
+    return undefined;
+  }
+
+  protected isApplicable(role: MatrixRole, permission: PermissionDefinition | undefined): boolean {
+    if (!permission) {
+      return true; // custom (non-catalog) claims are preserved as-is
+    }
+    const side = permission.multiTenancySide ?? 'Both';
+    return side === 'Both' || side === this.sideLabel(role);
+  }
+
+  protected applicablePermissions(role: MatrixRole, group: PermissionGroup): PermissionDefinition[] {
+    return group.permissions.filter((permission) => this.isApplicable(role, permission));
+  }
+
+  protected applicableCount(role: MatrixRole): number {
+    return this.groups().reduce(
+      (sum, group) => sum + this.applicablePermissions(role, group).length,
+      0
+    );
   }
 
   // ------------------------------------------------------------------
@@ -203,7 +296,12 @@ export class PermissionMatrixComponent implements OnDestroy {
   }
 
   protected grantedCount(roleId: string): number {
-    return this.pending()[roleId]?.length ?? 0;
+    const role = this.roles().find((r) => r.id === roleId);
+    if (!role) {
+      return 0;
+    }
+    const granted = this.pending()[roleId] ?? [];
+    return granted.filter((name) => this.isApplicable(role, this.findPermission(name))).length;
   }
 
   protected isDirty(roleId: string): boolean {
@@ -211,8 +309,10 @@ export class PermissionMatrixComponent implements OnDestroy {
   }
 
   protected isGroupGranted(roleId: string, group: PermissionGroup): boolean {
+    const role = this.roles().find((r) => r.id === roleId);
     const granted = this.pending()[roleId] ?? [];
-    return group.permissions.length > 0 && group.permissions.every((permission) => granted.includes(permission.name));
+    const applicable = role ? this.applicablePermissions(role, group) : group.permissions;
+    return applicable.length > 0 && applicable.every((permission) => granted.includes(permission.name));
   }
 
   protected toggle(roleId: string, permissionName: string, checked: boolean): void {
@@ -227,8 +327,10 @@ export class PermissionMatrixComponent implements OnDestroy {
   }
 
   protected toggleGroup(roleId: string, group: PermissionGroup, checked: boolean): void {
+    const role = this.roles().find((r) => r.id === roleId);
+    const applicable = role ? this.applicablePermissions(role, group) : group.permissions;
     this.updateRole(roleId, (granted) => {
-      for (const permission of group.permissions) {
+      for (const permission of applicable) {
         if (checked) {
           granted.add(permission.name);
         } else {
@@ -275,8 +377,10 @@ export class PermissionMatrixComponent implements OnDestroy {
 
     const granted = this.pending()[roleId] ?? [];
 
-    // Send the full catalog so unchecked permissions are revoked; custom claims are
-    // preserved by the backend (the permissions endpoint only touches catalog claims).
+    // Send the full catalog so unchecked permissions are revoked; permissions not
+    // available on this role's side are sent as not-granted (the backend ignores them).
+    // Custom claims are preserved by the backend (the permissions endpoint only touches
+    // catalog claims).
     const permissions = this.catalogNames().size > 0
       ? [...this.catalogNames()].map((name) => ({
           permissionName: name,

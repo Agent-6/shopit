@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Queries;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Permissions;
 
 namespace ShopIt.Identity.Application.Permissions.Queries.GetPermissionMatrix;
 
@@ -18,7 +18,8 @@ public class GetPermissionMatrixQueryHandler(
                 g.Name,
                 g.DisplayName,
                 g.Permissions
-                    .Select(p => new PermissionMatrixDefinitionItem(p.Name, p.DisplayName, p.Description))
+                    .Select(p => new PermissionMatrixDefinitionItem(
+                        p.Name, p.DisplayName, p.Description, p.MultiTenancySide))
                     .ToList()))
             .ToList();
 
@@ -30,6 +31,8 @@ public class GetPermissionMatrixQueryHandler(
             roles.Add(new PermissionMatrixRoleItem(
                 role.Id,
                 role.Name ?? string.Empty,
+                role.TenantId,
+                role.MultiTenancySide,
                 claims.Select(c => new PermissionMatrixClaimItem(c.Type, c.Value)).ToList()));
         }
 

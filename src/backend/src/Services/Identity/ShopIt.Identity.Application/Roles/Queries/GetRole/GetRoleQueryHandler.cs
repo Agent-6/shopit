@@ -11,6 +11,6 @@ public class GetRoleQueryHandler(IRoleRepository roleRepository) : IQueryHandler
     {
         var role = await _roleRepository.GetByIdAsync(request.RoleId, cancellationToken);
 
-        return new GetRoleResult(role.Id, role.Name ?? string.Empty, role.Description, role.CreatedAt);
+        return new GetRoleResult(role.Id, role.Name ?? string.Empty, role.Description, role.CreatedAt, role.MultiTenancySide);
     }
 }

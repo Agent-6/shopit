@@ -11,7 +11,7 @@ public class GetRolesQueryHandler(IRoleRepository roleRepository) : IQueryHandle
     {
         var (roles, total) = await _roleRepository.GetPagedAsync(request.PageNumber, request.PageSize, request.Filter, cancellationToken);
 
-        var items = roles.Select(r => new GetRolesRoleItem(r.Id, r.Name ?? string.Empty, r.Description, r.CreatedAt));
+        var items = roles.Select(r => new GetRolesRoleItem(r.Id, r.Name ?? string.Empty, r.Description, r.CreatedAt, r.MultiTenancySide));
         var totalPages = (int)Math.Ceiling((double)total / request.PageSize);
 
         return new GetRolesResult(items, total, request.PageNumber, request.PageSize, totalPages);

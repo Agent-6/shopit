@@ -2,7 +2,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
+using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Contracts.Events;
@@ -18,6 +20,7 @@ using ShopIt.Identity.Domain.Users;
 using ShopIt.Identity.Infrastructure;
 using ShopIt.Identity.Persistence;
 using ShopIt.Identity.Persistence.Data;
+using ShopIt.Identity.Persistence.Permissions;
 using ShopIt.Identity.Persistence.Stores;
 using ShopIt.Identity.Presentation;
 using ShopIt.Identity.Presentation.Authorization;
@@ -52,6 +55,7 @@ builder.Services.AddPersistence(
         nameof(EmailConfirmationSubmittedIntegrationEvent),
         nameof(ResendInvitationRequestedIntegrationEvent),
         nameof(TenantCreatedIntegrationEvent),
+        nameof(PermissionCatalogPublishedIntegrationEvent),
     }),
     handlerAssemblies: typeof(ShopIt.Identity.Application.DependencyInjection).Assembly);
 // TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder
@@ -197,6 +201,7 @@ using (var scope = app.Services.CreateScope())
         }
 
         // Seed data
+        await SeedPermissionCatalog(scope.ServiceProvider);
         await SeedRoles(scope.ServiceProvider);
         await SeedUsers(scope.ServiceProvider);
     }
@@ -208,6 +213,22 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+/// <summary>
+/// Seeds the Identity service's own permissions into the persisted permission catalog.
+/// Other services publish their catalogs via <see cref="PermissionCatalogPublishedIntegrationEvent"/>
+/// (handled by <see cref="PermissionCatalogPublishedIntegrationEventHandler"/>), so Identity does
+/// not need to be redeployed when another service changes its permissions.
+/// </summary>
+static async Task SeedPermissionCatalog(IServiceProvider services)
+{
+    var provider = services.GetRequiredService<ShopItIdentityPermissionDefinitionProvider>();
+    var synchronizer = services.GetRequiredService<IPermissionCatalogSynchronizer>();
+
+    await synchronizer.SynchronizeAsync(
+        ShopItIdentityPermissionDefinitionProvider.SourceService,
+        provider.GetGroups());
+}
 
 static async Task SeedRoles(IServiceProvider services)
 {
@@ -243,6 +264,17 @@ static async Task EnsureRoleAsync(IServiceProvider services, RoleDefinition defi
 
     using (currentTenant.Change(new TenantInfo(tenantId, "Seed")))
     {
+        // Roles are only provisioned on the sides they are available on: a host-only
+        // role definition is not created in tenant tenants and vice versa.
+        var roleSide = tenantId == Guid.Empty
+            ? PermissionMultiTenancySide.Host
+            : PermissionMultiTenancySide.Tenant;
+
+        if (!definition.Side.IsAvailableOn(roleSide))
+        {
+            return;
+        }
+
         var role = await roleManager.FindByNameAsync(definition.Name);
         if (role is null)
         {
@@ -251,15 +283,25 @@ static async Task EnsureRoleAsync(IServiceProvider services, RoleDefinition defi
                 definition.Name,
                 tenantId,
                 "system",
-                definition.Description
+                definition.Description,
+                definition.Side
             );
             await roleManager.CreateAsync(role);
         }
 
-        // Admin (DefaultPermissions == null) is granted every permission in the catalog.
+        // Permissions are only grantable on the side they are available on: Admin
+        // (DefaultPermissions == null) is granted every permission available on this
+        // role's side; other roles get their declared defaults filtered by side too.
+
         var toGrant = definition.GrantsAllPermissions
-            ? permissionCatalog.GetAll().Select(p => p.Name.Value)
-            : definition.DefaultPermissions!.Select(p => p.Value);
+            ? permissionCatalog.GetAll()
+                .Where(p => p.MultiTenancySide.IsAvailableOn(roleSide))
+                .Select(p => p.Name.Value)
+            : definition.DefaultPermissions!
+                .Where(name => permissionCatalog.GetAll().Any(p =>
+                    p.Name.Value.Equals(name.Value, StringComparison.OrdinalIgnoreCase)
+                    && p.MultiTenancySide.IsAvailableOn(roleSide)))
+                .Select(p => p.Value);
 
         // Seed permission claims idempotently (permissions are stored as claims).
         var existing = (await roleManager.GetClaimsAsync(role))

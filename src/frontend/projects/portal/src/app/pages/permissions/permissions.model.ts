@@ -1,7 +1,10 @@
+export type PermissionMultiTenancySide = 'Both' | 'Host' | 'Tenant';
+
 export interface PermissionDefinition {
   name: string;
   displayName: string;
   description?: string | null;
+  multiTenancySide?: PermissionMultiTenancySide;
 }
 
 export interface PermissionGroup {
@@ -18,6 +21,8 @@ export interface MatrixClaim {
 export interface MatrixRole {
   id: string;
   name: string;
+  tenantId: string;
+  multiTenancySide?: PermissionMultiTenancySide;
   claims: MatrixClaim[];
 }
 

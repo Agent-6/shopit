@@ -2,8 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Domain.Roles;
 using ShopIt.Identity.Domain.Tenancy;
 
@@ -54,6 +54,17 @@ public class TenantDataSeeder(
 
             foreach (var definition in roleDefinitions.GetAll())
             {
+                // Only roles provisioned on this tenant's side exist here; assigning
+                // a host-only role to a tenant user would fail role resolution.
+                var tenantSide = tenantId == Guid.Empty
+                    ? PermissionMultiTenancySide.Host
+                    : PermissionMultiTenancySide.Tenant;
+
+                if (!definition.Side.IsAvailableOn(tenantSide))
+                {
+                    continue;
+                }
+
                 if (!await userManager.IsInRoleAsync(admin, definition.Name))
                 {
                     await userManager.AddToRoleAsync(admin, definition.Name);
@@ -66,6 +77,17 @@ public class TenantDataSeeder(
 
     private async Task EnsureRoleAsync(RoleDefinition definition, Guid tenantId, CancellationToken cancellationToken)
     {
+        // Roles are only provisioned on the sides they are available on: a host-only
+        // role definition is not created in tenant tenants and vice versa.
+        var roleSide = tenantId == Guid.Empty
+            ? PermissionMultiTenancySide.Host
+            : PermissionMultiTenancySide.Tenant;
+
+        if (!definition.Side.IsAvailableOn(roleSide))
+        {
+            return;
+        }
+
         var role = await roleManager.FindByNameAsync(definition.Name);
         if (role is null)
         {
@@ -74,13 +96,25 @@ public class TenantDataSeeder(
                 definition.Name,
                 tenantId,
                 createdBy: "system",
-                definition.Description);
+                definition.Description,
+                definition.Side);
             await roleManager.CreateAsync(role);
         }
 
+        // Permissions are only grantable on the side they are available on. Admin
+        // (DefaultPermissions == null) gets every permission available on this tenant's
+        // side; other roles get their declared defaults filtered by side too.
+
+        var catalog = permissionCatalog.GetAll().ToList();
         var toGrant = definition.GrantsAllPermissions
-            ? permissionCatalog.GetAll().Select(p => p.Name.Value)
-            : definition.DefaultPermissions!.Select(p => p.Value);
+            ? catalog
+                .Where(p => p.MultiTenancySide.IsAvailableOn(roleSide))
+                .Select(p => p.Name.Value)
+            : definition.DefaultPermissions!
+                .Where(name => catalog.Any(p =>
+                    p.Name.Value.Equals(name.Value, StringComparison.OrdinalIgnoreCase)
+                    && p.MultiTenancySide.IsAvailableOn(roleSide)))
+                .Select(p => p.Value);
 
         var granted = (await roleManager.GetClaimsAsync(role))
             .Select(c => c.Type)

@@ -1,3 +1,5 @@
+using ShopIt.Framework.Domain.Permissions;
+
 namespace ShopIt.Identity.Application.Permissions.Queries.GetPermissionMatrix;
 
 public record GetPermissionMatrixResult(
@@ -9,8 +11,17 @@ public record PermissionMatrixGroupItem(
     string DisplayName,
     IReadOnlyCollection<PermissionMatrixDefinitionItem> Permissions);
 
-public record PermissionMatrixDefinitionItem(string Name, string DisplayName, string? Description);
+public record PermissionMatrixDefinitionItem(
+    string Name,
+    string DisplayName,
+    string? Description,
+    PermissionMultiTenancySide MultiTenancySide);
 
-public record PermissionMatrixRoleItem(Guid Id, string Name, IReadOnlyCollection<PermissionMatrixClaimItem> Claims);
+public record PermissionMatrixRoleItem(
+    Guid Id,
+    string Name,
+    Guid TenantId,
+    PermissionMultiTenancySide MultiTenancySide,
+    IReadOnlyCollection<PermissionMatrixClaimItem> Claims);
 
 public record PermissionMatrixClaimItem(string Type, string Value);

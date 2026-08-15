@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Presentation.Modules;
 using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Presentation.Authorization;
@@ -39,11 +40,14 @@ public class PermissionsModule : EndpointsModule
             result.Groups.Select(g => new PermissionGroupResponse(
                 g.Name,
                 g.DisplayName,
-                g.Permissions.Select(p => new PermissionDefinitionResponse(p.Name, p.DisplayName, p.Description)).ToList()
+                g.Permissions.Select(p => new PermissionDefinitionResponse(
+                    p.Name, p.DisplayName, p.Description, p.MultiTenancySide)).ToList()
             )).ToList(),
             result.Roles.Select(r => new PermissionMatrixRoleResponse(
                 r.Id,
                 r.Name,
+                r.TenantId,
+                r.MultiTenancySide,
                 r.Claims.Select(c => new PermissionMatrixClaimResponse(c.Type, c.Value)).ToList()
             )).ToList()
         );
@@ -56,7 +60,8 @@ public class PermissionsModule : EndpointsModule
         var groups = provider.GetGroups().Select(g => new PermissionGroupResponse(
             g.Name,
             g.DisplayName,
-            g.Permissions.Select(p => new PermissionDefinitionResponse(p.Name, p.DisplayName, p.Description)).ToList()
+            g.Permissions.Select(p => new PermissionDefinitionResponse(
+                p.Name, p.DisplayName, p.Description, p.MultiTenancySide)).ToList()
         )).ToList();
 
         return Results.Ok(new GetPermissionDefinitionsResponse(groups));

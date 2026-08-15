@@ -44,7 +44,7 @@ public class RolesModule : EndpointsModule
 
         var response = new GetRolesResponse
         {
-            Items = result.Roles.Select(r => new RoleResponse(r.Id, r.Name, r.Description, r.CreatedAt)).ToList(),
+            Items = result.Roles.Select(r => new RoleResponse(r.Id, r.Name, r.Description, r.CreatedAt, r.MultiTenancySide)).ToList(),
             TotalCount = result.TotalCount,
             Page = result.Page,
             PageSize = result.PageSize,
@@ -69,6 +69,7 @@ public class RolesModule : EndpointsModule
             role.Name,
             role.Description,
             role.CreatedAt,
+            role.MultiTenancySide,
             claims.Claims.Select(c => new RoleClaimResponse(c.Type, c.Value)).ToList()
         );
 
@@ -78,10 +79,12 @@ public class RolesModule : EndpointsModule
     private async Task<IResult> CreateRole(CreateRoleRequest request, IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
         var result = await dispatcher.SendAsync(
-            new ShopIt.Identity.Application.Roles.Commands.CreateRole.CreateRoleCommand(request.Name, request.Description),
+            new ShopIt.Identity.Application.Roles.Commands.CreateRole.CreateRoleCommand(
+                request.Name, request.Description, request.MultiTenancySide),
             cancellationToken);
 
-        var response = new CreateRoleResponse(result.Id, result.Name, result.Description, result.CreatedAt);
+        var response = new CreateRoleResponse(
+            result.Id, result.Name, result.Description, result.CreatedAt, result.MultiTenancySide);
         return Results.Created($"/roles/{response.Id}", response);
     }
 
