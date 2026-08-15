@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Domain.Permissions;
+namespace ShopIt.Framework.Domain.Permissions;
 
 /// <summary>
 /// Fluent registration API for permission definitions. <c>AddGroup</c> and
@@ -31,9 +31,10 @@ public static class PermissionDefinitionContextExtensions
         this PermissionGroupDefinition group,
         PermissionName permissionName,
         string displayName,
-        string? description = null)
+        string? description = null,
+        PermissionMultiTenancySide multiTenancySide = PermissionMultiTenancySide.Both)
     {
-        group.Append(new PermissionDefinition(permissionName, displayName, description));
+        group.Append(new PermissionDefinition(permissionName, displayName, description, multiTenancySide));
         return group;
     }
 
@@ -45,6 +46,7 @@ public static class PermissionDefinitionContextExtensions
         this PermissionName permissionName,
         PermissionGroupDefinition group,
         string displayName,
-        string? description = null)
-        => group.AddPermission(permissionName, displayName, description);
+        string? description = null,
+        PermissionMultiTenancySide multiTenancySide = PermissionMultiTenancySide.Both)
+        => group.AddPermission(permissionName, displayName, description, multiTenancySide);
 }

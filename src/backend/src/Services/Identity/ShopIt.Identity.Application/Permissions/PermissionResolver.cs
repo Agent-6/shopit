@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Tenancy;
 
@@ -7,7 +8,8 @@ namespace ShopIt.Identity.Application.Permissions;
 public class PermissionResolver(
     UserManager<User> userManager,
     RoleManager<Role> roleManager,
-    ICurrentTenant currentTenant) : IPermissionResolver
+    ICurrentTenant currentTenant,
+    IPermissionDefinitionProvider permissionCatalog) : IPermissionResolver
 {
     public async Task<IReadOnlySet<string>> GetGrantedPermissionsAsync(User user, CancellationToken cancellationToken = default)
     {
@@ -31,7 +33,19 @@ public class PermissionResolver(
             }
         }
 
-        return permissions;
+        // A permission is only effective on the side it is available on: filter out
+        // grants for permissions that don't apply to the user's own tenant side.
+        var userSide = user.TenantId == Guid.Empty
+            ? PermissionMultiTenancySide.Host
+            : PermissionMultiTenancySide.Tenant;
+
+        var sideByPermission = permissionCatalog.GetAll()
+            .GroupBy(p => p.Name.Value, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().MultiTenancySide, StringComparer.OrdinalIgnoreCase);
+
+        return permissions
+            .Where(name => !sideByPermission.TryGetValue(name, out var side) || side.IsAvailableOn(userSide))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
     private async Task AddRolePermissionsAsync(User user, ISet<string> permissions)

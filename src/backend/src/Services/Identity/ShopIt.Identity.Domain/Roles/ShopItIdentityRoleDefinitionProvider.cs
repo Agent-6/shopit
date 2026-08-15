@@ -1,3 +1,4 @@
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Domain.Permissions;
 
 namespace ShopIt.Identity.Domain.Roles;
@@ -9,6 +10,15 @@ namespace ShopIt.Identity.Domain.Roles;
 /// </summary>
 public class ShopItIdentityRoleDefinitionProvider : IRoleDefinitionProvider
 {
+    /// <summary>
+    /// Permissions owned by the Tenancy service (defined in its own permission provider).
+    /// Referenced by name here since the Identity domain cannot depend on the Tenancy
+    /// service; the names must stay in sync with <c>ShopItTenancyPermissions</c>.
+    /// </summary>
+    private static readonly PermissionName TenantView = new("tenant.view");
+    private static readonly PermissionName TenantCreate = new("tenant.create");
+    private static readonly PermissionName TenantUpdate = new("tenant.update");
+
     public IReadOnlyList<RoleDefinition> GetAll() =>
     [
         new RoleDefinition(
@@ -16,7 +26,7 @@ public class ShopItIdentityRoleDefinitionProvider : IRoleDefinitionProvider
             "Administrator",
             "Full access to every permission in the system.",
             IsDefault: false,
-            DefaultPermissions: null), // null = all permissions from the catalog
+            DefaultPermissions: null), // null = granted every permission as it is seeded into the catalog
 
         new RoleDefinition(
             ShopItIdentityRoles.Manager,
@@ -31,9 +41,9 @@ public class ShopItIdentityRoleDefinitionProvider : IRoleDefinitionProvider
                 ShopItIdentityPermissions.Roles.View,
                 ShopItIdentityPermissions.Roles.Create,
                 ShopItIdentityPermissions.Roles.Update,
-                ShopItIdentityPermissions.Tenants.View,
-                ShopItIdentityPermissions.Tenants.Create,
-                ShopItIdentityPermissions.Tenants.Update,
+                TenantView,
+                TenantCreate,
+                TenantUpdate,
             ]),
 
         new RoleDefinition(
@@ -45,7 +55,7 @@ public class ShopItIdentityRoleDefinitionProvider : IRoleDefinitionProvider
             [
                 ShopItIdentityPermissions.Users.View,
                 ShopItIdentityPermissions.Roles.View,
-                ShopItIdentityPermissions.Tenants.View,
+                TenantView,
             ]),
     ];
 }

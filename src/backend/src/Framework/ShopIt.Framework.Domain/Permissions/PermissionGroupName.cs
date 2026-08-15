@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Domain.Permissions;
+namespace ShopIt.Framework.Domain.Permissions;
 
 /// <summary>
 /// Value object representing a permission group key (e.g. <c>UserManagement</c>). Used in

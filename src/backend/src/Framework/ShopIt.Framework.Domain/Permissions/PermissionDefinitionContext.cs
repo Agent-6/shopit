@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Domain.Permissions;
+namespace ShopIt.Framework.Domain.Permissions;
 
 /// <summary>
 /// Default implementation of <see cref="IPermissionDefinitionContext"/> used by the

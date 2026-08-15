@@ -3,7 +3,6 @@ using ShopIt.Framework.Core;
 using ShopIt.Identity.Application.DataSeeding;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Application.Users.Activation;
-using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Domain.Roles;
 
 namespace ShopIt.Identity.Application;
@@ -17,10 +16,9 @@ public static class DependencyInjection
         // Self-contained, time-limited activation tokens (IDataProtector based).
         services.AddSingleton<IActivationTokenProvider, ActivationTokenProvider>();
 
-        // Permission catalog is static and shared across requests.
-        services.AddSingleton<IPermissionDefinitionProvider, ShopItIdentityPermissionDefinitionProvider>();
-
         // Built-in role definitions (name + default permission set), used by the seeders.
+        // The permission catalog is not registered here: it is persisted in the database
+        // and registered by the Persistence layer (see AddPersistence).
         services.AddSingleton<IRoleDefinitionProvider, ShopItIdentityRoleDefinitionProvider>();
 
         // Provisioning of tenant roles + admin user (triggered by tenant creation).

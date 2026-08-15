@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Domain.Permissions;
+namespace ShopIt.Framework.Domain.Permissions;
 
 /// <summary>
 /// Groups related permissions together so they can be presented as a section

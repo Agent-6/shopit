@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Domain.Permissions;
+namespace ShopIt.Framework.Domain.Permissions;
 
 /// <summary>
 /// Value object representing a permission key (e.g. <c>user.create</c>). Used in place of

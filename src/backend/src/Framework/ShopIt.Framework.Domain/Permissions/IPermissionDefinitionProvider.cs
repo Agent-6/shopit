@@ -1,9 +1,12 @@
-namespace ShopIt.Identity.Domain.Permissions;
+namespace ShopIt.Framework.Domain.Permissions;
 
 /// <summary>
-/// Supplies the catalog of permissions known to the system, organized into groups.
-/// Providers declare their catalog through <see cref="Define"/> (ABP-style), and the
-/// result is exposed via <see cref="GetGroups"/> / <see cref="GetAll"/>.
+/// Supplies a catalog of permissions known to a service, organized into groups.
+/// Each microservice implements this provider for its own permissions. Providers
+/// declare their catalog through <see cref="Define"/> (ABP-style), and the result is
+/// exposed via <see cref="GetGroups"/> / <see cref="GetAll"/>. The Identity service
+/// collects these catalogs (via integration events) into its persisted permission
+/// catalog, which is what authorization and the permission management UIs read from.
 /// </summary>
 public interface IPermissionDefinitionProvider
 {

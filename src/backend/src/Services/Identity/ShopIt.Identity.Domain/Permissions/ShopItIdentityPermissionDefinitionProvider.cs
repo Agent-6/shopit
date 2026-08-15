@@ -1,14 +1,19 @@
+using ShopIt.Framework.Domain.Permissions;
+
 namespace ShopIt.Identity.Domain.Permissions;
 
 /// <summary>
-/// Defines the standard permissions for the Identity service, modeled after ABP's
-/// <c>IdentityPermissionDefinitionProvider</c>. The same provider is used both to expose
-/// the permission catalog via the API and to seed permission claims into the default roles.
-/// Groups and permissions are keyed by value-object records and registered through the
-/// fluent <c>AddGroup</c> / <c>AddPermission</c> extension methods.
+/// Defines the Identity service's own permissions (user and role management), modeled
+/// after ABP's <c>IdentityPermissionDefinitionProvider</c>. This provider describes only
+/// <em>this</em> service's permissions: other microservices define their own providers and
+/// publish them to the Identity service, which persists them into its permission catalog.
+/// The catalog (not this provider) is what the API and seeding consume.
 /// </summary>
 public class ShopItIdentityPermissionDefinitionProvider : IPermissionDefinitionProvider
 {
+    /// <summary>Source-service name stamped on Identity's catalog entries.</summary>
+    public const string SourceService = "Identity";
+
     private readonly IReadOnlyList<PermissionGroupDefinition> _groups;
 
     public ShopItIdentityPermissionDefinitionProvider()
@@ -37,13 +42,6 @@ public class ShopItIdentityPermissionDefinitionProvider : IPermissionDefinitionP
             .AddPermission(ShopItIdentityPermissions.Roles.Update, "Update roles", "Edit roles and their descriptions.")
             .AddPermission(ShopItIdentityPermissions.Roles.Delete, "Delete roles", "Delete roles that are not assigned to users.")
             .AddPermission(ShopItIdentityPermissions.Roles.ManagePermissions, "Manage role permissions", "Grant or remove permissions on roles.");
-
-        ShopItIdentityPermissions.Groups.TenantManagement.AddGroup(context, "Tenant Management")
-            .AddPermission(ShopItIdentityPermissions.Tenants.View, "View tenants", "View tenants in the system.")
-            .AddPermission(ShopItIdentityPermissions.Tenants.Create, "Create tenants", "Create new tenants.")
-            .AddPermission(ShopItIdentityPermissions.Tenants.Update, "Update tenants", "Edit tenant information.")
-            .AddPermission(ShopItIdentityPermissions.Tenants.Delete, "Delete tenants", "Delete tenants.")
-            .AddPermission(ShopItIdentityPermissions.Tenants.ActivateDeactivate, "Activate/deactivate tenants", "Change the active state of tenants.");
     }
 
     public IReadOnlyList<PermissionGroupDefinition> GetGroups() => _groups;

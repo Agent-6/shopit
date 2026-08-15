@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Permissions;
 
 namespace ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions;
 
@@ -22,7 +22,15 @@ public class UpdateRolePermissionsCommandHandler(
         var role = await _roleManager.FindByIdAsync(request.RoleId.ToString());
         if (role is null) throw new KeyNotFoundException("Role not found");
 
+        // A permission is only grantable to a role on the side the permission is
+        // available on (host roles: Host/Both; tenant roles: Tenant/Both), mirroring
+        // ABP's multi-tenancy side filtering for permission grants.
+        var roleSide = role.TenantId == Guid.Empty
+            ? PermissionMultiTenancySide.Host
+            : PermissionMultiTenancySide.Tenant;
+
         var knownPermissions = _permissionCatalog.GetAll()
+            .Where(p => p.MultiTenancySide.IsAvailableOn(roleSide))
             .Select(p => p.Name.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -33,7 +41,8 @@ public class UpdateRolePermissionsCommandHandler(
 
         foreach (var p in request.Permissions)
         {
-            // Ignore unknown permission names so a stale client cannot invent claims.
+            // Ignore unknown permission names so a stale client cannot invent claims,
+            // and permissions not available on this role's side.
             if (!knownPermissions.Contains(p.PermissionName))
             {
                 continue;
