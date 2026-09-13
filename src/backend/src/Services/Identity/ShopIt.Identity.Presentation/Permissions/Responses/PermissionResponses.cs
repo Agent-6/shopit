@@ -1,9 +1,12 @@
+using ShopIt.Framework.Domain.Permissions;
+
 namespace ShopIt.Identity.Presentation.Permissions.Responses;
 
 public record PermissionDefinitionResponse(
     string Name,
     string DisplayName,
-    string? Description
+    string? Description,
+    PermissionMultiTenancySide MultiTenancySide
 );
 
 public record PermissionGroupResponse(
@@ -24,6 +27,8 @@ public record PermissionMatrixClaimResponse(
 public record PermissionMatrixRoleResponse(
     Guid Id,
     string Name,
+    Guid TenantId,
+    PermissionMultiTenancySide MultiTenancySide,
     List<PermissionMatrixClaimResponse> Claims
 );
 

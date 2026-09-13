@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Framework.Presentation.Modules;
+using ShopIt.Tenancy.Domain.Permissions;
 using ShopIt.Tenancy.Presentation.Authorization;
 using ShopIt.Tenancy.Application.Tenants.Commands.ActivateTenant;
 using ShopIt.Tenancy.Application.Tenants.Commands.CreateTenant;

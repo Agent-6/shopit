@@ -18,7 +18,17 @@ import { ShopItPermissions } from '../../core/auth/permissions';
             <a class="font-semibold text-primary transition-colors hover:text-primary/80" routerLink="/roles">← Back to roles</a>
             <span>Role details</span>
           </div>
-          <h1 class="text-3xl font-semibold tracking-tight">{{ roleName() }}</h1>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-3xl font-semibold tracking-tight">{{ roleName() }}</h1>
+            @if (selectedRole()?.multiTenancySide && selectedRole()?.multiTenancySide !== 'Both') {
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide"
+                [class]="sideBadgeClass(selectedRole()?.multiTenancySide)"
+              >
+                {{ sideLabel(selectedRole()?.multiTenancySide) }}
+              </span>
+            }
+          </div>
           <p class="text-sm text-muted-foreground">{{ selectedRole()?.description || 'No description' }}</p>
         </div>
       </header>
@@ -43,6 +53,10 @@ import { ShopItPermissions } from '../../core/auth/permissions';
                 <div class="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
                   <dt class="text-muted-foreground">Name</dt>
                   <dd class="font-medium">{{ selectedRole()?.name }}</dd>
+                </div>
+                <div class="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
+                  <dt class="text-muted-foreground">Side</dt>
+                  <dd class="font-medium">{{ sideLabel(selectedRole()?.multiTenancySide) }}</dd>
                 </div>
                 <div class="flex items-center justify-between rounded-lg border border-border bg-background px-4 py-3">
                   <dt class="text-muted-foreground">Description</dt>
@@ -91,6 +105,28 @@ export class RoleDetailComponent {
 
   protected readonly selectedRole = this.service.selectedRole;
   protected readonly roleName = computed(() => this.selectedRole()?.name ?? 'Role details');
+
+  protected sideBadgeClass(side: string | undefined): string {
+    switch (side) {
+      case 'Host':
+        return 'bg-indigo-100 text-indigo-700';
+      case 'Tenant':
+        return 'bg-emerald-100 text-emerald-700';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  }
+
+  protected sideLabel(side: string | undefined): string {
+    switch (side) {
+      case 'Host':
+        return 'Host only';
+      case 'Tenant':
+        return 'Tenant only';
+      default:
+        return 'Both';
+    }
+  }
 
   constructor() {
     const roleId = this.route.snapshot.params['id'] as string;

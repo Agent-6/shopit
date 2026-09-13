@@ -1,10 +1,13 @@
+using ShopIt.Framework.Domain.Permissions;
+
 namespace ShopIt.Identity.Presentation.Roles.Responses;
 
 public record RoleResponse(
     Guid Id,
     string Name,
     string? Description,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    PermissionMultiTenancySide MultiTenancySide
 );
 
 public record GetRolesResponse
@@ -23,6 +26,7 @@ public record RoleDetailResponse(
     string Name,
     string? Description,
     DateTime CreatedAt,
+    PermissionMultiTenancySide MultiTenancySide,
     List<RoleClaimResponse> Claims
 );
 
@@ -30,7 +34,8 @@ public record CreateRoleResponse(
     Guid Id,
     string Name,
     string? Description,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    PermissionMultiTenancySide MultiTenancySide
 );
 
 public record UpdateRoleResponse(

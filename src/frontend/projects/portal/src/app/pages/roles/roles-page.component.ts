@@ -46,10 +46,33 @@ export class RolesPageComponent {
 
   protected readonly columns: PageTableColumn[] = [
     { key: 'name', header: 'Name' },
+    { key: 'side', header: 'Side' },
     { key: 'description', header: 'Description' },
     { key: 'createdAt', header: 'Created' },
     { key: 'actions', header: 'Actions', align: 'right' },
   ];
+
+  protected sideBadgeClass(side: string | undefined): string {
+    switch (side) {
+      case 'Host':
+        return 'bg-indigo-100 text-indigo-700';
+      case 'Tenant':
+        return 'bg-emerald-100 text-emerald-700';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
+  }
+
+  protected sideLabel(side: string | undefined): string {
+    switch (side) {
+      case 'Host':
+        return 'Host only';
+      case 'Tenant':
+        return 'Tenant only';
+      default:
+        return 'Both';
+    }
+  }
 
   constructor() {
     this.service.loadRoles();

@@ -2,10 +2,13 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Outbox;
 using ShopIt.Framework.Persistence.Inbox;
+using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Persistence.Data;
+using ShopIt.Identity.Persistence.Permissions;
 
 namespace ShopIt.Identity.Persistence;
 
@@ -37,6 +40,14 @@ public static class DependencyInjection
         });
 
         services.AddPersistenceServices<ApplicationDbContext>(configuration, typeof(DependencyInjection).Assembly);
+
+        // The permission catalog is persisted in this database and is the union of every
+        // service's definitions. Other services publish their catalogs via integration
+        // events (handled below); Identity seeds its own catalog at startup. Scoped because
+        // it reads the catalog from the database.
+        services.AddScoped<IPermissionDefinitionProvider, DatabasePermissionDefinitionProvider>();
+        services.AddSingleton<ShopItIdentityPermissionDefinitionProvider>();
+        services.AddScoped<IPermissionCatalogSynchronizer, PermissionCatalogSynchronizer>();
 
         // Wire up Kafka integration event infrastructure
         services.AddKafkaIntegration<ApplicationDbContext>(

@@ -39,6 +39,14 @@
     <ng-template appPageTableCell="name" let-role>
       <span class="font-medium">{{ role.name }}</span>
     </ng-template>
+    <ng-template appPageTableCell="side" let-role>
+      <span
+        class="inline-block rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide"
+        [class]="sideBadgeClass(role.multiTenancySide)"
+      >
+        {{ sideLabel(role.multiTenancySide) }}
+      </span>
+    </ng-template>
     <ng-template appPageTableCell="description" let-role>
       <span class="text-muted-foreground">{{ role.description || '—' }}</span>
     </ng-template>

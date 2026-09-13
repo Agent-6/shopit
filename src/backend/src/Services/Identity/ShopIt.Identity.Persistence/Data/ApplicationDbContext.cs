@@ -21,6 +21,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     private readonly ICurrentTenant _currentTenant = currentTenant;
 
+    /// <summary>
+    /// Persisted permission catalog: the union of every service's permission definitions.
+    /// System-wide (not tenant-scoped) — see <see cref="Entities.PermissionCatalogEntry"/>.
+    /// </summary>
+    public DbSet<PermissionCatalogEntry> PermissionCatalogEntries => Set<PermissionCatalogEntry>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

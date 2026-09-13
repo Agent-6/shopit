@@ -1,8 +1,11 @@
+using ShopIt.Framework.Domain.Permissions;
+
 namespace ShopIt.Identity.Presentation.Roles.Requests;
 
 public record CreateRoleRequest(
     string Name,
-    string? Description = null
+    string? Description = null,
+    PermissionMultiTenancySide? MultiTenancySide = null
 );
 
 public record UpdateRoleRequest(
