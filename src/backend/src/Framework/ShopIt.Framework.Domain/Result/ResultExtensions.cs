@@ -10,6 +10,14 @@ public static class ResultExtensions
         return result.IsSuccess ? func(result.Value) : result.Error;
     }
 
+    public static Result<TNext, TError> Bind<TNext, TError>(
+        this Result<Unit, TError> result,
+        Func<Result<TNext, TError>> func)
+    {
+        new Unit();
+        return result.IsSuccess ? func() : result.Error;
+    }
+
     // Transform Success value directly
     public static Result<TNext, TError> Map<T, TNext, TError>(
         this Result<T, TError> result,
@@ -29,6 +37,16 @@ public static class ResultExtensions
         return result;
     }
 
+    public static Result<Unit, TError> Tap<TError>(
+        this Result<Unit, TError> result,
+        Action action)
+    {
+        if (result.IsSuccess)
+            action();
+
+        return result;
+    }
+
     // Unwrap final output
     public static TOutput Match<T, TError, TOutput>(
         this Result<T, TError> result,
@@ -36,5 +54,13 @@ public static class ResultExtensions
         Func<TError, TOutput> onFailure)
     {
         return result.IsSuccess ? onSuccess(result.Value) : onFailure(result.Error);
+    }
+
+    public static TOutput Match<TError, TOutput>(
+        this Result<Unit, TError> result,
+        Func<TOutput> onSuccess,
+        Func<TError, TOutput> onFailure)
+    {
+        return result.IsSuccess ? onSuccess() : onFailure(result.Error);
     }
 }
