@@ -389,7 +389,7 @@ issues are created via `gh` / the API.
 - [x] Create Epic 1's four issues and Epic 2's five issues (9 total), wired as sub-issues
 - [x] Wire the `blocked by` relationships per the dependency graph above
 - [x] Record the workflow rules in `docs/CONTRIBUTING.md` (create it)
-- [ ] Commit via PR — not direct — since a second machine pushes to `main`
+- [x] Commit via PR — not direct — since a second machine pushes to `main`
 
 ## Verification
 
