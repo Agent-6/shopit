@@ -1,0 +1,68 @@
+name: Bug
+description: Something is broken. Needs a reproduction, not a description.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A bug is only actionable if it can be reproduced. If you cannot write the exact
+        steps, finding them is the first task.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What's wrong
+      description: One or two sentences. Observable behaviour only.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Numbered, starting from a known state. Include the exact request, command, or click path.
+      value: |
+        1. Start the backend: `cd src/backend && dotnet run --project ShopIt.AppHost --launch-profile https`
+        2. ...
+        3. ...
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the error message, stack trace, or response body.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      value: |
+        - Service / area:
+        - Branch or commit:
+        - Running on: host / dev container
+    validations:
+      required: false
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of done
+      value: |
+        - [ ] Root cause stated in the closing comment, not just the symptom
+        - [ ] `dotnet build ShopIt.slnx` succeeds (stop the Aspire stack first — it locks the output DLLs)
+        - [ ] Regression test added, once a test project exists
+    validations:
+      required: false

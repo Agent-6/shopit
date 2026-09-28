@@ -1,7 +1,7 @@
 name: Spec
 description: A capability or change, written as a spec with testable acceptance criteria.
 title: "[Spec] "
-labels: ["spec"]
+labels: ["feature"]
 body:
   - type: markdown
     attributes:
@@ -61,7 +61,6 @@ body:
     attributes:
       label: Definition of done
       options:
-        - label: Every acceptance criterion passes
-        - label: Tests added, and `dotnet test` is green
-        - label: "`dotnet build ShopIt.slnx` reports no new warnings"
+        - label: Every acceptance criterion verified manually (no test suite yet)
+        - label: "`dotnet build ShopIt.slnx` succeeds (stop the Aspire stack first — it locks the output DLLs)"
         - label: Recorded as an ADR, if this settled an architectural choice

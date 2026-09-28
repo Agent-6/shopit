@@ -1,0 +1,63 @@
+name: Spike
+description: A time-boxed investigation. Done when the answer is written down, not when code ships.
+title: "[Spike] "
+labels: ["task", "spike"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A spike produces an **answer**, not a feature. Any code it produces is throwaway
+        unless the issue explicitly says otherwise.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question to answer
+      description: One question, phrased so it can actually be answered. Not "look into X".
+      placeholder: Should tenant isolation use a shared schema with query filters, or schema-per-tenant?
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters now
+      description: What is blocked until this is answered?
+    validations:
+      required: true
+
+  - type: input
+    id: timebox
+    attributes:
+      label: Time box
+      description: How long before stopping and reporting, even if unresolved.
+      placeholder: 2 hours
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Options to weigh
+      description: Candidates you already know about, so the spike compares instead of exploring freely.
+    validations:
+      required: false
+
+  - type: textarea
+    id: answer
+    attributes:
+      label: Answer
+      description: Fill this in when closing. This is the deliverable — the spike is not done without it.
+    validations:
+      required: false
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Where the answer is recorded
+      value: |
+        - [ ] Answer written in this issue
+        - [ ] Follow-up issues created for anything worth doing
+        - [ ] ADR written, if this settled an architectural choice
+    validations:
+      required: false
