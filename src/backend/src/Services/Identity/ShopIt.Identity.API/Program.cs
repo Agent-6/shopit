@@ -10,12 +10,10 @@ using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Contracts.Events;
 using ShopIt.Identity.Application.DataSeeding;
 using ShopIt.Identity.Application.Notifications;
-using ShopIt.Identity.Application.Users;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Domain.Roles;
 using ShopIt.Framework.Domain.Tenancy;
-using ShopIt.Identity.Domain.Users;
 using ShopIt.Identity.Infrastructure;
 using ShopIt.Identity.Persistence;
 using ShopIt.Identity.Persistence.Data;
@@ -137,9 +135,6 @@ builder.Services.AddAuthorization(options =>
     });
 });
 builder.Services.AddPermissionAuthorization();
-
-builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var app = builder.Build();
 

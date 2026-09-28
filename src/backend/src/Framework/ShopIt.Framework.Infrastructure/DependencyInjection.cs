@@ -5,9 +5,11 @@ using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Domain.Providers;
 using ShopIt.Framework.Domain.Tenancy;
+using ShopIt.Framework.Domain.Users;
 using ShopIt.Framework.Infrastructure.Events;
 using ShopIt.Framework.Infrastructure.Providers;
 using ShopIt.Framework.Infrastructure.Tenancy;
+using ShopIt.Framework.Infrastructure.Users;
 
 namespace ShopIt.Framework.Infrastructure;
 
@@ -21,10 +23,12 @@ public static class DependencyInjection
     /// <returns>The same service collection instance, enabling method chaining.</returns>
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Tenant resolution is HTTP-backed, so every ASP.NET service gets it from here rather
-        // than registering its own. See docs/adr/0001-tenant-isolation-model.md.
+        // Request-scoped context -- the acting tenant and the acting user -- is HTTP-backed, so
+        // every ASP.NET service gets it from here rather than registering its own.
+        // See docs/adr/0001-tenant-isolation-model.md.
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentTenant, CurrentTenant>();
+        services.AddScoped<ICurrentUser, CurrentUser>();
 
         services.AddSingleton<IDateProvider, DateProvider>();
         services.AddSingleton<IGuidProvider, GuidProvider>();

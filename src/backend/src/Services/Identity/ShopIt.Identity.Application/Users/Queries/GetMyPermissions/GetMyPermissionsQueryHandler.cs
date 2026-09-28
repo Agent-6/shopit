@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Queries;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Users;
+using ShopIt.Framework.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Queries.GetMyPermissions;
 
