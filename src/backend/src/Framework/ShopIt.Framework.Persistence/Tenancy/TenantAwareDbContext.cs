@@ -46,8 +46,24 @@ public abstract class TenantAwareDbContext<TContext>(
     /// implements <see cref="ITenantEntity"/>. Call from <c>OnModelCreating</c>.
     /// </summary>
     /// <remarks>
+    /// <para>
+    /// <strong>Call this at the end of <c>OnModelCreating</c></strong>, after the context has registered
+    /// every entity. It filters the entity types present in the model at the moment it runs, so anything
+    /// registered later is missed.
+    /// </para>
+    /// <para>
+    /// It is deliberately not applied automatically from this class's own <c>OnModelCreating</c>. That was
+    /// implemented and measured, and it leaks: a base call runs before the derived context finishes
+    /// building its model, so an entity registered afterwards — for example one that has an
+    /// <c>IEntityTypeConfiguration</c> but no <c>DbSet</c> — is left permanently unfiltered.
+    /// </para>
+    /// <para>
     /// Host-level entities are excluded by simply not implementing <see cref="ITenantEntity"/> — their
-    /// absence of a filter is deliberate, not an oversight. See ADR-0001.
+    /// absence of a filter is deliberate, not an oversight.
+    /// </para>
+    /// <para>
+    /// Neither shape is loud when it is got wrong. See <c>docs/adr/0001-tenant-isolation-model.md</c>.
+    /// </para>
     /// </remarks>
     protected void ApplyTenantFilters(ModelBuilder modelBuilder)
     {

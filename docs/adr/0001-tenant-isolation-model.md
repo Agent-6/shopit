@@ -168,6 +168,34 @@ used here** — tenant isolation must not rest on an undocumented rewrite of a n
 Verified with two tenants through separate context instances, which is the only test that distinguishes a
 rooted filter from a baked one.
 
+### Why it is an explicit call, and not applied automatically
+
+`ApplyTenantFilters` is called by the derived context rather than from this base class's own
+`OnModelCreating`. Auto-applying looks strictly better — inherit and nothing to remember — and it was
+implemented and measured. **It leaks.**
+
+EF Core only knows about an entity type once someone has registered it, and applying the filters from
+`base.OnModelCreating` runs them *before* the derived context has finished building its model. Anything
+registered afterwards is never filtered. That is not hypothetical: every real context calls
+`base.OnModelCreating(builder)` first and then adds to the model — Identity calls
+`ApplyConfigurationsFromAssembly` seven lines later, and that call **adds entity types**. An entity with
+an `IEntityTypeConfiguration` but no `DbSet` therefore lands in the model after the filter pass and stays
+unfiltered permanently.
+
+Measured, with one entity discovered by convention and one registered after `base.OnModelCreating`:
+
+| Entity | Registered | Visible to the other tenant? |
+|---|---|---|
+| `EarlyThing` (via `DbSet`) | before `base` | no — filtered correctly |
+| `LateThing` (registered after `base`) | after `base` | **yes — unfiltered** |
+
+So auto-applying trades *"forgot to call `ApplyTenantFilters`"* for *"registered an entity in the wrong
+place"*. The second is invisible in review and only reproduces with two tenants and real data. The
+explicit call is one line, at the end of `OnModelCreating`, in the pattern a service copies.
+
+**Neither design is loud about being wrong** — omitting the call leaks just as quietly. Turning that
+into a startup failure is [#44](https://github.com/Agent-6/shopit/issues/44).
+
 ## Services exempt from tenant isolation
 
 Not every service owns tenant data. "No tenant filter" is the **correct** state for a host service, and
@@ -277,6 +305,7 @@ Applied to PRs touching persistence:
 
 | Follow-up | Trigger |
 |---|---|
+| Fail loudly at startup when an `ITenantEntity` in the final model has no query filter | [#44](https://github.com/Agent-6/shopit/issues/44) — the fix for silent under-filtering |
 | Replace the remaining `IgnoreQueryFilters()` call sites with `Change()` | Next time the seeding code or `PermissionCatalogSynchronizer` is touched |
 | Adopt PostgreSQL RLS as a database-level backstop (option 4) | When a second developer joins, or when tenant data is exposed to end customers rather than only to staff |
 | Move the tenancy abstractions into the framework so all services can use them | [#16](https://github.com/Agent-6/shopit/issues/16) — already planned |
