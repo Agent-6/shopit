@@ -97,6 +97,29 @@ Project **#1 "shopit"** (private, linked to this repo) — https://github.com/us
 `UpdateProjectV2ViewInput` type only accepts `name`, `layout`, `filter` and `configuration` — so those
 three groupings need one click each in the UI.
 
+## Starting work on an issue
+
+Three steps, in this order:
+
+```bash
+git checkout main && git pull                      # 1. branch first, from up-to-date main
+git checkout -b feat/24-prove-permission-recipe
+
+gh issue edit 24 --add-assignee Agent-6            # 2. then claim it
+
+# 3. then do the work and open the PR
+```
+
+**Assignment means "I am working on this now"**, not "this is mine forever". Claiming *after* the branch
+exists is deliberate:
+
+- An **unassigned** open issue means nobody has picked it up.
+- An **assigned** open issue means work is in progress — and the branch name tells you which one.
+- If work is abandoned, **unassign it**, so it goes back into the unclaimed pool.
+
+This is why the issue templates do **not** set `assignees` in their frontmatter: that would assign every
+issue at creation, and the signal would mean nothing.
+
 ## Branches and pull requests
 
 `main` is covered by the **"main protection"** ruleset:
