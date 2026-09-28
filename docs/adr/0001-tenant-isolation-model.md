@@ -92,13 +92,13 @@ avoids adding a mechanism before its value can be tested.
 
 **Negative**
 
-- **The filter fails open.** A query that forgets the filter, or a raw SQL path, or a new `DbContext`
-  that omits `ApplyTenantConfiguration`, leaks across tenants silently. There is no database-level
-  backstop until option 4.
-- `IgnoreQueryFilters()` is a footgun reachable from anywhere in the codebase.
+- **Isolation is enforced by the application, not by the database.** There is no database-level backstop
+  until option 4, so the guarantee rests on the architectural requirements below being met. Those
+  requirements are mandatory, not aspirational — a service that does not meet them is not multi-tenant,
+  whatever its code compiles to.
 - **An authenticated principal with no `tenant_id` claim is treated as Host** (`Guid.Empty`), which
-  *disables* the filter. The default for "no tenant context" is maximum visibility, not minimum. See the
-  rule below — this is the single most important thing to get right.
+  *disables* the filter. The default for "no tenant context" is maximum visibility, not minimum. Host
+  scope must only ever be entered deliberately — see below.
 - Every tenant-scoped table carries the discriminator and needs the `TenantId` index to stay fast.
 - Tenant-scoped uniqueness has to be maintained per entity by removing Identity's global indexes. It is
   easy to add a new entity and forget.
@@ -109,47 +109,51 @@ avoids adding a mechanism before its value can be tested.
   Tenancy's `Tenant` (the tenant registry itself). The absence of a filter on these is intentional, but
   must be stated rather than assumed.
 
-## The host-scope escape-hatch rule
+## Mandatory for any multi-tenant service
 
-This is the part that determines whether the chosen model holds up. All seven `IgnoreQueryFilters()`
-call sites in the codebase were audited when writing this ADR; they fall into exactly two categories.
+These are requirements, not recommendations. A service meeting all three is multi-tenant; a service
+missing any one of them is not, whatever its code compiles to.
 
-**`IgnoreQueryFilters()` is legitimate only when all four of these hold:**
+1. **The `DbContext` applies the tenant configuration** (`ApplyTenantConfiguration`, or its framework
+   equivalent after [#16](https://github.com/Agent-6/shopit/issues/16)). This is the requirement that
+   makes a service multi-tenant: it attaches the query filter and the `TenantId` index to every
+   `ITenantEntity`.
+2. **All data access goes through repositories.** No raw SQL, and no ad-hoc query that steps around the
+   repository layer. That is what guarantees the filter is always in play.
+3. **The tenant abstractions are reused, never reimplemented.** One implementation, in the framework.
 
-1. The code is **not serving a tenant-scoped request** — it runs at startup/seeding, or it is a
-   deliberately cross-tenant administrative operation.
-2. Bypassing the filter is **required for correctness** — the query works on every tenant by design, or
-   looks up a genuinely global key.
-3. The query **re-applies the tenant predicate explicitly** — filter on `TenantId` in the predicate, or be
-   demonstrably host-scoped by design.
-4. There is a **comment on the call site** saying why.
+## One mechanism: `Change()`
 
-**Never** use `IgnoreQueryFilters()` to make a failing query work. If a query returns nothing and the fix
-is to bypass the filter, that is either a missing `Change()` or a genuine cross-tenant read that must
-satisfy the four conditions above.
+**`_currentTenant.Change(...)` is the only supported way to change tenant scope.**
 
-### Which tool for which job
+| Intent | Call |
+|---|---|
+| Act as a specific tenant | `_currentTenant.Change(new TenantInfo(tenantId, name))` |
+| Act as the host — every tenant visible | `_currentTenant.Change(new TenantInfo(Guid.Empty, "Host"))` |
 
-These two are not interchangeable, and confusing them is the most likely source of bugs:
+`Change()` sets the *ambient* tenant, so it moves the query filter **and** `TenantId` stamping on new
+rows together. That coupling is the point: scope and write-stamping cannot drift apart.
 
-| Intent | Use | Why |
+**`IgnoreQueryFilters()` is not a supported mechanism.** It bypasses only the filter, leaving ambient
+scope and stamping untouched, so the two can disagree — a row read across tenants can be written back
+under the acting tenant. Host scope is reached through `Change(new TenantInfo(Guid.Empty, "Host"))`.
+
+### The existing call sites are debt
+
+Seven `IgnoreQueryFilters()` call sites exist today. They are **temporary**. They are not precedent, and
+new ones are not accepted.
+
+| Call site | What it actually needs | Replacement |
 |---|---|---|
-| **Act as** another tenant — background work, seeding, a specific tenant's job | `_currentTenant.Change(new TenantInfo(id, name))` | Changes the *ambient* tenant, so it affects the query filter **and** `TenantId` stamping on new rows, consistently |
-| **See across** tenants for one query while staying in the current scope | `IgnoreQueryFilters()` + an explicit `TenantId` predicate | One query, no ambient change, no effect on what gets written |
+| `Identity.API/Program.cs:392` | Nothing — the enclosing `Change(...)` already sets the ambient scope, and the predicate already carries `TenantId` | **Redundant.** Drop it |
+| `Identity.API/Program.cs:403-404` | To find joins pointing at same-named roles in *other* tenants | Genuinely cross-tenant → `Change(new TenantInfo(Guid.Empty, "Host"))` |
+| `Identity.API/Program.cs:417` | Nothing — the user and the role are both in the ambient scope | **Redundant.** Drop it |
+| `PermissionCatalogSynchronizer.cs:92` | Admin roles in **every** tenant | Genuinely cross-tenant → `Change(new TenantInfo(Guid.Empty, "Host"))` |
+| `PermissionCatalogSynchronizer.cs:126,140` | Grant a new permission to Admin in every tenant | Genuinely cross-tenant → `Change(new TenantInfo(Guid.Empty, "Host"))` |
 
-Using `IgnoreQueryFilters()` where `Change()` was meant produces rows stamped with the wrong `TenantId`;
-using `Change()` where a one-off cross-tenant read was meant silently widens everything written in that
-scope.
-
-### Where the hatches currently are
-
-| Call site | Category | Justification |
-|---|---|---|
-| `Identity.API/Program.cs:392` | Startup seeding | Resolves the seeded role *within* the tenant; predicate includes `r.TenantId == tenantId` |
-| `Identity.API/Program.cs:403-404` | Startup seeding | Finds stale cross-tenant role joins to clean up |
-| `Identity.API/Program.cs:417` | Startup seeding | Idempotent default-role assignment across pre-existing data |
-| `PermissionCatalogSynchronizer.cs:92` | Cross-tenant admin | Admin roles must be found in **every** tenant |
-| `PermissionCatalogSynchronizer.cs:126,140` | Cross-tenant admin | Grants a new permission to Admin in every tenant |
+One call site already uses the supported pattern and is the model to follow:
+`EmailConfirmationOtpRequestedIntegrationEventHandler.cs:34-36` wraps an inbox handler in
+`Change(new TenantInfo(Guid.Empty, "Host"))` and says why in a comment.
 
 ## Tenant resolution on non-HTTP paths
 
@@ -187,8 +191,9 @@ event that carries tenant-scoped data must therefore carry its tenant id explici
 Applied to PRs touching persistence:
 
 - [ ] New entity that holds tenant data implements `ITenantEntity`.
-- [ ] New `DbContext` calls the equivalent of `ApplyTenantConfiguration`.
-- [ ] Any new `IgnoreQueryFilters()` satisfies all four conditions, with an explanatory comment.
+- [ ] New `DbContext` applies the tenant configuration — **required for the service to be multi-tenant.**
+- [ ] Data access goes through a repository. No raw SQL.
+- [ ] No new `IgnoreQueryFilters()`. Host scope is reached with `Change()`.
 - [ ] Any new composite unique index includes `TenantId` where uniqueness should be per-tenant, and
       Identity's global default index has been removed.
 - [ ] Background work wraps its scope in `Change(...)`, and takes the tenant id from the payload.
@@ -199,6 +204,7 @@ Applied to PRs touching persistence:
 
 | Follow-up | Trigger |
 |---|---|
+| Replace the remaining `IgnoreQueryFilters()` call sites with `Change()` | Next time the seeding code or `PermissionCatalogSynchronizer` is touched |
 | Adopt PostgreSQL RLS as a database-level backstop (option 4) | When a second developer joins, or when tenant data is exposed to end customers rather than only to staff |
 | Move the tenancy abstractions into the framework so all services can use them | [#16](https://github.com/Agent-6/shopit/issues/16) — already planned |
 | Make "no tenant context" explicit instead of overloading `Guid.Empty` | When a second service acquires tenant-scoped data |
