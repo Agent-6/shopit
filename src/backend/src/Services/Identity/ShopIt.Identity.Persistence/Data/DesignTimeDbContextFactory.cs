@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Persistence.Data;
 

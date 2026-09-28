@@ -7,7 +7,7 @@ using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Application.Users.Activation;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Enums;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Application.IntegrationEvents;
 

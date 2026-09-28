@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Persistence;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Persistence.Data;
 

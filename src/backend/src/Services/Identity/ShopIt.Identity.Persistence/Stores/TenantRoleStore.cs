@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Identity.Persistence.Data;
 
 namespace ShopIt.Identity.Persistence.Stores;
