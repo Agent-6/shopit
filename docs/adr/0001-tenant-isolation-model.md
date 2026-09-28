@@ -114,13 +114,110 @@ avoids adding a mechanism before its value can be tested.
 These are requirements, not recommendations. A service meeting all three is multi-tenant; a service
 missing any one of them is not, whatever its code compiles to.
 
-1. **The `DbContext` applies the tenant configuration** (`ApplyTenantConfiguration`, or its framework
-   equivalent after [#16](https://github.com/Agent-6/shopit/issues/16)). This is the requirement that
-   makes a service multi-tenant: it attaches the query filter and the `TenantId` index to every
-   `ITenantEntity`.
+1. **The `DbContext` applies the tenant filters** — by inheriting
+   `ShopIt.Framework.Persistence.Tenancy.TenantAwareDbContext<TContext>` and calling
+   `ApplyTenantFilters` from `OnModelCreating`. This is the requirement that makes a service
+   multi-tenant: it attaches the query filter and the `TenantId` index to every `ITenantEntity`. See
+   *How a service opts in* below.
 2. **All data access goes through repositories.** No raw SQL, and no ad-hoc query that steps around the
    repository layer. That is what guarantees the filter is always in play.
-3. **The tenant abstractions are reused, never reimplemented.** One implementation, in the framework.
+3. **The tenant abstractions are reused.** `ITenantEntity`, `ICurrentTenant` and `TenantInfo` live in
+   `ShopIt.Framework.Domain`, and the filter mechanism in `ShopIt.Framework.Persistence`. Identity is the
+   one exception, forced by the framework rather than chosen — see *Why Identity keeps its own copy*.
+
+## How a service opts in
+
+Inherit the framework base class and call one method:
+
+```csharp
+public class CatalogDbContext(
+    DbContextOptions<CatalogDbContext> options,
+    ICurrentTenant currentTenant)
+    : TenantAwareDbContext<CatalogDbContext>(options, currentTenant)
+{
+    protected override void OnModelCreating(ModelBuilder builder)
+    {
+        base.OnModelCreating(builder);
+
+        ApplyTenantFilters(builder);   // filter + TenantId index for every ITenantEntity
+    }
+}
+```
+
+That is the whole opt-in. A design-time factory supplies a dummy `ICurrentTenant` (`null!`), because
+generating a migration must not require an HTTP context — the filter is an expression tree, evaluated
+per query, never during model build.
+
+### Why the filter cannot live in an extension method
+
+**EF Core caches the model per `DbContext` type, and re-evaluates a query filter on every query only if
+the expression is rooted at the context instance.** Anything else — a captured local, a method
+parameter, a field on another object — is evaluated once when `OnModelCreating` runs and **baked into the
+cached model**. The first tenant seen then wins, and every later query silently filters by it. No
+exception, no warning, just wrong data.
+
+In `TenantAwareDbContext` the lambda is written inside the context class and captures only `this`, so the
+compiler emits `Expression.Constant(this)` and the reference **is** rooted. **Moving that lambda into a
+`ModelBuilder` extension that takes `ICurrentTenant` as a parameter breaks isolation silently**, because
+the parameter is captured through a closure display class. This was attempted; it does not work.
+
+A related trap, from EF Core's own documentation: `IEntityTypeConfiguration<T>` has no context instance
+to reference, and the documented workaround is a `null!` dummy context field. **That is deliberately not
+used here** — tenant isolation must not rest on an undocumented rewrite of a null field.
+
+Verified with two tenants through separate context instances, which is the only test that distinguishes a
+rooted filter from a baked one.
+
+### Why it is an explicit call, and not applied automatically
+
+`ApplyTenantFilters` is called by the derived context rather than from this base class's own
+`OnModelCreating`. Auto-applying looks strictly better — inherit and nothing to remember — and it was
+implemented and measured. **It leaks.**
+
+EF Core only knows about an entity type once someone has registered it, and applying the filters from
+`base.OnModelCreating` runs them *before* the derived context has finished building its model. Anything
+registered afterwards is never filtered. That is not hypothetical: every real context calls
+`base.OnModelCreating(builder)` first and then adds to the model — Identity calls
+`ApplyConfigurationsFromAssembly` seven lines later, and that call **adds entity types**. An entity with
+an `IEntityTypeConfiguration` but no `DbSet` therefore lands in the model after the filter pass and stays
+unfiltered permanently.
+
+Measured, with one entity discovered by convention and one registered after `base.OnModelCreating`:
+
+| Entity | Registered | Visible to the other tenant? |
+|---|---|---|
+| `EarlyThing` (via `DbSet`) | before `base` | no — filtered correctly |
+| `LateThing` (registered after `base`) | after `base` | **yes — unfiltered** |
+
+So auto-applying trades *"forgot to call `ApplyTenantFilters`"* for *"registered an entity in the wrong
+place"*. The second is invisible in review and only reproduces with two tenants and real data. The
+explicit call is one line, at the end of `OnModelCreating`, in the pattern a service copies.
+
+**Neither design is loud about being wrong** — omitting the call leaks just as quietly. Turning that
+into a startup failure is [#44](https://github.com/Agent-6/shopit/issues/44).
+
+## Services exempt from tenant isolation
+
+Not every service owns tenant data. "No tenant filter" is the **correct** state for a host service, and
+the difference from a *missing* filter must be explicit:
+
+| Service | Why it is host-level |
+|---|---|
+| **Tenancy** | It is the tenant *registry*. Tenant rows do not belong to a tenant — they define them. `Tenant` is the canonical host-level table |
+| **Notifications** | It sends email. Its only tables are the inbox/outbox infrastructure tables; it owns no tenant data |
+
+Neither inherits `TenantAwareDbContext`. For any service with a mix, host-level entities are excluded by
+simply **not implementing `ITenantEntity`** — the reflection in `ApplyTenantFilters` skips them. That is
+the mechanism, not an accident.
+
+### Why Identity keeps its own copy
+
+`ApplicationDbContext` inherits `IdentityDbContext<User, Role, …>`, a class, and C# has no multiple
+inheritance — so it cannot also inherit `TenantAwareDbContext`. It therefore keeps a private,
+structurally identical `ApplyTenantConfiguration` / `ApplyTenantFilter<TEntity>` pair.
+
+**This is the one place the isolation rule is implemented twice, and it is forced by the framework, not
+chosen.** The two implementations must stay behaviourally identical; if either changes, change both.
 
 ## One mechanism: `Change()`
 
@@ -191,19 +288,24 @@ event that carries tenant-scoped data must therefore carry its tenant id explici
 Applied to PRs touching persistence:
 
 - [ ] New entity that holds tenant data implements `ITenantEntity`.
-- [ ] New `DbContext` applies the tenant configuration — **required for the service to be multi-tenant.**
+- [ ] New `DbContext` applies the tenant filters by inheriting `TenantAwareDbContext<TContext>` and
+      calling `ApplyTenantFilters` — **required for the service to be multi-tenant.**
+- [ ] The filter is **not** moved into a `ModelBuilder` extension taking `ICurrentTenant`. That silently
+      bakes the first tenant into the cached model.
 - [ ] Data access goes through a repository. No raw SQL.
 - [ ] No new `IgnoreQueryFilters()`. Host scope is reached with `Change()`.
 - [ ] Any new composite unique index includes `TenantId` where uniqueness should be per-tenant, and
       Identity's global default index has been removed.
 - [ ] Background work wraps its scope in `Change(...)`, and takes the tenant id from the payload.
-- [ ] A test asserts that a query in tenant A cannot see tenant B's rows. *(No test project exists yet —
-      this becomes enforceable when one does.)*
+- [ ] A test asserts that a query in tenant A cannot see tenant B's rows, **using two tenants through
+      separate context instances**. A single-tenant test passes even when the filter is baked, so it is
+      not evidence. *(No test project exists yet — this becomes enforceable when one does.)*
 
 ## Follow-ups
 
 | Follow-up | Trigger |
 |---|---|
+| Fail loudly at startup when an `ITenantEntity` in the final model has no query filter | [#44](https://github.com/Agent-6/shopit/issues/44) — the fix for silent under-filtering |
 | Replace the remaining `IgnoreQueryFilters()` call sites with `Change()` | Next time the seeding code or `PermissionCatalogSynchronizer` is touched |
 | Adopt PostgreSQL RLS as a database-level backstop (option 4) | When a second developer joins, or when tenant data is exposed to end customers rather than only to staff |
 | Move the tenancy abstractions into the framework so all services can use them | [#16](https://github.com/Agent-6/shopit/issues/16) — already planned |
