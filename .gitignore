@@ -430,3 +430,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Pi agent local configuration (machine-specific, not shared)
+.pi/
