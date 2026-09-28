@@ -1,0 +1,67 @@
+name: Spec
+description: A capability or change, written as a spec with testable acceptance criteria.
+title: "[Spec] "
+labels: ["spec"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        An issue is a spec only if its acceptance criteria are **observable and testable**.
+        If you can't write a test for a criterion, it isn't a criterion yet — it's a wish.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One sentence. What capability does this add, and for whom?
+      placeholder: A tenant admin can invite a staff member to their store.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What happens today? Why now? Link related issues.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: |
+        One per line, in Given/When/Then form. Each must describe observable
+        behaviour — never an implementation detail.
+      value: |
+        - Given <starting context>
+          When <action>
+          Then <observable outcome>
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Out of scope
+      description: What this deliberately does NOT cover. Writing this down is what stops scope creep.
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Cross-cutting rules this must obey — tenant isolation, money as decimal, idempotency, audit trail.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: dod
+    attributes:
+      label: Definition of done
+      options:
+        - label: Every acceptance criterion passes
+        - label: Tests added, and `dotnet test` is green
+        - label: "`dotnet build ShopIt.slnx` reports no new warnings"
+        - label: Recorded as an ADR, if this settled an architectural choice
