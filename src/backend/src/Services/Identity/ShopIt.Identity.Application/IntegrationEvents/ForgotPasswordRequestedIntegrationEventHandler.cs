@@ -5,7 +5,7 @@ using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Identity.Application.Contracts.Events;
 using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Application.IntegrationEvents;
 

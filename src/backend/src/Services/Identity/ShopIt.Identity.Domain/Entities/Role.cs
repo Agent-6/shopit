@@ -3,7 +3,7 @@ using ShopIt.Framework.Domain.Entities;
 using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Domain.Events.RoleEvents;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 

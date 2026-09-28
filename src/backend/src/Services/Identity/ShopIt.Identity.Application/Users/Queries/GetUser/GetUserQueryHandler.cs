@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.CQRS.Queries;
 using ShopIt.Identity.Domain.Entities;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Application.Users.Queries.GetUser;
 

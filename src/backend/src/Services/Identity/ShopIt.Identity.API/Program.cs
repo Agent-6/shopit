@@ -15,7 +15,7 @@ using ShopIt.Identity.Application.Users;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Domain.Roles;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Identity.Domain.Users;
 using ShopIt.Identity.Infrastructure;
 using ShopIt.Identity.Persistence;

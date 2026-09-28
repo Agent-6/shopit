@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Http;
-using ShopIt.Identity.Domain.Tenancy;
+using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Application.Tenancy;
 
