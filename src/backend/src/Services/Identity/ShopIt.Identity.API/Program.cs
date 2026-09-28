@@ -10,7 +10,6 @@ using ShopIt.Identity.Application;
 using ShopIt.Identity.Application.Contracts.Events;
 using ShopIt.Identity.Application.DataSeeding;
 using ShopIt.Identity.Application.Notifications;
-using ShopIt.Identity.Application.Tenancy;
 using ShopIt.Identity.Application.Users;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Permissions;
@@ -140,7 +139,6 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddPermissionAuthorization();
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentTenant, CurrentTenant>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 var app = builder.Build();

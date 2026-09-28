@@ -1,8 +1,23 @@
 using Microsoft.AspNetCore.Http;
 using ShopIt.Framework.Domain.Tenancy;
 
-namespace ShopIt.Identity.Application.Tenancy;
+namespace ShopIt.Framework.Infrastructure.Tenancy;
 
+/// <summary>
+/// Resolves the acting tenant from the <c>tenant_id</c> and <c>tenant_name</c> claims on the current
+/// <see cref="HttpContext"/>, and lets background work override it with <see cref="Change"/>.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Deliberately throws rather than defaulting when there is no HTTP context or the user is not
+/// authenticated. Silently falling back to <see cref="Guid.Empty"/> would turn every background scope
+/// into a host-scoped one, which is the failure this model is most exposed to.
+/// </para>
+/// <para>
+/// Registered as scoped, because <see cref="Change"/> mutates per-scope state. See
+/// <c>docs/adr/0001-tenant-isolation-model.md</c>.
+/// </para>
+/// </remarks>
 public class CurrentTenant : ICurrentTenant
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -19,6 +34,7 @@ public class CurrentTenant : ICurrentTenant
     }
 
     public Guid Id => _id.Value;
+
     public string? Name => _name.Value;
 
     private Guid ResolveId()
@@ -71,22 +87,5 @@ public class CurrentTenant : ICurrentTenant
             _id = oldId;
             _name = oldName;
         });
-    }
-}
-
-
-// Simple disposable helper
-public sealed class DisposeAction(Action action) : IDisposable
-{
-    private readonly Action _action = action ?? throw new ArgumentNullException(nameof(action));
-    private bool _disposed;
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            _action();
-            _disposed = true;
-        }
     }
 }
