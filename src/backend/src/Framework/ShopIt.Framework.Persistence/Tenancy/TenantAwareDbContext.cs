@@ -42,6 +42,17 @@ public abstract class TenantAwareDbContext<TContext>(
     private readonly ICurrentTenant _currentTenant = currentTenant;
 
     /// <summary>
+    /// Registers <see cref="TenantFilterGuardConvention"/>, which fails the model build if a
+    /// tenant-scoped entity ends up without a query filter.
+    /// </summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+
+        configurationBuilder.Conventions.Add(_ => new TenantFilterGuardConvention());
+    }
+
+    /// <summary>
     /// Applies the tenant query filter and <c>TenantId</c> index to every entity in the model that
     /// implements <see cref="ITenantEntity"/>. Call from <c>OnModelCreating</c>.
     /// </summary>
