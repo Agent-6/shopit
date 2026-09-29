@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using ShopIt.Authentication.Events;
 using ShopIt.Framework.Core.Events.Integration;
-using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Events;
 using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Framework.Domain.Tenancy;
@@ -11,7 +12,7 @@ namespace ShopIt.Identity.Application.IntegrationEvents;
 /// <summary>
 /// Consumes <see cref="EmailConfirmationOtpRequestedIntegrationEvent"/> from the
 /// Authentication service, generates and stores a 6-digit verification code, then publishes
-/// a <see cref="ShopIt.Notifications.Application.Contracts.Events.SendEmailIntegrationEvent"/>
+/// a <see cref="ShopIt.Notifications.Events.SendEmailIntegrationEvent"/>
 /// so the Notifications service delivers the code to the user.
 /// </summary>
 public class EmailConfirmationOtpRequestedIntegrationEventHandler(

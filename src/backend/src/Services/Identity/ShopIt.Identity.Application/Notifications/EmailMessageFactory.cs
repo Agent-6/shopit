@@ -1,4 +1,4 @@
-using ShopIt.Notifications.Application.Contracts.Events;
+using ShopIt.Notifications.Events;
 
 namespace ShopIt.Identity.Application.Notifications;
 

@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Application.Contracts.Models;
+namespace ShopIt.Identity.Client.Models;
 
 /// <summary>
 /// Outcome of an activation attempt. On success <see cref="Succeeded"/> is <c>true</c> and

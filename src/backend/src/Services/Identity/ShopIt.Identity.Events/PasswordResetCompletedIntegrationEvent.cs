@@ -1,6 +1,6 @@
 using ShopIt.Framework.Core.Events.Integration;
 
-namespace ShopIt.Identity.Application.Contracts.Events;
+namespace ShopIt.Identity.Events;
 
 /// <summary>
 /// Published by the Identity service with the outcome of a password reset attempt.

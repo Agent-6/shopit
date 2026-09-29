@@ -161,7 +161,7 @@ around them:
 
 | Problem | Location |
 |---|---|
-| The published-catalog **contract** lives in `ShopIt.Identity.Application.Contracts`, so a new service must reference Identity's contracts to declare its own permissions | `Identity.Application.Contracts/Events/PermissionCatalogPublishedIntegrationEvent.cs` |
+| ~~The published-catalog **contract** lives in `ShopIt.Identity.Application.Contracts`~~ **CORRECTED — this was wrong.** It has always lived in `Framework.Core/Events/Integration/`, created there in `d681a15`. See `plans/event-contract-ownership.md` | ~~`Identity.Application.Contracts/Events/…`~~ |
 | `PermissionRequirement` + `RequirePermission` are **duplicated verbatim** in Identity and Tenancy Presentation | `*/Presentation/Authorization/` |
 | Publishing the catalog is **composition-root code**, not a repeatable hook | `Tenancy.API/Program.cs:99-119` |
 | Two resolution pipelines: Identity reads its own DB, Tenancy calls Identity over HTTP behind a **1-minute stale cache** | `Tenancy.Infrastructure/TenantPermissionClient.cs` |
@@ -293,7 +293,7 @@ them, and have them flow into the permission catalog, be granted to Admin, and b
 
 | # | Issue | Type |
 |---|---|---|
-| 2.1 | Move the permission-catalog contract (`PermissionCatalogPublishedIntegrationEvent` + DTOs) out of `Identity.Application.Contracts` into the framework, so a service can declare permissions without depending on Identity | Task |
+| 2.1 | ~~Move the permission-catalog contract (`PermissionCatalogPublishedIntegrationEvent` + DTOs) out of `Identity.Application.Contracts` into the framework~~ **Already satisfied — corrected.** The event and DTOs have always been in `Framework.Core`. The real work is moving them *to* `ShopIt.Identity.Events` under the ownership rule; see `plans/event-contract-ownership.md` | Task |
 | 2.2 | Move `PermissionRequirement` + `RequirePermission` into `Framework.Presentation` (currently duplicated verbatim) | Task |
 | 2.3 | Turn catalog publishing into a repeatable hook instead of composition-root code in `Tenancy.API/Program.cs` | Task |
 | 2.4 | Decide and implement one permission-resolution pipeline (Identity in-DB vs Tenancy HTTP + 1-minute stale cache) | Feature |

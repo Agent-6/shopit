@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ShopIt.Authentication.Events;
 using ShopIt.Framework.Core.Events.Integration;
-using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Events;
 using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Framework.Domain.Tenancy;
@@ -12,7 +13,7 @@ namespace ShopIt.Identity.Application.IntegrationEvents;
 /// <summary>
 /// Consumes <see cref="ForgotPasswordRequestedIntegrationEvent"/> from the Authentication
 /// service, generates a password reset token and publishes a
-/// <see cref="ShopIt.Notifications.Application.Contracts.Events.SendEmailIntegrationEvent"/>
+/// <see cref="ShopIt.Notifications.Events.SendEmailIntegrationEvent"/>
 /// so the Notifications service delivers the reset link to the user.
 /// </summary>
 public class ForgotPasswordRequestedIntegrationEventHandler(

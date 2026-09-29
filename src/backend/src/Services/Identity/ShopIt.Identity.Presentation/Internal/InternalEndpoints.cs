@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using ShopIt.Framework.Core.CQRS;
-using ShopIt.Identity.Application.Contracts.Models;
+using ShopIt.Identity.Client.Models;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Application.Users.Commands.CompleteActivation;
 using ShopIt.Identity.Domain.Entities;

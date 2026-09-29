@@ -6,7 +6,7 @@ using ShopIt.Authentication.Persistence.Data;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Persistence.Outbox;
-using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 

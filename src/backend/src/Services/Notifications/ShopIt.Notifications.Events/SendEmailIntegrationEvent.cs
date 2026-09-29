@@ -1,6 +1,6 @@
 using ShopIt.Framework.Core.Events.Integration;
 
-namespace ShopIt.Notifications.Application.Contracts.Events;
+namespace ShopIt.Notifications.Events;
 
 /// <summary>
 /// Published by the Identity and Authentication services whenever a user-facing

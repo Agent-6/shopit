@@ -3,7 +3,7 @@ using ShopIt.Framework.Domain;
 using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Notifications.Application;
-using ShopIt.Notifications.Application.Contracts.Events;
+using ShopIt.Notifications.Events;
 using ShopIt.Notifications.Persistence;
 using ShopIt.Notifications.Persistence.Data;
 

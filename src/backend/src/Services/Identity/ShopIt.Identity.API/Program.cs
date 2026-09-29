@@ -2,12 +2,13 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
+using ShopIt.Authentication.Events;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Application;
-using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Events;
 using ShopIt.Identity.Application.DataSeeding;
 using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Domain.Entities;
@@ -22,6 +23,7 @@ using ShopIt.Identity.Persistence.Stores;
 using ShopIt.Identity.Presentation;
 using ShopIt.Identity.Presentation.Authorization;
 using ShopIt.Identity.Presentation.Internal;
+using ShopIt.Tenancy.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 

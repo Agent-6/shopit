@@ -5,6 +5,9 @@
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
+    <!-- Accepted edge: Tenancy publishes a permission catalog, whose contract Identity owns.
+         Deliberate and downstream-pointing; see plans/event-contract-ownership.md. -->
+    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Events\ShopIt.Identity.Events.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Application\ShopIt.Tenancy.Application.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Infrastructure\ShopIt.Tenancy.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Persistence\ShopIt.Tenancy.Persistence.csproj" />

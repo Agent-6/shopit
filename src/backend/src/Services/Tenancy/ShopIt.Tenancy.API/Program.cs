@@ -4,6 +4,7 @@ using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Presentation;
+using ShopIt.Identity.Events;
 using ShopIt.Tenancy.Application;
 using ShopIt.Tenancy.Domain.Permissions;
 using ShopIt.Tenancy.Infrastructure;

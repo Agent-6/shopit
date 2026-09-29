@@ -5,11 +5,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Abstractions;
 using ShopIt.Authentication.Application.Mocking;
+using ShopIt.Authentication.Events;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Core.UnitOfWork;
-using ShopIt.Identity.Application.Contracts.Events;
-using ShopIt.Identity.Application.Contracts.Models;
-using ShopIt.Identity.Application.Contracts.Services;
+using ShopIt.Identity.Events;
+using ShopIt.Identity.Client.Models;
+using ShopIt.Identity.Client.Services;
 
 namespace ShopIt.Authentication.Presentation.Controllers;
 

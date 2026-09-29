@@ -1,12 +1,11 @@
 using ShopIt.Framework.Core.Events.Integration;
 
-namespace ShopIt.Identity.Application.Contracts.Events;
+namespace ShopIt.Authentication.Events;
 
 /// <summary>
 /// Published by the Authentication service when a user asks for a new invitation link
 /// (from the login page or the expired-invitation page). Consumed by the Identity service,
-/// which regenerates the activation token and publishes a
-/// <see cref="ShopIt.Notifications.Application.Contracts.Events.SendEmailIntegrationEvent"/>
+/// which regenerates the activation token and publishes a <c>SendEmailIntegrationEvent</c>
 /// so the Notifications service delivers the invitation email again.
 /// </summary>
 /// <param name="RequestId">Correlation id used to trace the flow end-to-end.</param>
