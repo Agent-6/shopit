@@ -43,21 +43,31 @@ var mailpit = builder.AddMailPit("mailpit", httpPort: 8025, smtpPort: 1025)
     .WithDataVolume("mailpit-data")
     .WithLifetime(ContainerLifetime.Persistent);
 
+// Shared cache. Redis is the L2 backplane behind each service's in-process HybridCache L1, so an
+// invalidation in one service reaches every other process rather than only its own. No data volume:
+// a cache should not outlive the process that owns the truth it mirrors.
+var redis = builder.AddRedis("cache")
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var auth = builder.AddProject<Projects.ShopIt_Authentication_API>("auth-api")
     .WithReference(authDb)
     .WithReference(seq)
     .WithReference(kafka)
+    .WithReference(redis)
     .WaitFor(authDb)
     .WaitFor(kafka)
-    .WaitFor(seq);
+    .WaitFor(seq)
+    .WaitFor(redis);
 
 var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WithReference(identityDb)
     .WithReference(seq)
     .WithReference(kafka)
+    .WithReference(redis)
     .WaitFor(identityDb)
     .WaitFor(kafka)
-    .WaitFor(seq);
+    .WaitFor(seq)
+    .WaitFor(redis);
 
 auth.WithReference(identity).WaitFor(identity);
 
@@ -69,11 +79,13 @@ var tenancy = builder.AddProject<Projects.ShopIt_Tenancy_API>("tenancy-api")
     // client-credentials tokens and the Identity service for permission lookups.
     .WithReference(auth)
     .WithReference(identity)
+    .WithReference(redis)
     .WaitFor(tenancyDb)
     .WaitFor(kafka)
     .WaitFor(seq)
     .WaitFor(auth)
-    .WaitFor(identity);
+    .WaitFor(identity)
+    .WaitFor(redis);
 
 // Notifications consumes SendEmailIntegrationEvent from Identity and Authentication
 // and delivers the emails to Mailpit's SMTP endpoint. It only needs Kafka, its own
@@ -83,10 +95,12 @@ var notifications = builder.AddProject<Projects.ShopIt_Notifications_API>("notif
     .WithReference(seq)
     .WithReference(kafka)
     .WithReference(mailpit)
+    .WithReference(redis)
     .WaitFor(notificationsDb)
     .WaitFor(kafka)
     .WaitFor(seq)
-    .WaitFor(mailpit);
+    .WaitFor(mailpit)
+    .WaitFor(redis);
 
 var gateway = builder.AddYarp("gateway")
     .WithHostPort(5000)

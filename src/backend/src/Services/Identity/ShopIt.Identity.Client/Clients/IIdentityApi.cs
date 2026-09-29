@@ -19,6 +19,18 @@ public interface IIdentityApi
     Task<ApiResponse<CredentialValidationResponse>> ValidateCredentialsAsync([Body] CredentialValidationRequest request);
 
     /// <summary>
+    /// The caller's effective permissions, resolved and filtered by multi-tenancy side.
+    /// </summary>
+    /// <remarks>
+    /// The client wrapper reads the shared cache before calling this, and Identity itself serves it
+    /// from the same cache — so on a hit this endpoint is not reached at all.
+    /// </remarks>
+    [Get("/api/internal/users/{userId}/permissions")]
+    Task<ApiResponse<UserPermissionsResponse>> GetUserPermissionsAsync(
+        Guid userId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Synchronously completes the invitation flow (token + password). The browser waits
     /// for the result so the Authentication service can sign the user in right away.
     /// </summary>

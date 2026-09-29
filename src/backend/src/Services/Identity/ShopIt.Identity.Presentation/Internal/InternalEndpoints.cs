@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using ShopIt.Framework.Application.Caching;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Identity.Client.Models;
 using ShopIt.Identity.Application.Permissions;
@@ -43,20 +44,44 @@ public static class InternalEndpoints
         return app;
     }
 
+    /// <summary>
+    /// Serves a user's effective permissions from the shared cache, resolving them only on a miss.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The cache is written here, under <c>CacheKeys.UserPermissions</c>, so that consumers reading the
+    /// same key never reach this endpoint at all — and so that a permission change, which removes that
+    /// key, is seen by every process through the backplane rather than after a local expiry.
+    /// </para>
+    /// <para>
+    /// Unknown <em>and inactive</em> users both yield an empty set rather than 404. Two reasons: an
+    /// inactive user must not keep permissions, which is a divergence this endpoint previously had
+    /// against Identity's own authorization handler; and returning a plain value keeps the cached entry
+    /// unambiguous, since a cached null cannot be told apart from a miss.
+    /// </para>
+    /// </remarks>
     private static async Task<IResult> GetUserPermissionsInternal(
         Guid userId,
         UserManager<User> userManager,
         IPermissionResolver permissionResolver,
+        ICache cache,
         CancellationToken cancellationToken)
     {
-        var user = await userManager.FindByIdAsync(userId.ToString());
-        if (user is null)
-        {
-            return Results.NotFound();
-        }
+        var permissions = await cache.GetOrCreateAsync(
+            CacheKeys.UserPermissions(userId),
+            async token =>
+            {
+                var user = await userManager.FindByIdAsync(userId.ToString());
+                if (user is null || !user.IsActive)
+                {
+                    return [];
+                }
 
-        var permissions = await permissionResolver.GetGrantedPermissionsAsync(user, cancellationToken);
-        return Results.Ok(new { permissions = permissions.ToList() });
+                return (await permissionResolver.GetGrantedPermissionsAsync(user, token)).ToArray();
+            },
+            cancellationToken);
+
+        return Results.Ok(new { permissions });
     }
 
     private static async Task<IResult> ValidateCredentials(
