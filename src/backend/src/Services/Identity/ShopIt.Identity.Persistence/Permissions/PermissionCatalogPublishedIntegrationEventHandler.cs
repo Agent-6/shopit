@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Permissions;
+using ShopIt.Identity.Events;
 
 namespace ShopIt.Identity.Persistence.Permissions;
 

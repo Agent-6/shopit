@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.Events.Integration;
-using ShopIt.Identity.Application.Contracts.Events;
 using ShopIt.Identity.Application.DataSeeding;
+using ShopIt.Tenancy.Events;
 
 namespace ShopIt.Identity.Application.IntegrationEvents;
 

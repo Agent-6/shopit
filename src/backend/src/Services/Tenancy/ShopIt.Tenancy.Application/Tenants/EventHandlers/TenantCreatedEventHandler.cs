@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Events;
-using ShopIt.Identity.Application.Contracts.Events;
 using ShopIt.Tenancy.Domain.Events;
+using ShopIt.Tenancy.Events;
 
 namespace ShopIt.Tenancy.Application.Tenants.EventHandlers;
 

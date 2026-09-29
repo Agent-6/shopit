@@ -7,9 +7,9 @@ using Refit;
 using ShopIt.Authentication.Application.Mocking;
 using ShopIt.Authentication.Persistence.Data;
 using ShopIt.Framework.Infrastructure;
-using ShopIt.Identity.Application.Contracts.Clients;
-using ShopIt.Identity.Application.Contracts.Implementations;
-using ShopIt.Identity.Application.Contracts.Services;
+using ShopIt.Identity.Client.Clients;
+using ShopIt.Identity.Client.Implementations;
+using ShopIt.Identity.Client.Services;
 
 namespace ShopIt.Authentication.Infrastructure;
 

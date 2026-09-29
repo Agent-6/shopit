@@ -1,6 +1,7 @@
+using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Permissions;
 
-namespace ShopIt.Framework.Core.Events.Integration;
+namespace ShopIt.Identity.Events;
 
 /// <summary>
 /// Published by every microservice to announce its permission catalog (the permission
@@ -10,6 +11,21 @@ namespace ShopIt.Framework.Core.Events.Integration;
 /// permission definitions change (on startup), so new permissions reach Identity without
 /// redeploying the Identity project.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <strong>Owned by Identity, though published by others.</strong> Identity owns the meaning of the
+/// message: it owns the permission registry, the synchronizer and the persistence, so
+/// <em>"here is my catalog"</em> is a message <em>to</em> Identity. That is the ownership rule this
+/// repository follows — the publisher owns a domain event, the receiving authority owns a directed
+/// message.
+/// </para>
+/// <para>
+/// <strong>Accepted consequence:</strong> a service that publishes a catalog takes a reference on
+/// <c>ShopIt.Identity.Events</c>. That is a service→service reference, but it points downstream and
+/// is deliberate — not an oversight. It is the price of a rule with no exceptions; the alternative
+/// was a shared-kernel exception in <c>ShopIt.Framework.Core</c>.
+/// </para>
+/// </remarks>
 /// <param name="SourceService">The name of the publishing service (e.g. "Tenancy").</param>
 /// <param name="Groups">The permission groups and their permissions.</param>
 public sealed record PermissionCatalogPublishedIntegrationEvent(

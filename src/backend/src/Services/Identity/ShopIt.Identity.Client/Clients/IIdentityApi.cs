@@ -1,7 +1,7 @@
 using Refit;
-using ShopIt.Identity.Application.Contracts.Models;
+using ShopIt.Identity.Client.Models;
 
-namespace ShopIt.Identity.Application.Contracts.Clients;
+namespace ShopIt.Identity.Client.Clients;
 
 /// <summary>
 /// Refit interface for calling the Identity service's internal API.

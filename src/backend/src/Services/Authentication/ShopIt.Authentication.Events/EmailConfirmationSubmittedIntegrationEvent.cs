@@ -1,11 +1,11 @@
 using ShopIt.Framework.Core.Events.Integration;
 
-namespace ShopIt.Identity.Application.Contracts.Events;
+namespace ShopIt.Authentication.Events;
 
 /// <summary>
 /// Published by the Authentication service when a user submits a verification code.
 /// Consumed by the Identity service, which validates the code, confirms the email and
-/// replies with <see cref="UserEmailConfirmedIntegrationEvent"/>.
+/// replies with <c>UserEmailConfirmedIntegrationEvent</c>.
 /// </summary>
 /// <param name="RequestId">Correlation id used to trace the flow end-to-end.</param>
 /// <param name="Email">The email address being confirmed.</param>

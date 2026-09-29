@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Logging;
 using ShopIt.Authentication.Application.Mocking;
 using ShopIt.Framework.Core.Events.Integration;
-using ShopIt.Identity.Application.Contracts.Events;
-using ShopIt.Notifications.Application.Contracts.Events;
+using ShopIt.Identity.Events;
+using ShopIt.Notifications.Events;
 
 namespace ShopIt.Authentication.Infrastructure.IntegrationEvents;
 

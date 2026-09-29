@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
-    <ProjectReference Include="..\ShopIt.Notifications.Application.Contracts\ShopIt.Notifications.Application.Contracts.csproj" />
+    <ProjectReference Include="..\ShopIt.Notifications.Events\ShopIt.Notifications.Events.csproj" />
   </ItemGroup>
 
 </Project>

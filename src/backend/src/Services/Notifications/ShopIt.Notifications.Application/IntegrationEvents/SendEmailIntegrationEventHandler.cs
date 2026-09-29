@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.Events.Integration;
-using ShopIt.Notifications.Application.Contracts.Events;
+using ShopIt.Notifications.Events;
 using ShopIt.Notifications.Application.Emails;
 
 namespace ShopIt.Notifications.Application.IntegrationEvents;

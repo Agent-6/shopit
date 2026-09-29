@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Events;
-using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Events;
 using ShopIt.Identity.Application.Notifications;
 using ShopIt.Identity.Domain.Events.UserEvents;
 

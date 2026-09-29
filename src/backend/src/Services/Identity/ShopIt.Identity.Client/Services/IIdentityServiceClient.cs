@@ -1,6 +1,6 @@
-using ShopIt.Identity.Application.Contracts.Models;
+using ShopIt.Identity.Client.Models;
 
-namespace ShopIt.Identity.Application.Contracts.Services;
+namespace ShopIt.Identity.Client.Services;
 
 public interface IIdentityServiceClient
 {

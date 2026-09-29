@@ -1,9 +1,9 @@
 using Refit;
-using ShopIt.Identity.Application.Contracts.Clients;
-using ShopIt.Identity.Application.Contracts.Models;
-using ShopIt.Identity.Application.Contracts.Services;
+using ShopIt.Identity.Client.Clients;
+using ShopIt.Identity.Client.Models;
+using ShopIt.Identity.Client.Services;
 
-namespace ShopIt.Identity.Application.Contracts.Implementations;
+namespace ShopIt.Identity.Client.Implementations;
 
 public class IdentityServiceClient(IIdentityApi identityApi) : IIdentityServiceClient
 {

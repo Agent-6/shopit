@@ -1,4 +1,4 @@
-namespace ShopIt.Identity.Application.Contracts.Models;
+namespace ShopIt.Identity.Client.Models;
 
 /// <summary>
 /// Payload for the synchronous activation call made by the Authentication service when

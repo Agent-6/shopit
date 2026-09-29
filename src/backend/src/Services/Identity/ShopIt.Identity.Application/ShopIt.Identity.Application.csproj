@@ -7,9 +7,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
-    <ProjectReference Include="..\..\Notifications\ShopIt.Notifications.Application.Contracts\ShopIt.Notifications.Application.Contracts.csproj" />
+    <ProjectReference Include="..\..\Notifications\ShopIt.Notifications.Events\ShopIt.Notifications.Events.csproj" />
+    <ProjectReference Include="..\..\Authentication\ShopIt.Authentication.Events\ShopIt.Authentication.Events.csproj" />
+    <ProjectReference Include="..\..\Tenancy\ShopIt.Tenancy.Events\ShopIt.Tenancy.Events.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Domain\ShopIt.Identity.Domain.csproj" />
-    <ProjectReference Include="..\ShopIt.Identity.Application.Contracts\ShopIt.Identity.Application.Contracts.csproj" />
+    <ProjectReference Include="..\ShopIt.Identity.Events\ShopIt.Identity.Events.csproj" />
   </ItemGroup>
 
 </Project>

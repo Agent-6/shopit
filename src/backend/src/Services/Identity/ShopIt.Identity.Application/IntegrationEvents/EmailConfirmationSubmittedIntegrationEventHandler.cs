@@ -2,8 +2,9 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
+using ShopIt.Authentication.Events;
 using ShopIt.Framework.Core.Events.Integration;
-using ShopIt.Identity.Application.Contracts.Events;
+using ShopIt.Identity.Events;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Framework.Domain.Tenancy;
 
