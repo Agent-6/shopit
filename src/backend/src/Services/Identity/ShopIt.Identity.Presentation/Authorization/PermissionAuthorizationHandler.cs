@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
 

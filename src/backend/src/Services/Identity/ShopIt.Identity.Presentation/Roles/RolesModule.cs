@@ -5,9 +5,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
+using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Framework.Presentation.Modules;
 using ShopIt.Identity.Domain.Permissions;
-using ShopIt.Identity.Presentation.Authorization;
 using ShopIt.Identity.Presentation.Roles.Requests;
 using ShopIt.Identity.Presentation.Roles.Responses;
 
