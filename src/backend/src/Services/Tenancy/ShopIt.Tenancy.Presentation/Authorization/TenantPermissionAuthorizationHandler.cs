@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Tenancy.Application.Permissions;
 
 namespace ShopIt.Tenancy.Presentation.Authorization;
