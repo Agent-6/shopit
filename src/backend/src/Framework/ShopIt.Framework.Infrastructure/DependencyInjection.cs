@@ -15,6 +15,7 @@ using ShopIt.Framework.Infrastructure.Tenancy;
 using ShopIt.Framework.Infrastructure.Users;
 using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
+using ZiggyCreatures.Caching.Fusion.Serialization.SystemTextJson;
 
 namespace ShopIt.Framework.Infrastructure;
 
@@ -73,6 +74,9 @@ public static class DependencyInjection
     private static void AddCaching(IServiceCollection services, IConfiguration configuration)
     {
         var fusionCache = services.AddFusionCache()
+            // Required for the distributed cache: FusionCache does not bundle a serializer, and without
+            // one it throws at first use rather than at registration -- which is how this was found.
+            .WithSerializer(new FusionCacheSystemTextJsonSerializer())
             .WithDefaultEntryOptions(new FusionCacheEntryOptions
             {
                 Duration = TimeSpan.FromMinutes(5),
