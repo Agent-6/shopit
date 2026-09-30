@@ -7,12 +7,12 @@ namespace ShopIt.Framework.Application.Caching;
 public static class CacheKeys
 {
     /// <summary>
-    /// The resolved effective permissions of a user: direct claims plus role claims, already filtered
-    /// by multi-tenancy side.
+    /// The resolved permissions of a user, as a <see cref="UserPermissionsSnapshot"/>.
     /// </summary>
     /// <remarks>
     /// Written by Identity when it resolves permissions, read by any service that needs to authorise a
-    /// caller, and invalidated by Identity when a permission grant changes.
+    /// caller, and invalidated by Identity when the user's own grants change. Publishing a permission
+    /// catalog does <em>not</em> invalidate it — see <see cref="UserPermissionsSnapshot"/>.
     /// </remarks>
     public static string UserPermissions(Guid userId) => $"permissions:user:{userId:N}";
 }

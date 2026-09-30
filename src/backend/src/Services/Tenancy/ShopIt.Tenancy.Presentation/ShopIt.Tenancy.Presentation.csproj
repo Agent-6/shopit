@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Presentation\ShopIt.Framework.Presentation.csproj" />
+    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Client\ShopIt.Identity.Client.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Application\ShopIt.Tenancy.Application.csproj" />
   </ItemGroup>
 

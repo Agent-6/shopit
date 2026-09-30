@@ -38,8 +38,12 @@ public class PermissionAuthorizationHandler(
             return;
         }
 
-        var permissions = await permissionResolver.GetGrantedPermissionsAsync(user);
-        if (permissions.Contains(requirement.PermissionName))
+        var permissions = await permissionResolver.GetEffectivePermissionsAsync(user);
+
+        // The flag short-circuits, so an all-permissions holder never materialises the catalog just to
+        // answer one membership test.
+        if (permissions.IsAllPermissions
+            || permissions.Permissions.Contains(requirement.PermissionName))
         {
             context.Succeed(requirement);
         }

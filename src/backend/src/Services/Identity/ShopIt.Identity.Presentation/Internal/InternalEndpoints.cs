@@ -49,15 +49,21 @@ public static class InternalEndpoints
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The cache is written here, under <c>CacheKeys.UserPermissions</c>, so that consumers reading the
-    /// same key never reach this endpoint at all — and so that a permission change, which removes that
-    /// key, is seen by every process through the backplane rather than after a local expiry.
+    /// Returns <c>isAllPermissions</c> alongside <c>permissions</c> rather than always enumerating.
+    /// A holder of an all-permissions role is represented by the flag, so the value does not depend on
+    /// what the catalog contains — which is what keeps a catalog publish from invalidating a cache entry
+    /// per user.
     /// </para>
     /// <para>
-    /// Unknown <em>and inactive</em> users both yield an empty set rather than 404. Two reasons: an
-    /// inactive user must not keep permissions, which is a divergence this endpoint previously had
-    /// against Identity's own authorization handler; and returning a plain value keeps the cached entry
-    /// unambiguous, since a cached null cannot be told apart from a miss.
+    /// Both entries are written here under <c>CacheKeys</c>, the keys consumers read, so a consumer
+    /// never reaches this endpoint on a hit and an invalidation is seen by every process through the
+    /// backplane rather than after a local expiry.
+    /// </para>
+    /// <para>
+    /// Unknown <em>and inactive</em> users both yield nothing rather than 404. An inactive user must not
+    /// keep permissions, which is a divergence this endpoint previously had against Identity's own
+    /// authorization handler; and a plain value keeps the cached entry unambiguous, since a cached null
+    /// cannot be told apart from a miss.
     /// </para>
     /// </remarks>
     private static async Task<IResult> GetUserPermissionsInternal(
@@ -67,21 +73,29 @@ public static class InternalEndpoints
         ICache cache,
         CancellationToken cancellationToken)
     {
-        var permissions = await cache.GetOrCreateAsync(
+        var snapshot = await cache.GetOrCreateAsync(
             CacheKeys.UserPermissions(userId),
             async token =>
             {
                 var user = await userManager.FindByIdAsync(userId.ToString());
                 if (user is null || !user.IsActive)
                 {
-                    return [];
+                    return UserPermissionsSnapshot.None;
                 }
 
-                return (await permissionResolver.GetGrantedPermissionsAsync(user, token)).ToArray();
+                var effective = await permissionResolver.GetEffectivePermissionsAsync(user, token);
+
+                return new UserPermissionsSnapshot(
+                    effective.IsAllPermissions,
+                    effective.Permissions.ToArray());
             },
             cancellationToken);
 
-        return Results.Ok(new { permissions });
+        return Results.Ok(new
+        {
+            isAllPermissions = snapshot.IsAllPermissions,
+            permissions = snapshot.Permissions,
+        });
     }
 
     private static async Task<IResult> ValidateCredentials(
