@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Domain.Permissions;
-using ShopIt.Identity.Domain.Entities;
 using ShopIt.Framework.Domain.Tenancy;
+using ShopIt.Identity.Domain.Entities;
+using ShopIt.Identity.Domain.Roles;
 
 namespace ShopIt.Identity.Application.Permissions;
 
@@ -9,10 +10,32 @@ public class PermissionResolver(
     UserManager<User> userManager,
     RoleManager<Role> roleManager,
     ICurrentTenant currentTenant,
-    IPermissionDefinitionProvider permissionCatalog) : IPermissionResolver
+    IPermissionDefinitionProvider permissionCatalog,
+    IRoleDefinitionProvider roleDefinitions) : IPermissionResolver
 {
     public async Task<IReadOnlySet<string>> GetGrantedPermissionsAsync(User user, CancellationToken cancellationToken = default)
     {
+        var userSide = user.TenantId == Guid.Empty
+            ? PermissionMultiTenancySide.Host
+            : PermissionMultiTenancySide.Tenant;
+
+        var catalog = permissionCatalog.GetAll().ToList();
+        var roles = await ResolveRolesAsync(user);
+
+        // A built-in role whose definition grants everything resolves to the whole catalog for the
+        // user's side, instead of to its materialised claims.
+        //
+        // That is what makes a newly published permission effective for admins immediately: there is no
+        // claim to backfill for every admin in every tenant, and nothing to invalidate per user when a
+        // catalog is published.
+        if (roles.Any(GrantsAllPermissions))
+        {
+            return catalog
+                .Where(p => p.MultiTenancySide.IsAvailableOn(userSide))
+                .Select(p => p.Name.Value)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
         var permissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Direct permission claims on the user (e.g. set via the permissions editor).
@@ -21,25 +44,17 @@ public class PermissionResolver(
             permissions.Add(claim.Type);
         }
 
-        await AddRolePermissionsAsync(user, permissions);
-
-        // System (host) roles assigned to a tenant user are invisible to the tenant-scoped
-        // role queries above, so retry with host scope (tenant filter off).
-        if (!currentTenant.IsHost)
+        foreach (var role in roles)
         {
-            using (currentTenant.Change(new TenantInfo(Guid.Empty, "Host")))
+            foreach (var claim in await roleManager.GetClaimsAsync(role))
             {
-                await AddRolePermissionsAsync(user, permissions);
+                permissions.Add(claim.Type);
             }
         }
 
-        // A permission is only effective on the side it is available on: filter out
-        // grants for permissions that don't apply to the user's own tenant side.
-        var userSide = user.TenantId == Guid.Empty
-            ? PermissionMultiTenancySide.Host
-            : PermissionMultiTenancySide.Tenant;
-
-        var sideByPermission = permissionCatalog.GetAll()
+        // A permission is only effective on the side it is available on: filter out grants for
+        // permissions that don't apply to the user's own tenant side.
+        var sideByPermission = catalog
             .GroupBy(p => p.Name.Value, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().MultiTenancySide, StringComparer.OrdinalIgnoreCase);
 
@@ -48,21 +63,65 @@ public class PermissionResolver(
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task AddRolePermissionsAsync(User user, ISet<string> permissions)
+    /// <summary>
+    /// The roles the user holds, including host roles assigned to a tenant user — those are invisible to
+    /// tenant-scoped role queries and need host scope to resolve.
+    /// </summary>
+    private async Task<List<Role>> ResolveRolesAsync(User user)
     {
-        var roleNames = await userManager.GetRolesAsync(user);
-        foreach (var roleName in roleNames)
+        var roles = new List<Role>();
+
+        await CollectRolesAsync(user, roles);
+
+        if (!currentTenant.IsHost)
         {
-            var role = await roleManager.FindByNameAsync(roleName!);
-            if (role is null)
+            using (currentTenant.Change(new TenantInfo(Guid.Empty, "Host")))
+            {
+                await CollectRolesAsync(user, roles);
+            }
+        }
+
+        return roles;
+    }
+
+    private async Task CollectRolesAsync(User user, List<Role> roles)
+    {
+        foreach (var roleName in await userManager.GetRolesAsync(user))
+        {
+            if (roleName is null)
             {
                 continue;
             }
 
-            foreach (var claim in await roleManager.GetClaimsAsync(role))
+            var role = await roleManager.FindByNameAsync(roleName);
+            if (role is not null && roles.All(r => r.Id != role.Id))
             {
-                permissions.Add(claim.Type);
+                roles.Add(role);
             }
         }
+    }
+
+    /// <summary>
+    /// Whether this role is built-in <em>and</em> its definition grants every permission — Admin, in the
+    /// shipped definitions.
+    /// </summary>
+    /// <remarks>
+    /// Both halves are load-bearing. <see cref="Role.IsStatic"/> proves the role came from a definition
+    /// rather than from a user, whose chosen name cannot be trusted for anything security-relevant
+    /// (see #50); <see cref="RoleDefinition.GrantsAllPermissions"/> is the definition actually saying so.
+    /// Matching on the name alone would let a caller with <c>role.create</c> obtain every permission by
+    /// naming a role "Admin".
+    /// </remarks>
+    private bool GrantsAllPermissions(Role role)
+    {
+        if (!role.IsStatic || role.Name is null)
+        {
+            return false;
+        }
+
+        var definition = roleDefinitions.GetAll().FirstOrDefault(d =>
+            string.Equals(d.Name.Value, role.Name, StringComparison.OrdinalIgnoreCase));
+
+        return definition?.GrantsAllPermissions == true;
     }
 }
