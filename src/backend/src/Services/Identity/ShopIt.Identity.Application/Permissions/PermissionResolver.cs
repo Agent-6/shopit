@@ -13,27 +13,18 @@ public class PermissionResolver(
     IPermissionDefinitionProvider permissionCatalog,
     IRoleDefinitionProvider roleDefinitions) : IPermissionResolver
 {
-    public async Task<IReadOnlySet<string>> GetGrantedPermissionsAsync(User user, CancellationToken cancellationToken = default)
-    {
-        var userSide = user.TenantId == Guid.Empty
-            ? PermissionMultiTenancySide.Host
-            : PermissionMultiTenancySide.Tenant;
+    private static readonly IReadOnlySet<string> None = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        var catalog = permissionCatalog.GetAll().ToList();
+    public async Task<EffectivePermissions> GetEffectivePermissionsAsync(User user, CancellationToken cancellationToken = default)
+    {
         var roles = await ResolveRolesAsync(user);
 
-        // A built-in role whose definition grants everything resolves to the whole catalog for the
-        // user's side, instead of to its materialised claims.
-        //
-        // That is what makes a newly published permission effective for admins immediately: there is no
-        // claim to backfill for every admin in every tenant, and nothing to invalidate per user when a
-        // catalog is published.
+        // A built-in role whose definition grants everything is represented by the flag rather than by
+        // enumerating the catalog. That is what makes this value independent of the catalog's contents,
+        // so republishing a catalog invalidates nothing.
         if (roles.Any(GrantsAllPermissions))
         {
-            return catalog
-                .Where(p => p.MultiTenancySide.IsAvailableOn(userSide))
-                .Select(p => p.Name.Value)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            return new EffectivePermissions(IsAllPermissions: true, None);
         }
 
         var permissions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -52,9 +43,33 @@ public class PermissionResolver(
             }
         }
 
+        return new EffectivePermissions(IsAllPermissions: false, FilterBySide(user, permissions));
+    }
+
+    public async Task<IReadOnlySet<string>> GetGrantedPermissionsAsync(User user, CancellationToken cancellationToken = default)
+    {
+        var effective = await GetEffectivePermissionsAsync(user, cancellationToken);
+
+        if (!effective.IsAllPermissions)
+        {
+            return effective.Permissions;
+        }
+
+        // Materialised only here, for callers that genuinely need the list — the permissions UI, and
+        // the seeding paths that write default grants.
+        return permissionCatalog.GetAll()
+            .Where(p => p.MultiTenancySide.IsAvailableOn(SideOf(user)))
+            .Select(p => p.Name.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private IReadOnlySet<string> FilterBySide(User user, IReadOnlySet<string> permissions)
+    {
         // A permission is only effective on the side it is available on: filter out grants for
         // permissions that don't apply to the user's own tenant side.
-        var sideByPermission = catalog
+        var userSide = SideOf(user);
+
+        var sideByPermission = permissionCatalog.GetAll()
             .GroupBy(p => p.Name.Value, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().MultiTenancySide, StringComparer.OrdinalIgnoreCase);
 
@@ -62,6 +77,11 @@ public class PermissionResolver(
             .Where(name => !sideByPermission.TryGetValue(name, out var side) || side.IsAvailableOn(userSide))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
+
+    private static PermissionMultiTenancySide SideOf(User user) =>
+        user.TenantId == Guid.Empty
+            ? PermissionMultiTenancySide.Host
+            : PermissionMultiTenancySide.Tenant;
 
     /// <summary>
     /// The roles the user holds, including host roles assigned to a tenant user — those are invisible to

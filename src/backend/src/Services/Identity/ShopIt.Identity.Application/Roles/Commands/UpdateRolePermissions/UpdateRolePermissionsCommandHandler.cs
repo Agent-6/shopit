@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Framework.Domain.Permissions;
+using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
 
 namespace ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions;
@@ -12,10 +13,12 @@ namespace ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions;
 /// </summary>
 public class UpdateRolePermissionsCommandHandler(
     RoleManager<Role> roleManager,
-    IPermissionDefinitionProvider permissionCatalog) : ICommandHandler<UpdateRolePermissionsCommand, UpdateRolePermissionsResult>
+    IPermissionDefinitionProvider permissionCatalog,
+    IPermissionCacheInvalidator permissionCache) : ICommandHandler<UpdateRolePermissionsCommand, UpdateRolePermissionsResult>
 {
     private readonly RoleManager<Role> _roleManager = roleManager;
     private readonly IPermissionDefinitionProvider _permissionCatalog = permissionCatalog;
+    private readonly IPermissionCacheInvalidator _permissionCache = permissionCache;
 
     public async Task<UpdateRolePermissionsResult> HandleAsync(UpdateRolePermissionsCommand request, CancellationToken cancellationToken)
     {
@@ -59,6 +62,15 @@ public class UpdateRolePermissionsCommandHandler(
                 var res = await _roleManager.RemoveClaimAsync(role, existing);
                 if (res.Succeeded) revoked.Add(p.PermissionName);
             }
+        }
+
+        // Editing a role's permissions changes the effective permissions of every user holding it, so
+        // this fans out across the role's membership. It is bounded by that membership, and it only
+        // happens when an administrator edits a role — as opposed to publishing a catalog, which is
+        // handled by the all-permissions flag rather than by invalidation.
+        if ((granted.Count > 0 || revoked.Count > 0) && role.Name is not null)
+        {
+            await _permissionCache.InvalidateRoleAsync(role.Name, cancellationToken);
         }
 
         return new UpdateRolePermissionsResult(role.Id, granted, revoked, DateTime.UtcNow);

@@ -6,9 +6,14 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+    <PackageReference Include="ZiggyCreatures.FusionCache" />
+    <PackageReference Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" />
+    <PackageReference Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" />
   </ItemGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\ShopIt.Framework.Application\ShopIt.Framework.Application.csproj" />
     <ProjectReference Include="..\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
     <ProjectReference Include="..\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
     <ProjectReference Include="..\ShopIt.Framework.Persistence\ShopIt.Framework.Persistence.csproj" />

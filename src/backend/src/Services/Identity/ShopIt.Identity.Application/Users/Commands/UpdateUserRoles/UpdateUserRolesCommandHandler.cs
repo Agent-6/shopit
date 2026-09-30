@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Framework.Domain.Permissions;
+using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Repositories;
 
@@ -8,10 +9,12 @@ namespace ShopIt.Identity.Application.Users.Commands.UpdateUserRoles;
 
 public class UpdateUserRolesCommandHandler(
     UserManager<User> userManager,
-    IRoleRepository roleRepository) : ICommandHandler<UpdateUserRolesCommand, UpdateUserRolesResult>
+    IRoleRepository roleRepository,
+    IPermissionCacheInvalidator permissionCache) : ICommandHandler<UpdateUserRolesCommand, UpdateUserRolesResult>
 {
     private readonly UserManager<User> _userManager = userManager;
     private readonly IRoleRepository _roleRepository = roleRepository;
+    private readonly IPermissionCacheInvalidator _permissionCache = permissionCache;
 
     public async Task<UpdateUserRolesResult> HandleAsync(UpdateUserRolesCommand request, CancellationToken cancellationToken)
     {
@@ -66,6 +69,12 @@ public class UpdateUserRolesCommandHandler(
                 var errors = string.Join("; ", res.Errors.Select(e => e.Description));
                 throw new InvalidOperationException($"Failed to update user roles: {errors}");
             }
+        }
+
+        // A user's roles decide their permissions, so any change to the assignment invalidates them.
+        if (toAdd.Count > 0 || toRemove.Count > 0)
+        {
+            await _permissionCache.InvalidateUserAsync(user.Id, cancellationToken);
         }
 
         return new UpdateUserRolesResult(user.Id, requested, DateTime.UtcNow);

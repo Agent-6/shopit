@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using ShopIt.Framework.Presentation.Authorization;
-using ShopIt.Tenancy.Application.Permissions;
+using ShopIt.Identity.Client.Services;
 
 namespace ShopIt.Tenancy.Presentation.Authorization;
 
@@ -11,7 +11,7 @@ namespace ShopIt.Tenancy.Presentation.Authorization;
 /// requests without an interactive user (e.g. client-credentials tokens).
 /// </summary>
 public class TenantPermissionAuthorizationHandler(
-    ITenantPermissionClient permissionClient) : AuthorizationHandler<PermissionRequirement>
+    IIdentityPermissionClient permissionClient) : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
@@ -26,8 +26,9 @@ public class TenantPermissionAuthorizationHandler(
             return;
         }
 
-        var permissions = await permissionClient.GetGrantedPermissionsAsync(userId);
-        if (permissions.Contains(requirement.PermissionName))
+        var permissions = await permissionClient.GetPermissionsAsync(userId);
+
+        if (permissions.Grants(requirement.PermissionName))
         {
             context.Succeed(requirement);
         }

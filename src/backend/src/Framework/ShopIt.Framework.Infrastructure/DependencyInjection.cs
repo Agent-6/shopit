@@ -1,15 +1,21 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ShopIt.Framework.Application.Caching;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Domain.Providers;
 using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Framework.Domain.Users;
+using ShopIt.Framework.Infrastructure.Caching;
 using ShopIt.Framework.Infrastructure.Events;
 using ShopIt.Framework.Infrastructure.Providers;
 using ShopIt.Framework.Infrastructure.Tenancy;
 using ShopIt.Framework.Infrastructure.Users;
+using ZiggyCreatures.Caching.Fusion;
+using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
+using ZiggyCreatures.Caching.Fusion.Serialization.SystemTextJson;
 
 namespace ShopIt.Framework.Infrastructure;
 
@@ -33,6 +39,8 @@ public static class DependencyInjection
         services.AddSingleton<IDateProvider, DateProvider>();
         services.AddSingleton<IGuidProvider, GuidProvider>();
 
+        AddCaching(services, configuration);
+
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
         // OutboxWriter depends on the scoped DbContext registered by each service's persistence layer.
@@ -46,4 +54,71 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>
+    /// Registers the shared cache: an in-process L1 in front of Redis as L2, with Redis also acting
+    /// as the backplane that propagates invalidations between processes.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The backplane is the whole point. Removing a key without one clears only this process's L1 and
+    /// the shared L2 — other processes keep serving their own stale L1 entry until it expires, which
+    /// would defeat invalidation entirely.
+    /// </para>
+    /// <para>
+    /// If no <c>cache</c> connection string is configured the cache degrades to L1-only rather than
+    /// throwing, so a service can still start without Redis. That is a real degradation, not a no-op:
+    /// each process then has its own view and invalidation is local only.
+    /// </para>
+    /// <para>
+    /// Durations come from configuration, not from literals. They are deliberately <em>not</em> the
+    /// revocation latency: invalidation is explicit, so a revocation takes effect as soon as the
+    /// writer removes the key. These bound the exposure when a removal is missed — a backplane message
+    /// lost while a process restarts, say — which is the residual window worth tuning.
+    /// </para>
+    /// </remarks>
+    private static void AddCaching(IServiceCollection services, IConfiguration configuration)
+    {
+        var duration = ReadDuration(configuration, "Caching:Duration", TimeSpan.FromMinutes(5));
+        var memoryCacheDuration = ReadDuration(configuration, "Caching:MemoryCacheDuration", duration);
+
+        var fusionCache = services.AddFusionCache()
+            // Required for the distributed cache: FusionCache does not bundle a serializer, and without
+            // one it throws at first use rather than at registration -- which is how this was found.
+            .WithSerializer(new FusionCacheSystemTextJsonSerializer())
+            .WithDefaultEntryOptions(new FusionCacheEntryOptions
+            {
+                Duration = duration,
+                // FusionCache's name for the L1 (in-process) duration. Bounds how long a value can
+                // outlive a missed invalidation in this process.
+                MemoryCacheDuration = memoryCacheDuration,
+                JitterMaxDuration = TimeSpan.FromSeconds(2),
+                // If Redis is unreachable, serve the last known value rather than failing the request.
+                IsFailSafeEnabled = true,
+                FailSafeMaxDuration = ReadDuration(configuration, "Caching:FailSafeMaxDuration", TimeSpan.FromHours(2)),
+                FailSafeThrottleDuration = TimeSpan.FromSeconds(30),
+                AllowBackgroundDistributedCacheOperations = true,
+            });
+
+        var redisConnection = configuration.GetConnectionString("cache");
+
+        if (!string.IsNullOrWhiteSpace(redisConnection))
+        {
+            fusionCache
+                .WithDistributedCache(new RedisCache(new RedisCacheOptions { Configuration = redisConnection }))
+                .WithBackplane(new RedisBackplane(new RedisBackplaneOptions { Configuration = redisConnection }));
+        }
+
+        // Stateless and thread-safe; FusionCache is a singleton and this holds nothing else.
+        services.AddSingleton<ICache, FusionCacheAdapter>();
+    }
+
+    /// <summary>
+    /// Reads a <see cref="TimeSpan"/> from configuration (for example <c>00:05:00</c>), falling back
+    /// when it is absent or unparseable rather than failing startup over a cache setting.
+    /// </summary>
+    private static TimeSpan ReadDuration(IConfiguration configuration, string key, TimeSpan fallback) =>
+        TimeSpan.TryParse(configuration[key], out var parsed) && parsed > TimeSpan.Zero
+            ? parsed
+            : fallback;
 }

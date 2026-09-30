@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Application\ShopIt.Framework.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Refit" />
     <PackageReference Include="Refit.HttpClientFactory" />
   </ItemGroup>
