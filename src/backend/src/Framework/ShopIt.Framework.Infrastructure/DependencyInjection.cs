@@ -70,20 +70,32 @@ public static class DependencyInjection
     /// throwing, so a service can still start without Redis. That is a real degradation, not a no-op:
     /// each process then has its own view and invalidation is local only.
     /// </para>
+    /// <para>
+    /// Durations come from configuration, not from literals. They are deliberately <em>not</em> the
+    /// revocation latency: invalidation is explicit, so a revocation takes effect as soon as the
+    /// writer removes the key. These bound the exposure when a removal is missed — a backplane message
+    /// lost while a process restarts, say — which is the residual window worth tuning.
+    /// </para>
     /// </remarks>
     private static void AddCaching(IServiceCollection services, IConfiguration configuration)
     {
+        var duration = ReadDuration(configuration, "Caching:Duration", TimeSpan.FromMinutes(5));
+        var memoryCacheDuration = ReadDuration(configuration, "Caching:MemoryCacheDuration", duration);
+
         var fusionCache = services.AddFusionCache()
             // Required for the distributed cache: FusionCache does not bundle a serializer, and without
             // one it throws at first use rather than at registration -- which is how this was found.
             .WithSerializer(new FusionCacheSystemTextJsonSerializer())
             .WithDefaultEntryOptions(new FusionCacheEntryOptions
             {
-                Duration = TimeSpan.FromMinutes(5),
+                Duration = duration,
+                // FusionCache's name for the L1 (in-process) duration. Bounds how long a value can
+                // outlive a missed invalidation in this process.
+                MemoryCacheDuration = memoryCacheDuration,
                 JitterMaxDuration = TimeSpan.FromSeconds(2),
                 // If Redis is unreachable, serve the last known value rather than failing the request.
                 IsFailSafeEnabled = true,
-                FailSafeMaxDuration = TimeSpan.FromHours(2),
+                FailSafeMaxDuration = ReadDuration(configuration, "Caching:FailSafeMaxDuration", TimeSpan.FromHours(2)),
                 FailSafeThrottleDuration = TimeSpan.FromSeconds(30),
                 AllowBackgroundDistributedCacheOperations = true,
             });
@@ -100,4 +112,13 @@ public static class DependencyInjection
         // Stateless and thread-safe; FusionCache is a singleton and this holds nothing else.
         services.AddSingleton<ICache, FusionCacheAdapter>();
     }
+
+    /// <summary>
+    /// Reads a <see cref="TimeSpan"/> from configuration (for example <c>00:05:00</c>), falling back
+    /// when it is absent or unparseable rather than failing startup over a cache setting.
+    /// </summary>
+    private static TimeSpan ReadDuration(IConfiguration configuration, string key, TimeSpan fallback) =>
+        TimeSpan.TryParse(configuration[key], out var parsed) && parsed > TimeSpan.Zero
+            ? parsed
+            : fallback;
 }
