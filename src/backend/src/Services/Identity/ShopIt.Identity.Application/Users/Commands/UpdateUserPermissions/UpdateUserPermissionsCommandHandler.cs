@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
+using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
 
 namespace ShopIt.Identity.Application.Users.Commands.UpdateUserPermissions;
@@ -7,10 +8,14 @@ namespace ShopIt.Identity.Application.Users.Commands.UpdateUserPermissions;
 public class UpdateUserPermissionsCommandHandler : ICommandHandler<UpdateUserPermissionsCommand, UpdateUserPermissionsResult>
 {
     private readonly UserManager<User> _userManager;
+    private readonly IPermissionCacheInvalidator _permissionCache;
 
-    public UpdateUserPermissionsCommandHandler(UserManager<User> userManager)
+    public UpdateUserPermissionsCommandHandler(
+        UserManager<User> userManager,
+        IPermissionCacheInvalidator permissionCache)
     {
         _userManager = userManager;
+        _permissionCache = permissionCache;
     }
 
     public async Task<UpdateUserPermissionsResult> HandleAsync(UpdateUserPermissionsCommand request, CancellationToken cancellationToken)
@@ -36,6 +41,14 @@ public class UpdateUserPermissionsCommandHandler : ICommandHandler<UpdateUserPer
                 var res = await _userManager.RemoveClaimAsync(user, existing);
                 if (res.Succeeded) revoked.Add(p.PermissionName);
             }
+        }
+
+        // The user's own grants changed, so any cached snapshot of them is now wrong. Removed rather
+        // than left to expire: every service reads this key, and a revocation that lingers is a
+        // security hole, not a cache miss.
+        if (granted.Count > 0 || revoked.Count > 0)
+        {
+            await _permissionCache.InvalidateUserAsync(request.UserId, cancellationToken);
         }
 
         return new UpdateUserPermissionsResult(request.UserId, granted, revoked, DateTime.UtcNow);

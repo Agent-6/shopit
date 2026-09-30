@@ -28,6 +28,10 @@ public static class DependencyInjection
         // permission authorization handler). Scoped because it depends on scoped managers.
         services.AddScoped<IPermissionResolver, PermissionResolver>();
 
+        // Removes cached permission snapshots when grants change. Scoped for the same reason, and
+        // because the role fan-out reads the tenant-scoped role membership.
+        services.AddScoped<IPermissionCacheInvalidator, PermissionCacheInvalidator>();
+
         return services;
     }
 }
