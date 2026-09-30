@@ -279,9 +279,17 @@ static async Task EnsureRoleAsync(IServiceProvider services, RoleDefinition defi
                 tenantId,
                 "system",
                 definition.Description,
-                definition.Side
+                definition.Side,
+                isStatic: definition.IsStatic
             );
             await roleManager.CreateAsync(role);
+        }
+        else if (definition.IsStatic && !role.IsStatic)
+        {
+            // Roles that predate the IsStatic column. Seeding is the only place that knows a role
+            // came from a definition, so it corrects the flag here rather than relying on a data fix.
+            role.MarkAsStatic();
+            await roleManager.UpdateAsync(role);
         }
 
         // Permissions are only grantable on the side they are available on: Admin

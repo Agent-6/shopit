@@ -36,5 +36,11 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.HasIndex(r => new { r.NormalizedName, r.TenantId })
             .IsUnique()
             .HasDatabaseName("RoleNameIndex");
+
+        // Defaults to false so existing rows are valid when the column is added; seeding then
+        // corrects the built-in roles to true on the next startup.
+        builder.Property(r => r.IsStatic)
+            .IsRequired()
+            .HasDefaultValue(false);
     }
 }

@@ -38,6 +38,17 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
     /// </summary>
     public PermissionMultiTenancySide MultiTenancySide { get; private set; } = PermissionMultiTenancySide.Both;
 
+    /// <summary>
+    /// Whether this role comes from a built-in <c>RoleDefinition</c> rather than being created by a user.
+    /// </summary>
+    /// <remarks>
+    /// Persisted so that "this is the built-in Admin" is a fact about the row, not an inference from
+    /// its name. The name is user-controllable — roles can be created and renamed — so resolving
+    /// anything security-relevant from it would let a caller with <c>role.create</c> or
+    /// <c>role.update</c> impersonate a built-in role.
+    /// </remarks>
+    public bool IsStatic { get; private set; }
+
 
     private readonly List<RoleClaim> _roleClaims = [];
     public IReadOnlyCollection<RoleClaim> RoleClaims => _roleClaims.AsReadOnly();
@@ -59,7 +70,8 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
         Guid tenantId,
         string createdBy,
         string? description = null,
-        PermissionMultiTenancySide multiTenancySide = PermissionMultiTenancySide.Both)
+        PermissionMultiTenancySide multiTenancySide = PermissionMultiTenancySide.Both,
+        bool isStatic = false)
     {
         var role = new Role(id)
         {
@@ -68,6 +80,7 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
             TenantId = tenantId,
             Description = description,
             MultiTenancySide = multiTenancySide,
+            IsStatic = isStatic,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };
@@ -76,8 +89,23 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
         return role;
     }
 
+    /// <summary>
+    /// Marks this role as built-in. Idempotent, and called by seeding so that roles created before
+    /// this flag existed are corrected on startup.
+    /// </summary>
+    public void MarkAsStatic() => IsStatic = true;
+
     public void Update(string name, string? description)
     {
+        // A built-in role's name is its identity: the permission model and the role definitions
+        // resolve against it. It is fixed here, in the domain, as well as being rejected earlier by
+        // validation, so no other path can rename one.
+        if (IsStatic && !string.Equals(Name, name, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"'{Name}' is a built-in role and cannot be renamed.");
+        }
+
         Name = name;
         NormalizedName = name.ToUpperInvariant();
         Description = description;

@@ -97,8 +97,15 @@ public class TenantDataSeeder(
                 tenantId,
                 createdBy: "system",
                 definition.Description,
-                definition.Side);
+                definition.Side,
+                isStatic: definition.IsStatic);
             await roleManager.CreateAsync(role);
+        }
+        else if (definition.IsStatic && !role.IsStatic)
+        {
+            // Roles that predate the IsStatic column; see the host seeding for why this lives here.
+            role.MarkAsStatic();
+            await roleManager.UpdateAsync(role);
         }
 
         // Permissions are only grantable on the side they are available on. Admin
