@@ -20,6 +20,7 @@ namespace ShopIt.Framework.Persistence.Inbox;
 public sealed class InboxProcessor<TContext>(
     IServiceScopeFactory scopeFactory,
     IOptions<InboxOptions> options,
+    InboxEventRegistry eventRegistry,
     ILogger<InboxProcessor<TContext>> logger) : BackgroundService
     where TContext : DbContext
 {
@@ -27,6 +28,7 @@ public sealed class InboxProcessor<TContext>(
 
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly InboxOptions _options = options.Value;
+    private readonly InboxEventRegistry _eventRegistry = eventRegistry;
     private readonly ILogger<InboxProcessor<TContext>> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -150,23 +152,27 @@ public sealed class InboxProcessor<TContext>(
         }
     }
 
-    private static async Task DispatchToHandlersAsync(
+    private async Task DispatchToHandlersAsync(
         IServiceProvider serviceProvider,
         string eventTypeName,
         string payload,
         CancellationToken cancellationToken)
     {
-        // Resolve all registered integration event types and find the matching one by name
-        var eventType = AppDomain.CurrentDomain.GetAssemblies()
-            .SelectMany(a => a.GetTypes())
-            .FirstOrDefault(t => t.Name == eventTypeName && t.IsAssignableTo(typeof(IntegrationEvent)));
+        // The registry holds the events this service registered handlers for, keyed by the same
+        // namespace-qualified name the outbox wrote. An unknown name is an error, not something to skip
+        // quietly: it means a producer sent an event this service was supposed to handle, or the service
+        // subscribes to a topic whose handler was never registered.
+        if (!_eventRegistry.TryResolve(eventTypeName, out var eventType) || eventType is null)
+        {
+            throw new InvalidOperationException(
+                $"No handler is registered for event '{eventTypeName}' in consumer group " +
+                $"'{_options.ConsumerGroupId}'. Known events: " +
+                $"{string.Join(", ", _eventRegistry.EventTypes.Select(t => t.FullName))}.");
+        }
 
-        if (eventType is null)
-            return; // No handler registered for this event type in this service
-
-        var integrationEvent = (IntegrationEvent?)JsonSerializer.Deserialize(payload, eventType, _jsonOptions);
-        if (integrationEvent is null)
-            return;
+        var integrationEvent = (IntegrationEvent?)JsonSerializer.Deserialize(payload, eventType, _jsonOptions)
+            ?? throw new InvalidOperationException(
+                $"Could not deserialize event '{eventTypeName}' into '{eventType.FullName}'.");
 
         var handlerType = typeof(IIntegrationEventHandler<>).MakeGenericType(eventType);
         var handlers = serviceProvider.GetServices(handlerType);

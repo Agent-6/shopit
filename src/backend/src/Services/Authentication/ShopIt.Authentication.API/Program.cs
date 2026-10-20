@@ -23,8 +23,8 @@ builder.Services.AddPersistence(
     "auth-db",
     builder.Configuration,
     InboxSubscription.Consuming(
-        nameof(PasswordResetCompletedIntegrationEvent),
-        nameof(UserEmailConfirmedIntegrationEvent)),
+        typeof(PasswordResetCompletedIntegrationEvent),
+        typeof(UserEmailConfirmedIntegrationEvent)),
     handlerAssemblies: typeof(ShopIt.Authentication.Infrastructure.DependencyInjection).Assembly);
 
 builder.Services.AddInfrastructure(builder.Configuration);

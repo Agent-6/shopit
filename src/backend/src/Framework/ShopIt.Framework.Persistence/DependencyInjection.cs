@@ -137,45 +137,53 @@ public static class DependencyInjection
         // Scan and register IIntegrationEventHandler<> implementations
         services.AddIntegrationEventHandlers(assemblies);
 
-        EnsureEverySubscribedTopicHasAHandler(services, inbox, consumerGroupId);
+        // The registry is built from those handlers, so "what this service can dispatch" is exactly
+        // "what it has handlers for" — no assembly scanning at dispatch time.
+        var registry = BuildInboxEventRegistry(services, inbox, consumerGroupId);
+        services.AddSingleton(registry);
 
         return services;
     }
 
     /// <summary>
-    /// Fails registration when a subscribed topic has no handler in the scanned assemblies.
+    /// Builds the inbox's event-type lookup from the registered handlers and checks the declared
+    /// subscriptions against it.
     /// </summary>
     /// <remarks>
-    /// The inbox dispatches by event type name, so a topic without a handler is consumed, recorded and
-    /// then dropped — it looks like a healthy service that simply never reacts. That is the failure this
-    /// check turns into a startup error, naming the topic and the group.
+    /// A subscribed event with no handler would be consumed, recorded and then dropped — a healthy-looking
+    /// service that never reacts. Here that is a startup error naming the event and the consumer group.
     /// </remarks>
-    private static void EnsureEverySubscribedTopicHasAHandler(
+    private static InboxEventRegistry BuildInboxEventRegistry(
         IServiceCollection services,
         InboxSubscription inbox,
         string consumerGroupId)
     {
-        if (!inbox.IsConsuming)
-        {
-            return;
-        }
-
-        var handledEventNames = services
+        var handledEventTypes = services
             .Where(descriptor => descriptor.ServiceType.IsGenericType
                 && descriptor.ServiceType.GetGenericTypeDefinition() == typeof(IIntegrationEventHandler<>))
-            .Select(descriptor => descriptor.ServiceType.GetGenericArguments()[0].Name)
-            .ToHashSet(StringComparer.Ordinal);
+            .Select(descriptor => descriptor.ServiceType.GetGenericArguments()[0])
+            .Distinct()
+            .ToList();
 
-        var unhandled = inbox.Topics.Where(topic => !handledEventNames.Contains(topic)).ToList();
+        var registry = new InboxEventRegistry(handledEventTypes);
+
+        if (!inbox.IsConsuming)
+        {
+            return registry;
+        }
+
+        var unhandled = inbox.Topics.Where(topic => !registry.TryResolve(topic, out _)).ToList();
 
         if (unhandled.Count > 0)
         {
             throw new InvalidOperationException(
                 $"Consumer group '{consumerGroupId}' subscribes to {string.Join(", ", unhandled.Select(t => $"'{t}'"))} " +
-                "but no IIntegrationEventHandler<T> for that event is registered. " +
-                "Pass the assembly that contains the handler in handlerAssemblies, or remove the topic " +
+                "but no IIntegrationEventHandler<T> is registered for that event. " +
+                "Pass the assembly that contains the handler in handlerAssemblies, or remove the event " +
                 "from the inbox subscription.");
         }
+
+        return registry;
     }
 
     /// <summary>
