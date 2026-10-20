@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
+using ShopIt.Framework.Domain.Errors;
 using ShopIt.Framework.Domain.Permissions;
+using ShopIt.Framework.Domain.Result;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
+using ShopIt.Identity.Domain.Roles;
 
 namespace ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions;
 
@@ -14,16 +17,19 @@ namespace ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions;
 public class UpdateRolePermissionsCommandHandler(
     RoleManager<Role> roleManager,
     IPermissionDefinitionProvider permissionCatalog,
-    IPermissionCacheInvalidator permissionCache) : ICommandHandler<UpdateRolePermissionsCommand, UpdateRolePermissionsResult>
+    IPermissionCacheInvalidator permissionCache) : ICommandHandler<UpdateRolePermissionsCommand, Result<UpdateRolePermissionsResult, Error>>
 {
     private readonly RoleManager<Role> _roleManager = roleManager;
     private readonly IPermissionDefinitionProvider _permissionCatalog = permissionCatalog;
     private readonly IPermissionCacheInvalidator _permissionCache = permissionCache;
 
-    public async Task<UpdateRolePermissionsResult> HandleAsync(UpdateRolePermissionsCommand request, CancellationToken cancellationToken)
+    public async Task<Result<UpdateRolePermissionsResult, Error>> HandleAsync(UpdateRolePermissionsCommand request, CancellationToken cancellationToken)
     {
         var role = await _roleManager.FindByIdAsync(request.RoleId.ToString());
-        if (role is null) throw new KeyNotFoundException("Role not found");
+        if (role is null)
+        {
+            return RoleErrors.NotFound(request.RoleId);
+        }
 
         // A permission is only grantable to a role on the side the permission is
         // available on (host roles: Host/Both; tenant roles: Tenant/Both), mirroring

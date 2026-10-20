@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Framework.Presentation.Modules;
+using ShopIt.Framework.Presentation.Results;
 using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Presentation.Roles.Requests;
 using ShopIt.Identity.Presentation.Roles.Responses;
@@ -60,20 +61,23 @@ public class RolesModule : EndpointsModule
             new ShopIt.Identity.Application.Roles.Queries.GetRole.GetRoleQuery(roleId),
             cancellationToken);
 
+        if (role.IsFailure)
+        {
+            return role.Error.ToProblem();
+        }
+
         var claims = await dispatcher.QueryAsync(
             new ShopIt.Identity.Application.Roles.Queries.GetRoleClaims.GetRoleClaimsQuery(roleId),
             cancellationToken);
 
-        var response = new RoleDetailResponse(
-            role.Id,
-            role.Name,
-            role.Description,
-            role.CreatedAt,
-            role.MultiTenancySide,
-            claims.Claims.Select(c => new RoleClaimResponse(c.Type, c.Value)).ToList()
-        );
-
-        return Results.Ok(response);
+        return claims.ToHttpResult(
+            onSuccess: detail => Results.Ok(new RoleDetailResponse(
+                role.Value.Id,
+                role.Value.Name,
+                role.Value.Description,
+                role.Value.CreatedAt,
+                role.Value.MultiTenancySide,
+                detail.Claims.Select(c => new RoleClaimResponse(c.Type, c.Value)).ToList())));
     }
 
     private async Task<IResult> CreateRole(CreateRoleRequest request, IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -83,9 +87,10 @@ public class RolesModule : EndpointsModule
                 request.Name, request.Description, request.MultiTenancySide),
             cancellationToken);
 
-        var response = new CreateRoleResponse(
-            result.Id, result.Name, result.Description, result.CreatedAt, result.MultiTenancySide);
-        return Results.Created($"/roles/{response.Id}", response);
+        return result.ToHttpResult(
+            onSuccess: role => Results.Created(
+                $"/roles/{role.Id}",
+                new CreateRoleResponse(role.Id, role.Name, role.Description, role.CreatedAt, role.MultiTenancySide)));
     }
 
     private async Task<IResult> UpdateRole(Guid roleId, UpdateRoleRequest request, IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -94,17 +99,19 @@ public class RolesModule : EndpointsModule
             new ShopIt.Identity.Application.Roles.Commands.UpdateRole.UpdateRoleCommand(roleId, request.Name, request.Description),
             cancellationToken);
 
-        var response = new UpdateRoleResponse(result.Id, result.Name, result.Description, result.UpdatedAt);
-        return Results.Ok(response);
+        return result.ToHttpResult(
+            onSuccess: role => Results.Ok(
+                new UpdateRoleResponse(role.Id, role.Name, role.Description, role.UpdatedAt)));
     }
 
-    private async Task<Results<Ok<DeleteRoleResponse>, BadRequest>> DeleteRole(Guid roleId, IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    private async Task<IResult> DeleteRole(Guid roleId, IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
         var result = await dispatcher.SendAsync(
             new ShopIt.Identity.Application.Roles.Commands.DeleteRole.DeleteRoleCommand(roleId),
             cancellationToken);
 
-        return TypedResults.Ok(new DeleteRoleResponse(result.Id, result.IsDeleted));
+        return result.ToHttpResult(
+            onSuccess: deleted => Results.Ok(new DeleteRoleResponse(deleted.Id, deleted.IsDeleted)));
     }
 
     private async Task<IResult> UpdateRolePermissions(Guid roleId, UpdateRolePermissionsRequest request, IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -114,11 +121,11 @@ public class RolesModule : EndpointsModule
             new ShopIt.Identity.Application.Roles.Commands.UpdateRolePermissions.UpdateRolePermissionsCommand(roleId, items),
             cancellationToken);
 
-        var response = new UpdateRolePermissionsResponse(
-            result.RoleId,
-            result.GrantedPermissions.ToList(),
-            result.RevokedPermissions.ToList(),
-            result.UpdatedAt);
-        return Results.Ok(response);
+        return result.ToHttpResult(
+            onSuccess: updated => Results.Ok(new UpdateRolePermissionsResponse(
+                updated.RoleId,
+                updated.GrantedPermissions.ToList(),
+                updated.RevokedPermissions.ToList(),
+                updated.UpdatedAt)));
     }
 }
