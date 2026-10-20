@@ -18,8 +18,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         string databaseName,
         IConfiguration configuration,
-        Action<OutboxOptions>? configureOutbox = null,
-        Action<InboxOptions>? configureInbox = null)
+        InboxSubscription inbox,
+        Action<OutboxOptions>? configureOutbox = null)
     {
         services.AddDbContext<TenancyDbContext>(options =>
         {
@@ -32,10 +32,10 @@ public static class DependencyInjection
         // Wire up Kafka integration event infrastructure
         services.AddKafkaIntegration<TenancyDbContext>(
             "tenancy-inbox",
+            inbox,
             configuration,
             configureOutbox,
-            configureInbox,
-            typeof(DependencyInjection).Assembly);
+            assemblies: [typeof(DependencyInjection).Assembly]);
 
         return services;
     }

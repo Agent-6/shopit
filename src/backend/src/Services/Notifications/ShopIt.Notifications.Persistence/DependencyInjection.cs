@@ -20,8 +20,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         string databaseName,
         IConfiguration configuration,
+        InboxSubscription inbox,
         Action<OutboxOptions>? configureOutbox = null,
-        Action<InboxOptions>? configureInbox = null,
         params Assembly[] handlerAssemblies)
     {
         services.AddDbContext<NotificationsDbContext>(options =>
@@ -35,10 +35,10 @@ public static class DependencyInjection
         // Wire up Kafka integration event infrastructure
         services.AddKafkaIntegration<NotificationsDbContext>(
             "notifications-inbox",
+            inbox,
             configuration,
             configureOutbox,
-            configureInbox,
-            [typeof(DependencyInjection).Assembly, .. handlerAssemblies]);
+            assemblies: [typeof(DependencyInjection).Assembly, .. handlerAssemblies]);
 
         return services;
     }
