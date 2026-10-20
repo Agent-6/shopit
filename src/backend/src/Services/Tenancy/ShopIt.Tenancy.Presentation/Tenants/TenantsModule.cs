@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Framework.Presentation.Modules;
+using ShopIt.Framework.Presentation.Results;
 using ShopIt.Tenancy.Domain.Permissions;
 using ShopIt.Tenancy.Application.Tenants.Commands.ActivateTenant;
 using ShopIt.Tenancy.Application.Tenants.Commands.CreateTenant;
@@ -50,7 +51,7 @@ public class TenantsModule : EndpointsModule
         CancellationToken cancellationToken = default)
     {
         var result = await dispatcher.QueryAsync(new GetTenantQuery(tenantId), cancellationToken);
-        return Results.Ok(result);
+        return result.ToHttpResult();
     }
 
     private async Task<IResult> CreateTenant(
@@ -71,7 +72,7 @@ public class TenantsModule : EndpointsModule
     {
         var cmd = new UpdateTenantCommand(tenantId, request.Name);
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
-        return Results.Ok(result);
+        return result.ToHttpResult();
     }
 
     private async Task<IResult> DeleteTenant(
@@ -81,7 +82,7 @@ public class TenantsModule : EndpointsModule
     {
         var cmd = new DeleteTenantCommand(tenantId);
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
-        return Results.Ok(result);
+        return result.ToHttpResult();
     }
 
     private async Task<IResult> ActivateTenant(
@@ -91,7 +92,7 @@ public class TenantsModule : EndpointsModule
     {
         var cmd = new ActivateTenantCommand(tenantId);
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
-        return Results.Ok(result);
+        return result.ToHttpResult();
     }
 
     private async Task<IResult> DeactivateTenant(
@@ -101,7 +102,7 @@ public class TenantsModule : EndpointsModule
     {
         var cmd = new DeactivateTenantCommand(tenantId);
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
-        return Results.Ok(result);
+        return result.ToHttpResult();
     }
 }
 
