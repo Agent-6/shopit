@@ -23,7 +23,13 @@ public static class DependencyInjection
         services.AddTransient<ClientCredentialsTokenHandler>();
 
         // Identity's internal API, called with client credentials.
-        services.AddRefitClient<IIdentityApi>()
+        //
+        // Generated client, not `AddRefitClient`: Refit 16 moved the reflection request builder into
+        // the out-of-band `Refit.Reflection` package, so the reflection path throws
+        // NotSupportedException at runtime unless that package is referenced — which turned every
+        // authorised Tenancy request into a 500 (#54). The generated client is also what
+        // Authentication already uses for this same interface, so both services now bind it the same way.
+        services.AddRefitGeneratedClient<IIdentityApi>()
             .ConfigureHttpClient(client => client.BaseAddress = new("https+http://identity-api"))
             .AddHttpMessageHandler<ClientCredentialsTokenHandler>();
 
