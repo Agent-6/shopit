@@ -2,8 +2,9 @@ using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using ShopIt.Notifications.Application.Emails;
 
-namespace ShopIt.Notifications.Application.Emails;
+namespace ShopIt.Notifications.Infrastructure;
 
 /// <summary>
 /// Sends emails over SMTP. In development the endpoint is Mailpit's SMTP server

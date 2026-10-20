@@ -1,13 +1,18 @@
+// The Notifications service's outbound integration: SMTP. Lives here rather than in Application so that
+// "how an email is delivered" can change (SMTP, an HTTP provider, a queue) without the application
+// layer - which decides *that* an email should be sent - knowing about it.
 using System.Data.Common;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ShopIt.Notifications.Application.Emails;
 
-namespace ShopIt.Notifications.Application;
+namespace ShopIt.Notifications.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static IServiceCollection AddNotificationsInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         // Email transport: SMTP. Host/port are taken from the Mailpit connection string
         // injected by Aspire (ConnectionStrings__mailpit) unless overridden in config.

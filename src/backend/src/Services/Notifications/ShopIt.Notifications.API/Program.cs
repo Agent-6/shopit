@@ -5,8 +5,10 @@ using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Identity.Events;
 using ShopIt.Notifications.Application;
+using ShopIt.Notifications.Application.IntegrationEvents;
 using ShopIt.Notifications.Application.Permissions;
 using ShopIt.Notifications.Events;
+using ShopIt.Notifications.Infrastructure;
 using ShopIt.Notifications.Persistence;
 using ShopIt.Notifications.Persistence.Data;
 
@@ -15,7 +17,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddApplication();
+
+// The email transport lives in this service's Infrastructure layer (SMTP today); Application decides
+// what to send, this decides how.
+builder.Services.AddNotificationsInfrastructure(builder.Configuration);
 builder.Services.AddDomainServices();
 
 // Consume the generic notification event published by the Identity and Authentication
@@ -24,7 +29,7 @@ builder.Services.AddPersistence(
     "notifications-db",
     builder.Configuration,
     InboxSubscription.Consuming(typeof(SendEmailIntegrationEvent)),
-    handlerAssemblies: typeof(ShopIt.Notifications.Application.DependencyInjection).Assembly);
+    handlerAssemblies: typeof(SendEmailIntegrationEventHandler).Assembly);
 builder.EnrichNpgsqlDbContext<NotificationsDbContext>();
 
 // PLACEHOLDER (#24): publishes catalog.view / catalog.write so the permission recipe - declare,

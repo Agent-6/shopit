@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <!-- Infrastructure implements Application's port (IEmailSender); the dependency points inward. -->
+  <ItemGroup>
+    <ProjectReference Include="..\ShopIt.Notifications.Application\ShopIt.Notifications.Application.csproj" />
+  </ItemGroup>
+
+</Project>

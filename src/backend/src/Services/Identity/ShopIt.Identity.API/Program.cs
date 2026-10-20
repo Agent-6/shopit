@@ -10,6 +10,7 @@ using ShopIt.Framework.Presentation;
 using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Persistence.Permissions;
+using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Infrastructure.Security;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Events;
@@ -19,7 +20,6 @@ using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Domain.Roles;
 using ShopIt.Framework.Domain.Tenancy;
-using ShopIt.Identity.Infrastructure;
 using ShopIt.Identity.Persistence;
 using ShopIt.Identity.Persistence.Data;
 using ShopIt.Identity.Persistence.Permissions;
@@ -70,7 +70,7 @@ builder.Services.AddPermissionCatalogPublishing<
 // TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder
 builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
 
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<User>(options =>

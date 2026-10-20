@@ -11,8 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="../../../../ShopIt.ServiceDefaults/ShopIt.ServiceDefaults.csproj" />
     <ProjectReference Include="../../../Framework/ShopIt.Framework.Core/ShopIt.Framework.Core.csproj" />
+    <ProjectReference Include="../../../Framework/ShopIt.Framework.Infrastructure/ShopIt.Framework.Infrastructure.csproj" />
     <ProjectReference Include="../ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
-    <ProjectReference Include="..\ShopIt.Identity.Infrastructure\ShopIt.Identity.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Identity.Presentation\ShopIt.Identity.Presentation.csproj" />
   </ItemGroup>
 
