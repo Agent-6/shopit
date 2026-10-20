@@ -11,9 +11,10 @@ public interface IAuditedEntity : IEntity
     DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
-    /// Gets or sets the identifier of the user who created the entity.
+    /// Gets or sets the identifier of the user who created the entity, or <c>null</c> when the change
+    /// was not made by an interactive user (seeding, migration, a background handler).
     /// </summary>
-    Guid CreatedBy { get; set; }
+    Guid? CreatedBy { get; set; }
 
     /// <summary>
     /// Gets or sets the date and time when the entity was last modified.

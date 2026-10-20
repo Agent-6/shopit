@@ -26,8 +26,6 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
         builder.Property(t => t.CreatedOn)
             .IsRequired();
 
-        builder.Property(t => t.CreatedBy)
-            .IsRequired();
 
         builder.Property(t => t.LastModifiedOn);
         builder.Property(t => t.LastModifiedBy);

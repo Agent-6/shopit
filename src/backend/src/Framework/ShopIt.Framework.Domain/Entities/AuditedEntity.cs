@@ -11,7 +11,7 @@ public abstract class AuditedEntity<TId> : Entity<TId>, IAuditedEntity<TId>
     where TId : notnull
 {
     public DateTimeOffset CreatedOn { get; set; }
-    public Guid CreatedBy { get; set; }
+    public Guid? CreatedBy { get; set; }
     public DateTimeOffset? LastModifiedOn { get; set; }
     public Guid? LastModifiedBy { get; set; }
     public DateTimeOffset? DeletedOn { get; set; }

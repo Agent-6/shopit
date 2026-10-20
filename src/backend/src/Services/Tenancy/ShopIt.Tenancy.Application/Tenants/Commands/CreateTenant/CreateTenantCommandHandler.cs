@@ -12,10 +12,9 @@ public class CreateTenantCommandHandler(ITenantRepository tenantRepository)
     public async Task<CreateTenantResult> HandleAsync(CreateTenantCommand request, CancellationToken cancellationToken)
     {
         var tenant = Tenant.Create(Guid.NewGuid(), request.Name);
-        
-        tenant.CreatedOn = DateTimeOffset.UtcNow;
-        tenant.CreatedBy = Guid.Empty; // Registered under system-wide scope
 
+        // Audit fields are stamped from the acting user by the persistence path (see ADR-0004); the
+        // handler no longer guesses, and no longer writes a placeholder id.
         await _tenantRepository.AddAsync(tenant, cancellationToken);
 
         return new CreateTenantResult(

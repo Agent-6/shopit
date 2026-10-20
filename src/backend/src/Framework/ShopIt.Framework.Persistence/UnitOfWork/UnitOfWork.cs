@@ -2,15 +2,21 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using ShopIt.Framework.Core.UnitOfWork;
 using ShopIt.Framework.Domain.Events;
+using ShopIt.Framework.Domain.Users;
+using ShopIt.Framework.Persistence.Auditing;
 using ShopIt.Framework.Persistence.Events;
 
 namespace ShopIt.Framework.Persistence.UnitOfWork;
 
-public class UnitOfWork<TContext>(TContext context, IDomainEventDispatcher domainEventDispatcher) : IUnitOfWork
+public class UnitOfWork<TContext>(
+    TContext context,
+    IDomainEventDispatcher domainEventDispatcher,
+    ICurrentUser currentUser) : IUnitOfWork
     where TContext : DbContext
 {
     private readonly TContext _context = context;
     private readonly IDomainEventDispatcher _domainEventDispatcher = domainEventDispatcher;
+    private readonly ICurrentUser _currentUser = currentUser;
     private IDbContextTransaction? _transaction;
 
     public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
@@ -23,7 +29,9 @@ public class UnitOfWork<TContext>(TContext context, IDomainEventDispatcher domai
 
     public async Task CommitAsync(CancellationToken cancellationToken = default)
     {
-        // 1. Persist domain state changes to the DB (still within the open transaction)
+        // 1. Stamp audit fields, then persist domain state changes (still within the open transaction).
+        //    The actor comes from the request, not from the handler that happened to create the entity.
+        AuditInfo.Apply(_context, _currentUser.Id);
         await _context.SaveChangesAsync(cancellationToken);
 
         // 2. Collect the domain events from tracked aggregate roots, clear them, and dispatch
@@ -37,6 +45,8 @@ public class UnitOfWork<TContext>(TContext context, IDomainEventDispatcher domai
         //    integration event is silently lost.
         if (domainEvents.Count > 0)
         {
+            // Stamp anything the domain-event handlers created before it is persisted.
+            AuditInfo.Apply(_context, _currentUser.Id);
             await _context.SaveChangesAsync(cancellationToken);
         }
 
