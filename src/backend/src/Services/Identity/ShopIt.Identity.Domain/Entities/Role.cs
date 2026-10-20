@@ -7,18 +7,16 @@ using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
+public class Role : IdentityRole<Guid>, IAggregateRoot, IAuditedEntity<Guid>, ITenantEntity
 {
     #region IAggregateRoot Implementation
 
-    private readonly List<DomainEvent> _domainEvents = [];
-    public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    // See the note on User: single inheritance rules out AggregateRoot<TId> here (ADR-0004).
+    private readonly DomainEventCollector _domainEvents = new();
 
-    protected void RaiseDomainEvent(DomainEvent domainEvent)
-    {
-        ArgumentNullException.ThrowIfNull(domainEvent);
-        _domainEvents.Add(domainEvent);
-    }
+    public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.DomainEvents;
+
+    protected void RaiseDomainEvent(DomainEvent domainEvent) => _domainEvents.Raise(domainEvent);
 
     public void ClearDomainEvents() => _domainEvents.Clear();
 
@@ -26,8 +24,13 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
 
     public Guid TenantId { get; private set; } = default!;
     public string? Description { get; private set; } = default!;
-    public DateTime CreatedAt { get; private set; } = default!;
-    public string CreatedBy { get; private set; } = default!;
+    // Audit: stamped by the persistence convention (ADR-0004), never by handlers.
+    public DateTimeOffset CreatedOn { get; set; }
+    public Guid? CreatedBy { get; set; }
+    public DateTimeOffset? LastModifiedOn { get; set; }
+    public Guid? LastModifiedBy { get; set; }
+    public DateTimeOffset? DeletedOn { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     /// <summary>
     /// The multi-tenancy side(s) this role is available on. Built-in roles take the
@@ -68,7 +71,6 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
         Guid id,
         string name,
         Guid tenantId,
-        string createdBy,
         string? description = null,
         PermissionMultiTenancySide multiTenancySide = PermissionMultiTenancySide.Both,
         bool isStatic = false)
@@ -80,9 +82,7 @@ public class Role : IdentityRole<Guid>, IAggregateRoot<Guid>, ITenantEntity
             TenantId = tenantId,
             Description = description,
             MultiTenancySide = multiTenancySide,
-            IsStatic = isStatic,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = createdBy
+            IsStatic = isStatic
         };
 
         role.RaiseDomainEvent(new RoleCreatedDomainEvent(role));

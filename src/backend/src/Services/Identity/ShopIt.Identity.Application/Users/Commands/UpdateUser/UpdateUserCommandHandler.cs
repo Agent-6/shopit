@@ -72,6 +72,6 @@ public class UpdateUserCommandHandler(UserManager<User> userManager) : ICommandH
             }
         }
 
-        return new UpdateUserResult(user.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty, user.FirstName, user.LastName, user.PhoneNumber, user.IsActive, user.LastModifiedAt);
+        return new UpdateUserResult(user.Id, user.UserName ?? string.Empty, user.Email ?? string.Empty, user.FirstName, user.LastName, user.PhoneNumber, user.IsActive, (user.LastModifiedOn ?? user.CreatedOn).UtcDateTime);
     }
 }

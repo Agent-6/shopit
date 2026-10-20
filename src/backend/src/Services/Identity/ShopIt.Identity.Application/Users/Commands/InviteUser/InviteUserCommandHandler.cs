@@ -28,8 +28,7 @@ public class InviteUserCommandHandler(
             userId,
             email,
             userName: email,
-            _currentTenant.Id,
-            createdBy: "admin",
+            _currentTenant.Id,
             activationToken.Token,
             activationToken.ExpiresAt);
 

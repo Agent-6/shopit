@@ -276,7 +276,6 @@ static async Task EnsureRoleAsync(IServiceProvider services, RoleDefinition defi
                 Guid.NewGuid(),
                 definition.Name,
                 tenantId,
-                "system",
                 definition.Description,
                 definition.Side,
                 isStatic: definition.IsStatic
@@ -356,8 +355,7 @@ static async Task SeedUsers(IServiceProvider services)
                     Guid.NewGuid(),
                     email, // Email
                     email, // UserName (login identifier — emails are used as usernames)
-                    tenantId,
-                    createdBy: "system");
+                    tenantId);
 
                 var hashedPassword = passwordHasher.HashPassword(user, password);
 

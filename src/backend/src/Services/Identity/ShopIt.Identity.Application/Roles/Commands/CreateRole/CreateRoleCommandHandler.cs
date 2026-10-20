@@ -33,8 +33,7 @@ public class CreateRoleCommandHandler(
         var role = Role.Create(
             Guid.NewGuid(),
             request.Name,
-            _currentTenant.Id,
-            createdBy: "system",
+            _currentTenant.Id,
             request.Description,
             side);
 
@@ -45,6 +44,6 @@ public class CreateRoleCommandHandler(
             throw new InvalidOperationException($"Failed to create role: {errors}");
         }
 
-        return new CreateRoleResult(role.Id, role.Name ?? string.Empty, role.Description, role.CreatedAt, role.MultiTenancySide);
+        return new CreateRoleResult(role.Id, role.Name ?? string.Empty, role.Description, role.CreatedOn.UtcDateTime, role.MultiTenancySide);
     }
 }
