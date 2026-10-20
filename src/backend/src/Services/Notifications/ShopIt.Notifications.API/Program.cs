@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Infrastructure;
+using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Inbox;
+using ShopIt.Identity.Events;
 using ShopIt.Notifications.Application;
+using ShopIt.Notifications.Application.Permissions;
 using ShopIt.Notifications.Events;
 using ShopIt.Notifications.Persistence;
 using ShopIt.Notifications.Persistence.Data;
@@ -23,6 +26,17 @@ builder.Services.AddPersistence(
     configureInbox: inbox => inbox.Topics.Add(nameof(SendEmailIntegrationEvent)),
     handlerAssemblies: typeof(ShopIt.Notifications.Application.DependencyInjection).Assembly);
 builder.EnrichNpgsqlDbContext<NotificationsDbContext>();
+
+// PLACEHOLDER (#24): publishes catalog.view / catalog.write so the permission recipe - declare,
+// publish through the framework hook, persist in Identity, grant to Admin, enforce with
+// RequirePermission - is proven before the product catalog service exists. The probe endpoint lives
+// in Tenancy.Presentation/Catalog. Delete this registration with the placeholder provider when M1
+// declares the real permissions; the recipe itself needs no change.
+builder.Services.AddPermissionCatalogPublishing<
+    PlaceholderCatalogPermissionDefinitionProvider,
+    NotificationsDbContext>(
+    PlaceholderCatalogPermissionDefinitionProvider.SourceService,
+    PermissionCatalogPublishedIntegrationEvent.Create);
 
 var app = builder.Build();
 
