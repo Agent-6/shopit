@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Events;
+using ShopIt.Framework.Domain.Users;
+using ShopIt.Framework.Persistence.Auditing;
 using ShopIt.Framework.Persistence.Events;
 
 namespace ShopIt.Framework.Persistence.Inbox;
@@ -153,6 +155,10 @@ public sealed class InboxProcessor<TContext>(
             var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
             var domainEventDispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
 
+            // A background handler has no interactive actor, so this is null unless the message somehow
+            // carries a principal — which is the honest answer, not a placeholder id.
+            var actorId = scope.ServiceProvider.GetService<ICurrentUser>()?.Id;
+
             // Idempotency check: skip if already processed
             var alreadyProcessed = await dbContext.Set<InboxMessage>()
                 .AnyAsync(m => m.Id == eventId && m.ProcessedOn != null, cancellationToken);
@@ -198,6 +204,9 @@ public sealed class InboxProcessor<TContext>(
                 inbox.ProcessedOn = DateTime.UtcNow;
                 inbox.Error = null;
 
+                // Same convention as the command path, with no actor: an inbox handler's writes are
+                // system-initiated.
+                AuditInfo.Apply(dbContext, actorId);
                 await dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 

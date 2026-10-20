@@ -7,6 +7,7 @@ Decisions that are expensive to reverse, recorded so the reasoning survives the 
 | [0001](0001-tenant-isolation-model.md) | Tenant isolation model | Accepted |
 | [0002](0002-permission-resolution-and-caching.md) | Permission resolution and caching | Accepted |
 | [0003](0003-permission-catalog-publishing-hook.md) | Permission-catalog publishing hook | Accepted |
+| [0004](0004-audit-model.md) | Aggregate and audit model | Accepted |
 
 ## Format
 

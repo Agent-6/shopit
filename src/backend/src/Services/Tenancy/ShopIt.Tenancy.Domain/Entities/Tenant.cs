@@ -1,4 +1,5 @@
 using ShopIt.Framework.Domain.Entities;
+using ShopIt.Framework.Domain.Providers;
 using ShopIt.Tenancy.Domain.Events;
 
 namespace ShopIt.Tenancy.Domain.Entities;
@@ -39,6 +40,11 @@ public class Tenant : AuditedAggregateRoot<Guid>
 
         Name = name.Trim();
         IsActive = false;
+
+        // The aggregate records when it was created; the persistence convention fills in the actor and
+        // anything else missing (ADR-0004). Without this the command result could only report a default
+        // timestamp, because stamping happens after the handler returns.
+        CreatedOn = new DateTimeOffset(DomainProviders.Date.UtcNow, TimeSpan.Zero);
     }
 
     /// <summary>
