@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using ShopIt.Framework.Core.UnitOfWork;
-using ShopIt.Framework.Domain.Entities;
 using ShopIt.Framework.Domain.Events;
+using ShopIt.Framework.Persistence.Events;
 
 namespace ShopIt.Framework.Persistence.UnitOfWork;
 
@@ -26,31 +26,17 @@ public class UnitOfWork<TContext>(TContext context, IDomainEventDispatcher domai
         // 1. Persist domain state changes to the DB (still within the open transaction)
         await _context.SaveChangesAsync(cancellationToken);
 
-        // 2. Collect all domain events from tracked aggregate roots, then clear them
-        //    Domain event handlers run INSIDE the transaction, so they can write
-        //    additional rows (e.g. OutboxMessages) atomically with the domain changes.
-        var aggregates = _context.ChangeTracker
-            .Entries<IAggregateRoot>()
-            .Select(e => e.Entity)
-            .Where(a => a.DomainEvents.Count > 0)
-            .ToList();
+        // 2. Collect the domain events from tracked aggregate roots, clear them, and dispatch
+        //    them. Handlers run INSIDE the transaction, so they can write additional rows (e.g.
+        //    OutboxMessages) atomically with the domain changes.
+        var domainEvents = await DomainEventDispatch.DispatchPendingAsync(_context, _domainEventDispatcher, cancellationToken);
 
-        var domainEvents = aggregates
-            .SelectMany(a => a.DomainEvents)
-            .ToList();
-
-        foreach (var aggregate in aggregates)
-            aggregate.ClearDomainEvents();
-
-        // 3. Dispatch domain events (handlers may write to the outbox table, etc.)
+        // 3. Persist changes made by domain event handlers. Handlers typically add OutboxMessage
+        //    rows via IOutboxWriter (which only tracks them, it does not save) — without this second
+        //    save the transaction commits with those rows left only in the ChangeTracker, and the
+        //    integration event is silently lost.
         if (domainEvents.Count > 0)
         {
-            await _domainEventDispatcher.DispatchAsync(domainEvents, cancellationToken);
-
-            // 3b. Persist changes made by domain event handlers. Handlers typically add
-            //     OutboxMessage rows via IOutboxWriter (which only tracks them, it does not
-            //     save) — without this second save the transaction commits with those rows
-            //     left only in the ChangeTracker, and the integration event is silently lost.
             await _context.SaveChangesAsync(cancellationToken);
         }
 
