@@ -1,23 +1,25 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
+using ShopIt.Framework.Domain.Errors;
 using ShopIt.Framework.Domain.Permissions;
-using ShopIt.Identity.Domain.Entities;
+using ShopIt.Framework.Domain.Result;
 using ShopIt.Framework.Domain.Tenancy;
+using ShopIt.Identity.Domain.Entities;
+using ShopIt.Identity.Domain.Roles;
 
 namespace ShopIt.Identity.Application.Roles.Commands.CreateRole;
 
 public class CreateRoleCommandHandler(
     RoleManager<Role> roleManager,
-    ICurrentTenant currentTenant) : ICommandHandler<CreateRoleCommand, CreateRoleResult>
+    ICurrentTenant currentTenant) : ICommandHandler<CreateRoleCommand, Result<CreateRoleResult, Error>>
 {
     private readonly RoleManager<Role> _roleManager = roleManager;
     private readonly ICurrentTenant _currentTenant = currentTenant;
 
-    public async Task<CreateRoleResult> HandleAsync(CreateRoleCommand request, CancellationToken cancellationToken)
+    public async Task<Result<CreateRoleResult, Error>> HandleAsync(CreateRoleCommand request, CancellationToken cancellationToken)
     {
         // A role's declared side must be available on the caller's side: a host caller
         // may create host or both-side roles, a tenant caller tenant or both-side ones.
-        // A tenant caller declaring a host-only role (or vice versa) is rejected.
         var currentSide = _currentTenant.IsHost
             ? PermissionMultiTenancySide.Host
             : PermissionMultiTenancySide.Tenant;
@@ -25,23 +27,22 @@ public class CreateRoleCommandHandler(
 
         if (!side.IsAvailableOn(currentSide))
         {
-            throw new InvalidOperationException(
-                $"Role '{request.Name}' is not available on the {currentSide} side; " +
-                $"choose '{PermissionMultiTenancySide.Both}' or '{currentSide}'.");
+            return RoleErrors.NotAvailableOnSide(request.Name, currentSide);
         }
 
         var role = Role.Create(
             Guid.NewGuid(),
             request.Name,
-            _currentTenant.Id,
+            _currentTenant.Id,
             request.Description,
             side);
 
         var result = await _roleManager.CreateAsync(role);
         if (!result.Succeeded)
         {
-            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Failed to create role: {errors}");
+            return RoleErrors.Invalid(
+                "Role.Create",
+                result.Errors.Select(e => e.Description));
         }
 
         return new CreateRoleResult(role.Id, role.Name ?? string.Empty, role.Description, role.CreatedOn.UtcDateTime, role.MultiTenancySide);
