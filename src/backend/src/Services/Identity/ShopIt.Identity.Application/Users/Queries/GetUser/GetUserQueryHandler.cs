@@ -39,8 +39,8 @@ public class GetUserQueryHandler(
             LockoutEnabled: user.LockoutEnabled,
             LockoutEnd: user.LockoutEnd,
             AccessFailedCount: user.AccessFailedCount,
-            CreatedAt: user.CreatedAt,
-            LastModifiedAt: user.LastModifiedAt
+            CreatedAt: user.CreatedOn.UtcDateTime,
+            LastModifiedAt: (user.LastModifiedOn ?? user.CreatedOn).UtcDateTime
         );
     }
 }

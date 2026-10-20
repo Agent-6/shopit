@@ -21,9 +21,7 @@ public class CreateUserCommandHandler(
             userId,
             request.Email,
             request.Username,
-            _currentTenant.Id,
-            createdBy: "system"
-        );
+            _currentTenant.Id);
 
         // Set optional properties
         if (!string.IsNullOrWhiteSpace(request.FirstName))

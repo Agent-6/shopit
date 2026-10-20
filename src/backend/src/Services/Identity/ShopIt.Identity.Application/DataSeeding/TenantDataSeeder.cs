@@ -38,7 +38,7 @@ public class TenantDataSeeder(
             var admin = await userManager.FindByEmailAsync(adminEmail);
             if (admin is null)
             {
-                admin = User.Create(Guid.NewGuid(), adminEmail, adminEmail, tenantId, createdBy: "system");
+                admin = User.Create(Guid.NewGuid(), adminEmail, adminEmail, tenantId);
                 admin.SetPassword(new PasswordHasher<User>().HashPassword(admin, seedOptions.Value.AdminPassword));
                 admin.ConfirmEmail();
 
@@ -95,7 +95,6 @@ public class TenantDataSeeder(
                 Guid.NewGuid(),
                 definition.Name,
                 tenantId,
-                createdBy: "system",
                 definition.Description,
                 definition.Side,
                 isStatic: definition.IsStatic);

@@ -32,8 +32,8 @@ public class GetUsersQueryHandler(
             u.PhoneNumberConfirmed,
             u.LockoutEnabled,
             u.LockoutEnd,
-            u.CreatedAt,
-            u.LastModifiedAt,
+            u.CreatedOn.UtcDateTime,
+            (u.LastModifiedOn ?? u.CreatedOn).UtcDateTime,
             rolesByUser.TryGetValue(u.Id, out var roles) ? roles : []
         )).ToList();
 

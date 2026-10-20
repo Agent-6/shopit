@@ -7,18 +7,17 @@ using ShopIt.Framework.Domain.Tenancy;
 
 namespace ShopIt.Identity.Domain.Entities;
 
-public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
+public class User : IdentityUser<Guid>, IAggregateRoot, IAuditedEntity<Guid>, ITenantEntity
 {
     #region IAggregateRoot Implementation
 
-    private readonly List<DomainEvent> _domainEvents = [];
-    public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.AsReadOnly();
+    // Composed rather than hand-rolled: C# has single inheritance and this type already inherits
+    // IdentityUser<Guid>, so the framework's AggregateRoot<TId> is not available (ADR-0004).
+    private readonly DomainEventCollector _domainEvents = new();
 
-    protected void RaiseDomainEvent(DomainEvent domainEvent)
-    {
-        ArgumentNullException.ThrowIfNull(domainEvent);
-        _domainEvents.Add(domainEvent);
-    }
+    public IReadOnlyList<DomainEvent> DomainEvents => _domainEvents.DomainEvents;
+
+    protected void RaiseDomainEvent(DomainEvent domainEvent) => _domainEvents.Raise(domainEvent);
 
     public void ClearDomainEvents() => _domainEvents.Clear();
 
@@ -34,9 +33,13 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     public DateTime? LastLoginAt { get; private set; } = default!;
     public bool IsActive { get; private set; } = true;
     public UserStatus Status { get; private set; } = UserStatus.Active;
-    public DateTime CreatedAt { get; private set; } = default!;
-    public DateTime LastModifiedAt { get; private set; } = default!;
-    public string CreatedBy { get; private set; } = default!;
+    // Audit: stamped by the persistence convention (ADR-0004), never by handlers.
+    public DateTimeOffset CreatedOn { get; set; }
+    public Guid? CreatedBy { get; set; }
+    public DateTimeOffset? LastModifiedOn { get; set; }
+    public Guid? LastModifiedBy { get; set; }
+    public DateTimeOffset? DeletedOn { get; set; }
+    public Guid? DeletedBy { get; set; }
 
     // Navigation properties
     private readonly List<UserRole> _userRoles = [];
@@ -58,7 +61,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     /// <param name="id">The Identifier of the User.</param>
     private User(Guid id) : base() => Id = id;
 
-    public static User Create(Guid id, string email, string userName, Guid tenantId, string createdBy)
+    public static User Create(Guid id, string email, string userName, Guid tenantId)
     {
         var user = new User(id)
         {
@@ -68,9 +71,6 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
             NormalizedUserName = userName.ToUpperInvariant(),
             TenantId = tenantId,
             SecurityStamp = Guid.NewGuid().ToString(),
-            CreatedAt = DateTime.UtcNow,
-            LastModifiedAt = DateTime.UtcNow,
-            CreatedBy = createdBy,
             Status = UserStatus.Active,
             IsActive = true
         };
@@ -91,7 +91,6 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         string email,
         string userName,
         Guid tenantId,
-        string createdBy,
         string activationToken,
         DateTimeOffset activationTokenExpiresAt)
     {
@@ -103,9 +102,6 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
             NormalizedUserName = userName.ToUpperInvariant(),
             TenantId = tenantId,
             SecurityStamp = Guid.NewGuid().ToString(),
-            CreatedAt = DateTime.UtcNow,
-            LastModifiedAt = DateTime.UtcNow,
-            CreatedBy = createdBy,
             Status = UserStatus.PendingActivation,
             IsActive = false
         };
@@ -147,7 +143,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         NormalizedEmail = newEmail.ToUpperInvariant();
         EmailConfirmed = false;
         SecurityStamp = Guid.NewGuid().ToString();
-        LastModifiedAt = DateTime.UtcNow;
+
 
         RaiseDomainEvent(new UserEmailChangedDomainEvent(Id, newEmail));
     }
@@ -213,7 +209,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
             return;
 
         LockoutEnd = until;
-        LastModifiedAt = DateTime.UtcNow;
+
         RaiseDomainEvent(new UserLockedOutDomainEvent(Id, until));
     }
 
@@ -227,7 +223,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
 
         LockoutEnd = null;
         AccessFailedCount = 0;
-        LastModifiedAt = DateTime.UtcNow;
+
         RaiseDomainEvent(new UserUnlockedDomainEvent(Id));
     }
 
@@ -348,7 +344,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     {
         IsActive = false;
         Status = UserStatus.Inactive;
-        LastModifiedAt = DateTime.UtcNow;
+
         RaiseDomainEvent(new UserDeactivatedDomainEvent(Id, reason));
     }
 
@@ -356,7 +352,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
     {
         IsActive = true;
         Status = UserStatus.Active;
-        LastModifiedAt = DateTime.UtcNow;
+
         RaiseDomainEvent(new UserActivatedDomainEvent(Id, Email ?? string.Empty));
     }
 
@@ -371,7 +367,7 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         EmailConfirmed = true;
         IsActive = true;
         Status = UserStatus.Active;
-        LastModifiedAt = DateTime.UtcNow;
+
 
         RaiseDomainEvent(new UserActivatedDomainEvent(Id, Email ?? string.Empty));
     }
@@ -391,7 +387,6 @@ public class User : IdentityUser<Guid>, IAggregateRoot<Guid>, ITenantEntity
         if (profilePictureUrl is not null)
             ProfilePictureUrl = profilePictureUrl;
 
-        LastModifiedAt = DateTime.UtcNow;
         RaiseDomainEvent(new UserProfileUpdatedDomainEvent(Id, firstName, lastName));
     }
 }

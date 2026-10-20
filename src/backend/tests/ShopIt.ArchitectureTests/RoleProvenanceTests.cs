@@ -54,7 +54,7 @@ public class RoleProvenanceTests
     private static readonly Guid TenantId = Guid.Parse("b5d0c0e4-3a5b-4cdc-8d2a-7f1f6c9f5b4e");
 
     private static Role NewRole(string name, bool isStatic) =>
-        Role.Create(Guid.NewGuid(), name, TenantId, "test", isStatic: isStatic);
+        Role.Create(Guid.NewGuid(), name, TenantId, isStatic: isStatic);
 
     [Fact]
     public void Static_role_cannot_be_renamed()
@@ -120,7 +120,7 @@ public class RoleProvenanceTests
     public void Roles_are_not_static_by_default()
     {
         // A user-created role must never be static; only seeding sets it.
-        var role = Role.Create(Guid.NewGuid(), "Support", TenantId, "test");
+        var role = Role.Create(Guid.NewGuid(), "Support", TenantId);
 
         Assert.False(role.IsStatic);
     }
@@ -129,7 +129,7 @@ public class RoleProvenanceTests
     public void Create_carries_the_multi_tenancy_side_and_static_flag_together()
     {
         var role = Role.Create(
-            Guid.NewGuid(), "Admin", TenantId, "test",
+            Guid.NewGuid(), "Admin", TenantId,
             multiTenancySide: PermissionMultiTenancySide.Tenant,
             isStatic: true);
 
