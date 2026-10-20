@@ -3,17 +3,20 @@ using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Framework.Domain.Tenancy;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Commands.CreateUser;
 
 public class CreateUserCommandHandler(
     UserManager<User> userManager,
-    ICurrentTenant currentTenant) : ICommandHandler<CreateUserCommand, CreateUserResult>
+    ICurrentTenant currentTenant) : ICommandHandler<CreateUserCommand, Result<CreateUserResult, Error>>
 {
     private readonly UserManager<User> _userManager = userManager;
     private readonly ICurrentTenant _currentTenant = currentTenant;
 
-    public async Task<CreateUserResult> HandleAsync(CreateUserCommand request, CancellationToken cancellationToken)
+    public async Task<Result<CreateUserResult, Error>> HandleAsync(CreateUserCommand request, CancellationToken cancellationToken)
     {
         var userId = Guid.NewGuid();
 
@@ -33,8 +36,7 @@ public class CreateUserCommandHandler(
         var result = await _userManager.CreateAsync(user, request.Password);
         if (!result.Succeeded)
         {
-            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
-            throw new InvalidOperationException($"Failed to create user: {errors}");
+            return UserErrors.Invalid("User.Create", result.Errors.Select(e => e.Description));
         }
 
         if (request.Roles is not null && request.Roles.Any())
@@ -42,8 +44,10 @@ public class CreateUserCommandHandler(
             var roleResult = await _userManager.AddToRolesAsync(user, request.Roles);
             if (!roleResult.Succeeded)
             {
-                var errors = string.Join("; ", roleResult.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Failed to assign roles: {errors}");
+                // The user exists now. Leaving it behind without the roles it was created with would be
+                // a half-applied command, so remove it before reporting the failure.
+                await _userManager.DeleteAsync(user);
+                return UserErrors.Invalid("User.Create", roleResult.Errors.Select(e => e.Description));
             }
         }
 
@@ -54,8 +58,8 @@ public class CreateUserCommandHandler(
                 var claimResult = await _userManager.AddClaimAsync(user, new Claim(claim.Type, claim.Value));
                 if (!claimResult.Succeeded)
                 {
-                    var errors = string.Join("; ", claimResult.Errors.Select(e => e.Description));
-                    throw new InvalidOperationException($"Failed to assign claim '{claim.Type}': {errors}");
+                    await _userManager.DeleteAsync(user);
+                    return UserErrors.Invalid("User.Create", claimResult.Errors.Select(e => e.Description));
                 }
             }
         }

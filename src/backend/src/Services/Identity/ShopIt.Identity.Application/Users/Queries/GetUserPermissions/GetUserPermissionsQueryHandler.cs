@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Queries;
 using ShopIt.Identity.Domain.Entities;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Queries.GetUserPermissions;
 
-public class GetUserPermissionsQueryHandler : IQueryHandler<GetUserPermissionsQuery, GetUserPermissionsResult>
+public class GetUserPermissionsQueryHandler : IQueryHandler<GetUserPermissionsQuery, Result<GetUserPermissionsResult, Error>>
 {
     private readonly UserManager<User> _userManager;
     private readonly RoleManager<Role> _roleManager;
@@ -15,10 +18,13 @@ public class GetUserPermissionsQueryHandler : IQueryHandler<GetUserPermissionsQu
         _roleManager = roleManager;
     }
 
-    public async Task<GetUserPermissionsResult> HandleAsync(GetUserPermissionsQuery request, CancellationToken cancellationToken)
+    public async Task<Result<GetUserPermissionsResult, Error>> HandleAsync(GetUserPermissionsQuery request, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-        if (user is null) throw new KeyNotFoundException("User not found");
+        if (user is null)
+        {
+            return UserErrors.NotFound(request.UserId);
+        }
 
         var permissions = new List<UserPermissionItem>();
         var inherited = new List<InheritedPermissionItem>();

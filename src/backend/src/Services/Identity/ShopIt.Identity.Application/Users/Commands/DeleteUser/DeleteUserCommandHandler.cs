@@ -3,10 +3,13 @@ using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Repositories;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Commands.DeleteUser;
 
-public class DeleteUserCommandHandler : ICommandHandler<DeleteUserCommand, DeleteUserResult>
+public class DeleteUserCommandHandler : ICommandHandler<DeleteUserCommand, Result<DeleteUserResult, Error>>
 {
     private readonly UserManager<User> _userManager;
     private readonly IUserRepository _userRepository;
@@ -22,10 +25,13 @@ public class DeleteUserCommandHandler : ICommandHandler<DeleteUserCommand, Delet
         _permissionCache = permissionCache;
     }
 
-    public async Task<DeleteUserResult> HandleAsync(DeleteUserCommand request, CancellationToken cancellationToken)
+    public async Task<Result<DeleteUserResult, Error>> HandleAsync(DeleteUserCommand request, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-        if (user is null) throw new KeyNotFoundException("User not found");
+        if (user is null)
+        {
+            return UserErrors.NotFound(request.UserId);
+        }
 
         // Either shape removes the user's access: a hard delete removes the row, a soft delete
         // deactivates it and the resolver treats an inactive user as holding nothing. Both make any
@@ -39,18 +45,24 @@ public class DeleteUserCommandHandler : ICommandHandler<DeleteUserCommand, Delet
         return result;
     }
 
-    private async Task<DeleteUserResult> DeletePermanentlyAsync(User user)
+    private async Task<Result<DeleteUserResult, Error>> DeletePermanentlyAsync(User user)
     {
         var res = await _userManager.DeleteAsync(user);
-        if (!res.Succeeded) throw new InvalidOperationException(string.Join(";", res.Errors.Select(e => e.Description)));
+        if (!res.Succeeded)
+        {
+            return UserErrors.Invalid("User.Delete", res.Errors.Select(e => e.Description));
+        }
         return new DeleteUserResult(user.Id, true, "Permanent");
     }
 
-    private async Task<DeleteUserResult> SoftDeleteAsync(User user)
+    private async Task<Result<DeleteUserResult, Error>> SoftDeleteAsync(User user)
     {
         user.Deactivate("soft-delete");
         var res = await _userManager.UpdateAsync(user);
-        if (!res.Succeeded) throw new InvalidOperationException(string.Join(";", res.Errors.Select(e => e.Description)));
+        if (!res.Succeeded)
+        {
+            return UserErrors.Invalid("User.Delete", res.Errors.Select(e => e.Description));
+        }
         return new DeleteUserResult(user.Id, true, "Soft");
     }
 }
