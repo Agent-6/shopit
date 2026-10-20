@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Infrastructure;
+using ShopIt.Framework.Infrastructure.Security;
 using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Events;
@@ -34,15 +35,19 @@ builder.Services.AddPermissionCatalogPublishing<ShopItTenancyPermissionDefinitio
     PermissionCatalogPublishedIntegrationEvent.Create);
 
 // Validate access tokens issued by the authentication server (introspection) and resolve
-// the caller's permissions from the Identity service.
+// the caller's permissions from the Identity service. The introspection secret is injected by the
+// AppHost; a missing one fails here rather than as an unexplained 401 on every request.
+var introspectionClient = ServiceClientCredentials.Read(
+    builder.Configuration, "InternalClients:Introspection", "token introspection");
+
 builder.Services.AddOpenIddict()
     .AddValidation(options =>
     {
         options.SetIssuer("https://localhost:7234/");
 
         options.UseIntrospection()
-               .SetClientId("identity-api")
-               .SetClientSecret("SECRET");
+               .SetClientId(introspectionClient.ClientId)
+               .SetClientSecret(introspectionClient.ClientSecret);
 
         options.UseSystemNetHttp();
         options.UseAspNetCore();

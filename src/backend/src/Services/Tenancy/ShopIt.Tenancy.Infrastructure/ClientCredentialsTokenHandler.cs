@@ -2,7 +2,9 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ShopIt.Framework.Infrastructure.Security;
 
 namespace ShopIt.Tenancy.Infrastructure;
 
@@ -11,14 +13,27 @@ namespace ShopIt.Tenancy.Infrastructure;
 /// server's <c>/connect/token</c> endpoint and attaches it as a Bearer token to outgoing
 /// requests. Tokens are cached until near expiry to avoid repeated token requests.
 /// </summary>
-public class ClientCredentialsTokenHandler(
-    IHttpClientFactory httpClientFactory,
-    IMemoryCache cache,
-    ILogger<ClientCredentialsTokenHandler> logger) : DelegatingHandler
+public class ClientCredentialsTokenHandler : DelegatingHandler
 {
-    private const string ClientId = "shopit-backend";
-    private const string ClientSecret = "BACKEND_SECRET";
     private const string Scope = "shopit-api";
+
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IMemoryCache _cache;
+    private readonly ILogger<ClientCredentialsTokenHandler> _logger;
+    private readonly ServiceClientCredentials _credentials;
+
+    public ClientCredentialsTokenHandler(
+        IHttpClientFactory httpClientFactory,
+        IMemoryCache cache,
+        IConfiguration configuration,
+        ILogger<ClientCredentialsTokenHandler> logger)
+    {
+        _httpClientFactory = httpClientFactory;
+        _cache = cache;
+        _logger = logger;
+        _credentials = ServiceClientCredentials.Read(
+            configuration, "InternalClients:Backend", "backend service");
+    }
 
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
@@ -35,21 +50,21 @@ public class ClientCredentialsTokenHandler(
         const string cacheKey = "tenancy_client_credentials_token";
 
         // Reuse a cached token while it still has a comfortable margin before expiry.
-        if (cache.TryGetValue(cacheKey, out CachedToken? cached)
+        if (_cache.TryGetValue(cacheKey, out CachedToken? cached)
             && cached is not null
             && cached.ExpiresAt > DateTimeOffset.UtcNow.AddMinutes(1))
         {
             return cached.AccessToken;
         }
 
-        logger.LogInformation("Requesting client credentials token from the authentication server");
+        _logger.LogInformation("Requesting client credentials token from the authentication server");
 
-        using var client = httpClientFactory.CreateClient("auth-server");
+        using var client = _httpClientFactory.CreateClient("auth-server");
         var form = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "client_credentials",
-            ["client_id"] = ClientId,
-            ["client_secret"] = ClientSecret,
+            ["client_id"] = _credentials.ClientId,
+            ["client_secret"] = _credentials.ClientSecret,
             ["scope"] = Scope,
         });
 
@@ -63,7 +78,7 @@ public class ClientCredentialsTokenHandler(
         }
 
         var expiresAt = DateTimeOffset.UtcNow.AddSeconds(Math.Max(60, payload.ExpiresIn) - 30);
-        cache.Set(cacheKey, new CachedToken(payload.AccessToken, expiresAt), expiresAt);
+        _cache.Set(cacheKey, new CachedToken(payload.AccessToken, expiresAt), expiresAt);
 
         return payload.AccessToken;
     }

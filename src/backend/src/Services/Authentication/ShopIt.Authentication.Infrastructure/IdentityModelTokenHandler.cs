@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -8,6 +9,7 @@ using OpenIddict.Server;
 using static OpenIddict.Server.OpenIddictServerEvents;
 using System.Security.Claims;
 using System.Collections.Immutable;
+using ShopIt.Framework.Infrastructure.Security;
 
 namespace ShopIt.Authentication.Infrastructure;
 
@@ -18,8 +20,6 @@ namespace ShopIt.Authentication.Infrastructure;
 /// </summary>
 public class IdentityModelTokenHandler : DelegatingHandler
 {
-    private const string ClientId = "shopit-backend";
-    private const string ClientSecret = "BACKEND_SECRET";
     private const string ApiScope = "shopit-api";
 
     private readonly IMemoryCache _cache;
@@ -28,6 +28,7 @@ public class IdentityModelTokenHandler : DelegatingHandler
     private readonly IOptions<OpenIddictServerOptions> _options;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<IdentityModelTokenHandler> _logger;
+    private readonly ServiceClientCredentials _credentials;
 
     public IdentityModelTokenHandler(
         IMemoryCache cache,
@@ -35,6 +36,7 @@ public class IdentityModelTokenHandler : DelegatingHandler
         IOpenIddictScopeManager scopeManager,
         IOptions<OpenIddictServerOptions> options,
         IHttpContextAccessor httpContextAccessor,
+        IConfiguration configuration,
         ILogger<IdentityModelTokenHandler> logger)
     {
         _cache = cache;
@@ -43,6 +45,8 @@ public class IdentityModelTokenHandler : DelegatingHandler
         _options = options;
         _httpContextAccessor = httpContextAccessor;
         _logger = logger;
+        _credentials = ServiceClientCredentials.Read(
+            configuration, "InternalClients:Backend", "backend service");
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(
@@ -86,8 +90,8 @@ public class IdentityModelTokenHandler : DelegatingHandler
             Options = _options.Value,
             Request = new OpenIddictRequest
             {
-                ClientId = ClientId,
-                ClientSecret = ClientSecret,
+                ClientId = _credentials.ClientId,
+                ClientSecret = _credentials.ClientSecret,
                 Scope = ApiScope,
                 GrantType = OpenIddictConstants.GrantTypes.ClientCredentials
             },
@@ -95,7 +99,7 @@ public class IdentityModelTokenHandler : DelegatingHandler
         };
 
         var identity = new ClaimsIdentity(TokenValidationParameters.DefaultAuthenticationType);
-        identity.SetClaim(OpenIddictConstants.Claims.Subject, ClientId);
+        identity.SetClaim(OpenIddictConstants.Claims.Subject, _credentials.ClientId);
         identity.SetScopes(new[] { ApiScope }.ToImmutableArray());
         identity.SetClaim(OpenIddictConstants.Claims.Private.Issuer, GetIssuer());
 
@@ -108,7 +112,7 @@ public class IdentityModelTokenHandler : DelegatingHandler
 
         var notification = new GenerateTokenContext(transaction)
         {
-            ClientId = ClientId,
+            ClientId = _credentials.ClientId,
             CreateTokenEntry = !_options.Value.DisableTokenStorage,
             IsReferenceToken = _options.Value.UseReferenceAccessTokens,
             PersistTokenPayload = _options.Value.UseReferenceAccessTokens,

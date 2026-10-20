@@ -9,6 +9,7 @@ using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Presentation;
 using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Permissions;
+using ShopIt.Framework.Infrastructure.Security;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Events;
 using ShopIt.Identity.Application.DataSeeding;
@@ -107,6 +108,13 @@ builder.Services.AddIdentityCore<User>(options =>
 builder.Services.AddScoped<IRoleStore<Role>, TenantRoleStore>();
 builder.Services.AddScoped<IUserStore<User>, TenantUserStore>();
 
+// Client credentials for service-to-service calls. Secrets are injected by the AppHost; ids come from
+// appsettings. A missing secret fails here, at startup, instead of as an unexplained 401 later.
+var introspectionClient = ServiceClientCredentials.Read(
+    builder.Configuration, "InternalClients:Introspection", "token introspection");
+var backendClient = ServiceClientCredentials.Read(
+    builder.Configuration, "InternalClients:Backend", "backend service");
+
 // Add OpenIddict validation
 builder.Services.AddOpenIddict()
     .AddValidation(options =>
@@ -119,8 +127,8 @@ builder.Services.AddOpenIddict()
 
         // Configure introspection with client credentials
         options.UseIntrospection()
-               .SetClientId("identity-api")      // The client you created
-               .SetClientSecret("SECRET");  // Same secret as above
+               .SetClientId(introspectionClient.ClientId)
+               .SetClientSecret(introspectionClient.ClientSecret);
 
         //options.AddEncryptionKey(new SymmetricSecurityKey(
         //        Convert.FromBase64String("DRjd/GnduI3Efzen9V9BvbNUfc/VKgXltV7Kbk9sMkY=")));
@@ -143,7 +151,7 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAssertion(ctx =>
             ctx.User.FindFirstValue("sub") is { } subject
             && !Guid.TryParse(subject, out _)
-            && subject == "shopit-backend");
+            && subject == backendClient.ClientId);
     });
 });
 builder.Services.AddPermissionAuthorization();

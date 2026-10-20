@@ -49,6 +49,21 @@ var mailpit = builder.AddMailPit("mailpit", httpPort: 8025, smtpPort: 1025)
 var redis = builder.AddRedis("cache")
     .WithLifetime(ContainerLifetime.Persistent);
 
+// Client credentials for service-to-service calls are generated per run rather than written down.
+// They are the same for every service in one run, which is what makes them work; a fresh value each
+// time is what keeps them out of the repository and out of a developer's configuration files. The
+// client ids stay in each service's appsettings.json, because an id is not a credential.
+var introspectionClientSecret = Guid.NewGuid().ToString("N");
+var backendClientSecret = Guid.NewGuid().ToString("N");
+
+static IResourceBuilder<ProjectResource> WithInternalClients(
+    IResourceBuilder<ProjectResource> resource,
+    string introspectionClientSecret,
+    string backendClientSecret) =>
+    resource
+        .WithEnvironment("InternalClients__Introspection__ClientSecret", introspectionClientSecret)
+        .WithEnvironment("InternalClients__Backend__ClientSecret", backendClientSecret);
+
 var auth = builder.AddProject<Projects.ShopIt_Authentication_API>("auth-api")
     .WithReference(authDb)
     .WithReference(seq)
@@ -58,6 +73,7 @@ var auth = builder.AddProject<Projects.ShopIt_Authentication_API>("auth-api")
     .WaitFor(kafka)
     .WaitFor(seq)
     .WaitFor(redis);
+auth = WithInternalClients(auth, introspectionClientSecret, backendClientSecret);
 
 var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WithReference(identityDb)
@@ -68,6 +84,7 @@ var identity = builder.AddProject<Projects.ShopIt_Identity_API>("identity-api")
     .WaitFor(kafka)
     .WaitFor(seq)
     .WaitFor(redis);
+identity = WithInternalClients(identity, introspectionClientSecret, backendClientSecret);
 
 auth.WithReference(identity).WaitFor(identity);
 
@@ -86,6 +103,7 @@ var tenancy = builder.AddProject<Projects.ShopIt_Tenancy_API>("tenancy-api")
     .WaitFor(auth)
     .WaitFor(identity)
     .WaitFor(redis);
+tenancy = WithInternalClients(tenancy, introspectionClientSecret, backendClientSecret);
 
 // Notifications consumes SendEmailIntegrationEvent from Identity and Authentication
 // and delivers the emails to Mailpit's SMTP endpoint. It only needs Kafka, its own

@@ -4,6 +4,7 @@ using ShopIt.Authentication.Infrastructure;
 using ShopIt.Authentication.Persistence;
 using ShopIt.Authentication.Persistence.Data;
 using ShopIt.Framework.Domain;
+using ShopIt.Framework.Infrastructure.Security;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Persistence.Outbox;
 using ShopIt.Identity.Events;
@@ -40,6 +41,15 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+
+// Client credentials for service-to-service calls. The secrets are injected by the AppHost; the ids
+// come from appsettings. Reading them here makes a missing secret a startup failure rather than a
+// 401 nobody connects to a configuration problem.
+var introspectionClient = ServiceClientCredentials.Read(
+    builder.Configuration, "InternalClients:Introspection", "token introspection");
+var backendClient = ServiceClientCredentials.Read(
+    builder.Configuration, "InternalClients:Backend", "backend service");
+
 var app = builder.Build();
 
 app.Services.UseDomainServices();
@@ -198,8 +208,7 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
         await applicationManager.CreateAsync(descriptor);
     }
 
-    const string identityApiClientId = "identity-api";
-    var existingApiClient = await applicationManager.FindByClientIdAsync(identityApiClientId);
+    var existingApiClient = await applicationManager.FindByClientIdAsync(introspectionClient.ClientId);
     if (existingApiClient != null)
     {
         await applicationManager.DeleteAsync(existingApiClient);
@@ -207,8 +216,8 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
 
     await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
     {
-        ClientId = identityApiClientId,
-        ClientSecret = "SECRET",
+        ClientId = introspectionClient.ClientId,
+        ClientSecret = introspectionClient.ClientSecret,
         DisplayName = "Identity API Resource Server",
         Permissions =
         {
@@ -217,8 +226,7 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
     });
 
     // Backend-to-backend client credentials client
-    const string backendClientId = "shopit-backend";
-    var existingBackendApp = await applicationManager.FindByClientIdAsync(backendClientId);
+    var existingBackendApp = await applicationManager.FindByClientIdAsync(backendClient.ClientId);
     if (existingBackendApp != null)
     {
         await applicationManager.DeleteAsync(existingBackendApp);
@@ -226,8 +234,8 @@ async Task SeedOpenIddictApplicationsAsync(IServiceProvider serviceProvider)
 
     await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
     {
-        ClientId = backendClientId,
-        ClientSecret = "BACKEND_SECRET",
+        ClientId = backendClient.ClientId,
+        ClientSecret = backendClient.ClientSecret,
         DisplayName = "ShopIt Backend Service",
         ClientType = OpenIddictConstants.ClientTypes.Confidential,
         Permissions =
