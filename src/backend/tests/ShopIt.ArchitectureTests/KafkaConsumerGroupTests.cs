@@ -39,17 +39,16 @@ public class KafkaConsumerGroupTests
         var services = new ServiceCollection();
 
         Assert.Throws<ArgumentException>(() =>
-            services.AddKafkaIntegration<ApplicationDbContext>(consumerGroupId));
+            services.AddKafkaIntegration<ApplicationDbContext>(consumerGroupId, InboxSubscription.None));
     }
 
     [Fact]
     public void Registering_the_inbox_with_no_group_at_all_does_not_compile_away_silently()
     {
-        // The parameter is required and untested for null through a named argument; this asserts the
-        // guard covers the null case as well as the empty one.
+        // The parameter is required; this asserts the guard covers the null case as well as the empty one.
         var services = new ServiceCollection();
 
         Assert.Throws<ArgumentNullException>(() =>
-            services.AddKafkaIntegration<ApplicationDbContext>(consumerGroupId: null!));
+            services.AddKafkaIntegration<ApplicationDbContext>(consumerGroupId: null!, InboxSubscription.None));
     }
 }

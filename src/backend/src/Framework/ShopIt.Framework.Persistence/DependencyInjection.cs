@@ -81,14 +81,23 @@ public static class DependencyInjection
     /// service means each of them receives only part of a topic's messages. Required, so it cannot be
     /// forgotten and cannot silently fall back to a shared default.
     /// </param>
+    /// <param name="inbox">
+    /// What this service consumes. Required and explicit: <see cref="InboxSubscription.None"/> for a
+    /// publish-only service, or <see cref="InboxSubscription.Consuming"/> with its topics. A service
+    /// cannot end up with an inbox that starts and silently consumes nothing.
+    /// </param>
     /// <param name="configuration">Optional configuration to read <c>ConnectionStrings:kafka</c> from.</param>
     /// <param name="configureOutbox">Optional action to configure <see cref="OutboxOptions"/>.</param>
-    /// <param name="configureInbox">Optional action to configure <see cref="InboxOptions"/>.</param>
+    /// <param name="configureInbox">Optional action to configure non-topic <see cref="InboxOptions"/> settings.</param>
     /// <param name="assemblies">Assemblies to scan for <see cref="IIntegrationEventHandler{TEvent}"/> implementations.</param>
     /// <returns>The updated service collection.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// A subscribed topic has no registered handler — the message would be consumed and dropped.
+    /// </exception>
     public static IServiceCollection AddKafkaIntegration<TContext>(
         this IServiceCollection services,
         string consumerGroupId,
+        InboxSubscription inbox,
         IConfiguration? configuration = null,
         Action<OutboxOptions>? configureOutbox = null,
         Action<InboxOptions>? configureInbox = null,
@@ -96,6 +105,7 @@ public static class DependencyInjection
         where TContext : DbContext
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(consumerGroupId);
+        ArgumentNullException.ThrowIfNull(inbox);
 
         var bootstrapServers = KafkaConfiguration.GetBootstrapServers(configuration);
 
@@ -109,19 +119,63 @@ public static class DependencyInjection
         var inboxOptions = new InboxOptions();
         inboxOptions.KafkaBootstrapServers = bootstrapServers;
         configureInbox?.Invoke(inboxOptions);
-        // Assigned after the callback so the parameter is authoritative: the group id is a property of
-        // the service, not something an inbox configuration can vary.
+        // Assigned after the callback so the parameters are authoritative: the group id and the topic
+        // list are properties of the service's declaration, not something an options action can vary.
         inboxOptions.ConsumerGroupId = consumerGroupId;
+        inboxOptions.Topics = [.. inbox.Topics];
         services.AddSingleton(Microsoft.Extensions.Options.Options.Create(inboxOptions));
 
-        // Register background services
+        // Register background services. The inbox processor only exists for a service that declared
+        // consumption; "publish-only" is then visible in the graph, not inferred from an empty list at
+        // runtime.
         services.AddHostedService<OutboxProcessor<TContext>>();
-        services.AddHostedService<InboxProcessor<TContext>>();
+        if (inbox.IsConsuming)
+        {
+            services.AddHostedService<InboxProcessor<TContext>>();
+        }
 
         // Scan and register IIntegrationEventHandler<> implementations
         services.AddIntegrationEventHandlers(assemblies);
 
+        EnsureEverySubscribedTopicHasAHandler(services, inbox, consumerGroupId);
+
         return services;
+    }
+
+    /// <summary>
+    /// Fails registration when a subscribed topic has no handler in the scanned assemblies.
+    /// </summary>
+    /// <remarks>
+    /// The inbox dispatches by event type name, so a topic without a handler is consumed, recorded and
+    /// then dropped — it looks like a healthy service that simply never reacts. That is the failure this
+    /// check turns into a startup error, naming the topic and the group.
+    /// </remarks>
+    private static void EnsureEverySubscribedTopicHasAHandler(
+        IServiceCollection services,
+        InboxSubscription inbox,
+        string consumerGroupId)
+    {
+        if (!inbox.IsConsuming)
+        {
+            return;
+        }
+
+        var handledEventNames = services
+            .Where(descriptor => descriptor.ServiceType.IsGenericType
+                && descriptor.ServiceType.GetGenericTypeDefinition() == typeof(IIntegrationEventHandler<>))
+            .Select(descriptor => descriptor.ServiceType.GetGenericArguments()[0].Name)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var unhandled = inbox.Topics.Where(topic => !handledEventNames.Contains(topic)).ToList();
+
+        if (unhandled.Count > 0)
+        {
+            throw new InvalidOperationException(
+                $"Consumer group '{consumerGroupId}' subscribes to {string.Join(", ", unhandled.Select(t => $"'{t}'"))} " +
+                "but no IIntegrationEventHandler<T> for that event is registered. " +
+                "Pass the assembly that contains the handler in handlerAssemblies, or remove the topic " +
+                "from the inbox subscription.");
+        }
     }
 
     /// <summary>

@@ -31,14 +31,14 @@ public sealed class InboxProcessor<TContext>(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        // Unreachable through AddKafkaIntegration: the processor is only registered when a service
+        // declared InboxSubscription.Consuming, which rejects an empty topic list. Kept as a guard so a
+        // future registration path cannot produce an inbox that starts and quietly consumes nothing.
         if (_options.Topics.Count == 0)
         {
-            // The group id is logged even here: a service with no topics still has one, and seeing it
-            // is what lets an operator tell two services' consumer configuration apart (#36).
-            _logger.LogWarning(
-                "InboxProcessor: no topics configured (consumer group '{ConsumerGroupId}'). Exiting.",
-                _options.ConsumerGroupId);
-            return;
+            throw new InvalidOperationException(
+                $"The inbox for consumer group '{_options.ConsumerGroupId}' was started with no topics. " +
+                "Register it with InboxSubscription.Consuming(...) instead.");
         }
 
         _logger.LogInformation(

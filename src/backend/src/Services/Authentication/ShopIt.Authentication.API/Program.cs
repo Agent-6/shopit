@@ -22,11 +22,9 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddPersistence(
     "auth-db",
     builder.Configuration,
-    configureInbox: inbox => inbox.Topics.AddRange(new[]
-    {
+    InboxSubscription.Consuming(
         nameof(PasswordResetCompletedIntegrationEvent),
-        nameof(UserEmailConfirmedIntegrationEvent),
-    }),
+        nameof(UserEmailConfirmedIntegrationEvent)),
     handlerAssemblies: typeof(ShopIt.Authentication.Infrastructure.DependencyInjection).Assembly);
 
 builder.Services.AddInfrastructure(builder.Configuration);

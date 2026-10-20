@@ -8,6 +8,7 @@ using ShopIt.Framework.Domain;
 using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Presentation;
 using ShopIt.Framework.Persistence;
+using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Persistence.Permissions;
 using ShopIt.Framework.Infrastructure.Security;
 using ShopIt.Identity.Application;
@@ -49,16 +50,14 @@ builder.Services.AddOptions<SeedOptions>()
 builder.Services.AddPersistence(
     "identity-db",
     builder.Configuration,
-    configureInbox: inbox => inbox.Topics.AddRange(new[]
-    {
+    InboxSubscription.Consuming(
         nameof(ForgotPasswordRequestedIntegrationEvent),
         nameof(PasswordResetRequestedIntegrationEvent),
         nameof(EmailConfirmationOtpRequestedIntegrationEvent),
         nameof(EmailConfirmationSubmittedIntegrationEvent),
         nameof(ResendInvitationRequestedIntegrationEvent),
         nameof(TenantCreatedIntegrationEvent),
-        nameof(PermissionCatalogPublishedIntegrationEvent),
-    }),
+        nameof(PermissionCatalogPublishedIntegrationEvent)),
     handlerAssemblies: typeof(ShopIt.Identity.Application.DependencyInjection).Assembly);
 
 // Identity owns the permission registry, so its own catalog is applied in place at startup

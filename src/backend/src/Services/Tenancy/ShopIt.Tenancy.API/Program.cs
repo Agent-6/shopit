@@ -4,6 +4,7 @@ using ShopIt.Framework.Domain;
 using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Infrastructure.Security;
 using ShopIt.Framework.Persistence;
+using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Presentation;
 using ShopIt.Identity.Events;
 using ShopIt.Tenancy.Application;
@@ -24,7 +25,10 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplication();
-builder.Services.AddPersistence("tenancy-db", builder.Configuration);
+
+// Publish-only: Tenancy emits tenant lifecycle and permission-catalog events, but consumes none.
+// Stated explicitly so it cannot be confused with a service whose inbox was never configured.
+builder.Services.AddPersistence("tenancy-db", builder.Configuration, InboxSubscription.None);
 builder.EnrichNpgsqlDbContext<TenancyDbContext>();
 
 // This service's permissions are published to Identity through the framework hook: at startup

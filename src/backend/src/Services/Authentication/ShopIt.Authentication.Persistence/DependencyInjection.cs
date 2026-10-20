@@ -22,14 +22,14 @@ public static class DependencyInjection
     /// <param name=\"databaseName\">The name of the database connection string in configuration. Use the database resource name when using aspire.</param>
     /// <param name=\"configuration\">The configuration object to retrieve connection strings from.</param>
     /// <param name=\"configureOutbox\">Optional action to configure outbox options.</param>
-    /// <param name=\"configureInbox\">Optional action to configure inbox options.</param>
+    /// <param name="inbox">What this service consumes: <see cref="InboxSubscription.None"/> or <see cref="InboxSubscription.Consuming"/> with its topics.</param>
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddPersistence(
         this IServiceCollection services,
         string databaseName,
         IConfiguration configuration,
+        InboxSubscription inbox,
         Action<OutboxOptions>? configureOutbox = null,
-        Action<InboxOptions>? configureInbox = null,
         params Assembly[] handlerAssemblies)
     {
         services.AddDbContext<ApplicationDbContext>(options =>
@@ -43,10 +43,10 @@ public static class DependencyInjection
         // Wire up Kafka integration event infrastructure
         services.AddKafkaIntegration<ApplicationDbContext>(
             "authentication-inbox",
+            inbox,
             configuration,
             configureOutbox,
-            configureInbox,
-            [typeof(DependencyInjection).Assembly, .. handlerAssemblies]);
+            assemblies: [typeof(DependencyInjection).Assembly, .. handlerAssemblies]);
 
         return services;
     }
