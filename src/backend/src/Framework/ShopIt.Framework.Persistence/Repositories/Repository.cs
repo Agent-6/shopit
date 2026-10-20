@@ -35,6 +35,11 @@ public class Repository<TEntity, TId, TDbContext> : IRepository<TEntity, TId>
         return entity;
     }
 
+    public virtual async Task<TEntity?> FindByIdAsync(TId id, CancellationToken cancellationToken = default)
+    {
+        return await DbSet.FindAsync(new object[] { id }, cancellationToken);
+    }
+
     public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         if (entity is null) throw new ArgumentNullException(nameof(entity));

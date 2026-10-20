@@ -1,35 +1,34 @@
 using ShopIt.Framework.Core.CQRS.Commands;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
 using ShopIt.Tenancy.Domain.Repositories;
+using ShopIt.Tenancy.Domain.Tenants;
 
 namespace ShopIt.Tenancy.Application.Tenants.Commands.UpdateTenant;
 
 public class UpdateTenantCommandHandler(ITenantRepository tenantRepository)
-    : ICommandHandler<UpdateTenantCommand, UpdateTenantResult>
+    : ICommandHandler<UpdateTenantCommand, Result<UpdateTenantResult, Error>>
 {
     private readonly ITenantRepository _tenantRepository = tenantRepository;
 
-    public async Task<UpdateTenantResult> HandleAsync(UpdateTenantCommand request, CancellationToken cancellationToken)
+    public async Task<Result<UpdateTenantResult, Error>> HandleAsync(UpdateTenantCommand request, CancellationToken cancellationToken)
     {
-        var tenant = await _tenantRepository.GetByIdAsync(request.Id, cancellationToken);
+        var tenant = await _tenantRepository.FindByIdAsync(request.Id, cancellationToken);
         if (tenant is null)
         {
-            throw new KeyNotFoundException($"Tenant with ID {request.Id} was not found.");
+            return TenantErrors.NotFound(request.Id);
         }
 
         var normalizedNewName = request.Name.Trim();
-        if (!string.Equals(tenant.Name, normalizedNewName, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(tenant.Name, normalizedNewName, StringComparison.OrdinalIgnoreCase)
+            && await _tenantRepository.ExistsByNameAsync(normalizedNewName, cancellationToken))
         {
-            var nameExists = await _tenantRepository.ExistsByNameAsync(normalizedNewName, cancellationToken);
-            if (nameExists)
-            {
-                throw new InvalidOperationException($"A tenant with the name '{request.Name}' already exists.");
-            }
+            return TenantErrors.NameAlreadyExists(request.Name);
         }
 
         tenant.Update(request.Name);
-        
-        tenant.LastModifiedOn = DateTimeOffset.UtcNow;
-        tenant.LastModifiedBy = Guid.Empty; // System/Host Level
+
+        // Audit fields are stamped by the persistence path (ADR-0004), not here.
 
         await _tenantRepository.UpdateAsync(tenant, cancellationToken);
 

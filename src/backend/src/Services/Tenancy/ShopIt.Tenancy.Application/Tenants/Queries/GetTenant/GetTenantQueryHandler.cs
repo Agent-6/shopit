@@ -1,19 +1,23 @@
 using ShopIt.Framework.Core.CQRS.Queries;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
 using ShopIt.Tenancy.Domain.Repositories;
+using ShopIt.Tenancy.Domain.Tenants;
 
 namespace ShopIt.Tenancy.Application.Tenants.Queries.GetTenant;
 
 public class GetTenantQueryHandler(ITenantRepository tenantRepository)
-    : IQueryHandler<GetTenantQuery, GetTenantResult>
+    : IQueryHandler<GetTenantQuery, Result<GetTenantResult, Error>>
 {
     private readonly ITenantRepository _tenantRepository = tenantRepository;
 
-    public async Task<GetTenantResult> HandleAsync(GetTenantQuery request, CancellationToken cancellationToken)
+    public async Task<Result<GetTenantResult, Error>> HandleAsync(GetTenantQuery request, CancellationToken cancellationToken)
     {
-        var tenant = await _tenantRepository.GetByIdAsync(request.Id, cancellationToken);
+        // Find, not Get: "not found" is an answer this query can give, not an exception.
+        var tenant = await _tenantRepository.FindByIdAsync(request.Id, cancellationToken);
         if (tenant is null)
         {
-            throw new KeyNotFoundException($"Tenant with ID {request.Id} was not found.");
+            return TenantErrors.NotFound(request.Id);
         }
 
         return new GetTenantResult(

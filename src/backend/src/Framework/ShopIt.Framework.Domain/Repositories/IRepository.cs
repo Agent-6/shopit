@@ -21,6 +21,18 @@ public interface IRepository<TEntity, TId>
     Task<TEntity> GetByIdAsync(TId id, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the entity with the specified ID, or <c>null</c> when it does not exist.
+    /// </summary>
+    /// <remarks>
+    /// The counterpart to <see cref="GetByIdAsync"/> for callers that treat "not found" as an expected
+    /// outcome rather than a bug — a command handler returning a Result, for instance (#32).
+    /// </remarks>
+    /// <param name="id">The unique identifier of the entity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The entity, or <c>null</c>.</returns>
+    Task<TEntity?> FindByIdAsync(TId id, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Adds a new entity to the repository.
     /// </summary>
     /// <param name="entity">The entity to add.</param>
