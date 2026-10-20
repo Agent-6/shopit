@@ -72,7 +72,6 @@ builder.Services.AddPermissionCatalogPublishing<
 builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
 
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddDomainServices();
 
 builder.Services.AddDataProtection();
 builder.Services.AddIdentityCore<User>(options =>
