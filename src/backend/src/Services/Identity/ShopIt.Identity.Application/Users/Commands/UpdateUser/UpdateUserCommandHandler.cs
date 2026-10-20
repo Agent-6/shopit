@@ -2,17 +2,23 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Identity.Domain.Entities;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Commands.UpdateUser;
 
-public class UpdateUserCommandHandler(UserManager<User> userManager) : ICommandHandler<UpdateUserCommand, UpdateUserResult>
+public class UpdateUserCommandHandler(UserManager<User> userManager) : ICommandHandler<UpdateUserCommand, Result<UpdateUserResult, Error>>
 {
     private readonly UserManager<User> _userManager = userManager;
 
-    public async Task<UpdateUserResult> HandleAsync(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async Task<Result<UpdateUserResult, Error>> HandleAsync(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-        if (user is null) throw new KeyNotFoundException("User not found");
+        if (user is null)
+        {
+            return UserErrors.NotFound(request.UserId);
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Email) && user.Email != request.Email)
             user.ChangeEmail(request.Email);
@@ -34,7 +40,10 @@ public class UpdateUserCommandHandler(UserManager<User> userManager) : ICommandH
         }
 
         var result = await _userManager.UpdateAsync(user);
-        if (!result.Succeeded) throw new InvalidOperationException(string.Join(";", result.Errors.Select(e => e.Description)));
+        if (!result.Succeeded)
+            {
+                return UserErrors.Invalid("User.Update", result.Errors.Select(e => e.Description));
+            }
 
         if (request.Roles is not null)
         {
@@ -45,13 +54,19 @@ public class UpdateUserCommandHandler(UserManager<User> userManager) : ICommandH
             if (toRemove.Count > 0)
             {
                 var res = await _userManager.RemoveFromRolesAsync(user, toRemove);
-                if (!res.Succeeded) throw new InvalidOperationException(string.Join(";", res.Errors.Select(e => e.Description)));
+                if (!res.Succeeded)
+            {
+                return UserErrors.Invalid("User.Update", res.Errors.Select(e => e.Description));
+            }
             }
 
             if (toAdd.Count > 0)
             {
                 var res = await _userManager.AddToRolesAsync(user, toAdd);
-                if (!res.Succeeded) throw new InvalidOperationException(string.Join(";", res.Errors.Select(e => e.Description)));
+                if (!res.Succeeded)
+            {
+                return UserErrors.Invalid("User.Update", res.Errors.Select(e => e.Description));
+            }
             }
         }
 
@@ -62,13 +77,19 @@ public class UpdateUserCommandHandler(UserManager<User> userManager) : ICommandH
             foreach (var claim in existing)
             {
                 var res = await _userManager.RemoveClaimAsync(user, claim);
-                if (!res.Succeeded) throw new InvalidOperationException(string.Join(";", res.Errors.Select(e => e.Description)));
+                if (!res.Succeeded)
+            {
+                return UserErrors.Invalid("User.Update", res.Errors.Select(e => e.Description));
+            }
             }
 
             foreach (var claim in request.Claims)
             {
                 var res = await _userManager.AddClaimAsync(user, new Claim(claim.Type, claim.Value));
-                if (!res.Succeeded) throw new InvalidOperationException(string.Join(";", res.Errors.Select(e => e.Description)));
+                if (!res.Succeeded)
+            {
+                return UserErrors.Invalid("User.Update", res.Errors.Select(e => e.Description));
+            }
             }
         }
 

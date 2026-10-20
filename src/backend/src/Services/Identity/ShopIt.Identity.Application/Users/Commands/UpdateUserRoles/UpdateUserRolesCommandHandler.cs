@@ -4,22 +4,28 @@ using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Repositories;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Commands.UpdateUserRoles;
 
 public class UpdateUserRolesCommandHandler(
     UserManager<User> userManager,
     IRoleRepository roleRepository,
-    IPermissionCacheInvalidator permissionCache) : ICommandHandler<UpdateUserRolesCommand, UpdateUserRolesResult>
+    IPermissionCacheInvalidator permissionCache) : ICommandHandler<UpdateUserRolesCommand, Result<UpdateUserRolesResult, Error>>
 {
     private readonly UserManager<User> _userManager = userManager;
     private readonly IRoleRepository _roleRepository = roleRepository;
     private readonly IPermissionCacheInvalidator _permissionCache = permissionCache;
 
-    public async Task<UpdateUserRolesResult> HandleAsync(UpdateUserRolesCommand request, CancellationToken cancellationToken)
+    public async Task<Result<UpdateUserRolesResult, Error>> HandleAsync(UpdateUserRolesCommand request, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-        if (user is null) throw new KeyNotFoundException("User not found");
+        if (user is null)
+        {
+            return UserErrors.NotFound(request.UserId);
+        }
 
         var requested = request.RoleNames.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var current = (await _userManager.GetRolesAsync(user)).ToList();
@@ -42,9 +48,7 @@ public class UpdateUserRolesCommandHandler(
 
             if (!role.MultiTenancySide.IsAvailableOn(userSide))
             {
-                throw new InvalidOperationException(
-                    $"Role '{roleName}' is only available on the {role.MultiTenancySide} side " +
-                    $"and cannot be assigned to a user in the {userSide} side.");
+                return UserErrors.RoleNotAvailableOnSide(roleName, role.MultiTenancySide, userSide);
             }
         }
 
@@ -56,8 +60,7 @@ public class UpdateUserRolesCommandHandler(
             var res = await _userManager.RemoveFromRolesAsync(user, toRemove);
             if (!res.Succeeded)
             {
-                var errors = string.Join("; ", res.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Failed to update user roles: {errors}");
+            return UserErrors.Invalid("User.Roles", res.Errors.Select(e => e.Description));
             }
         }
 
@@ -66,8 +69,7 @@ public class UpdateUserRolesCommandHandler(
             var res = await _userManager.AddToRolesAsync(user, toAdd);
             if (!res.Succeeded)
             {
-                var errors = string.Join("; ", res.Errors.Select(e => e.Description));
-                throw new InvalidOperationException($"Failed to update user roles: {errors}");
+            return UserErrors.Invalid("User.Roles", res.Errors.Select(e => e.Description));
             }
         }
 

@@ -2,10 +2,13 @@ using Microsoft.AspNetCore.Identity;
 using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Domain.Entities;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Commands.UpdateUserPermissions;
 
-public class UpdateUserPermissionsCommandHandler : ICommandHandler<UpdateUserPermissionsCommand, UpdateUserPermissionsResult>
+public class UpdateUserPermissionsCommandHandler : ICommandHandler<UpdateUserPermissionsCommand, Result<UpdateUserPermissionsResult, Error>>
 {
     private readonly UserManager<User> _userManager;
     private readonly IPermissionCacheInvalidator _permissionCache;
@@ -18,10 +21,13 @@ public class UpdateUserPermissionsCommandHandler : ICommandHandler<UpdateUserPer
         _permissionCache = permissionCache;
     }
 
-    public async Task<UpdateUserPermissionsResult> HandleAsync(UpdateUserPermissionsCommand request, CancellationToken cancellationToken)
+    public async Task<Result<UpdateUserPermissionsResult, Error>> HandleAsync(UpdateUserPermissionsCommand request, CancellationToken cancellationToken)
     {
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
-        if (user is null) throw new KeyNotFoundException("User not found");
+        if (user is null)
+        {
+            return UserErrors.NotFound(request.UserId);
+        }
 
         var granted = new List<string>();
         var revoked = new List<string>();

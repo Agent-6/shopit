@@ -3,26 +3,31 @@ using Microsoft.Extensions.Logging;
 using ShopIt.Framework.Core.CQRS.Queries;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Framework.Domain.Tenancy;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 
 namespace ShopIt.Identity.Application.Users.Queries.GetUser;
 
 public class GetUserQueryHandler(
     UserManager<User> userManager,
     ICurrentTenant currentTenant,
-    ILogger<GetUserQueryHandler> logger) : IQueryHandler<GetUserQuery, GetUserResult>
+    ILogger<GetUserQueryHandler> logger) : IQueryHandler<GetUserQuery, Result<GetUserResult, Error>>
 {
     private readonly UserManager<User> _userManager = userManager;
     private readonly ICurrentTenant _currentTenant = currentTenant;
     private readonly ILogger<GetUserQueryHandler> _logger = logger;
 
-    public async Task<GetUserResult> HandleAsync(GetUserQuery request, CancellationToken cancellationToken)
+    public async Task<Result<GetUserResult, Error>> HandleAsync(GetUserQuery request, CancellationToken cancellationToken)
     {
         _logger.LogInformation("Handling GetUserQuery for UserId: {UserId}", request.UserId);
         _logger.LogInformation("Current Tenant: {TenantId}", _currentTenant.Id);
 
         var user = await _userManager.FindByIdAsync(request.UserId.ToString());
         if (user is null)
-            throw new KeyNotFoundException("User not found");
+            {
+                return UserErrors.NotFound(request.UserId);
+            }
 
         return new GetUserResult(
             Id: user.Id,

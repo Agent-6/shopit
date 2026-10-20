@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Framework.Core.CQRS;
 using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Framework.Presentation.Modules;
+using ShopIt.Framework.Presentation.Results;
 using ShopIt.Identity.Domain.Permissions;
 using ShopIt.Identity.Presentation.Users.Enums;
 using ShopIt.Identity.Presentation.Users.Requests;
@@ -48,21 +49,15 @@ public class UsersModule : EndpointsModule
         app.MapPut("/{userId:guid}/password", UpdateUserPassword).RequirePermission(ShopItIdentityPermissions.Users.ResetPassword);
     }
 
-    private async Task<IResult> GetMyPermissions(ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
+    private async Task<IResult> GetMyPermissions(IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var res = await dispatcher.QueryAsync(
-                new ShopIt.Identity.Application.Users.Queries.GetMyPermissions.GetMyPermissionsQuery(),
-                cancellationToken);
+        var result = await dispatcher.QueryAsync(
+            new ShopIt.Identity.Application.Users.Queries.GetMyPermissions.GetMyPermissionsQuery(),
+            cancellationToken);
 
-            return Results.Ok(new GetMyPermissionsResponse(res.Permissions.ToList()));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // Authenticated but no interactive user (e.g. a client-credentials token).
-            return Results.Unauthorized();
-        }
+        // An unauthenticated principal is an Unauthorized error now, not an exception.
+        return result.ToHttpResult(
+            onSuccess: res => Results.Ok(new GetMyPermissionsResponse(res.Permissions.ToList())));
     }
 
     private async Task<IResult> GetUsers(
@@ -107,27 +102,41 @@ public class UsersModule : EndpointsModule
     private async Task<IResult> GetUserById(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
         var user = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUser.GetUserQuery(userId), cancellationToken);
+        if (user.IsFailure)
+        {
+            return user.Error.ToProblem();
+        }
+
         var claims = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserClaims.GetUserClaimsQuery(userId), cancellationToken);
+        if (claims.IsFailure)
+        {
+            return claims.Error.ToProblem();
+        }
+
         var roles = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserRoles.GetUserRolesQuery(userId), cancellationToken);
+        if (roles.IsFailure)
+        {
+            return roles.Error.ToProblem();
+        }
 
         var response = new UserDetailResponse(
-            Id: user.Id,
-            Username: user.Username,
-            Email: user.Email,
-            FirstName: user.FirstName,
-            LastName: user.LastName,
-            IsActive: user.IsActive,
-            Status: user.Status,
-            EmailConfirmed: user.EmailConfirmed,
-            PhoneNumber: user.PhoneNumber,
-            PhoneNumberConfirmed: user.PhoneNumberConfirmed,
-            TwoFactorEnabled: user.TwoFactorEnabled,
-            LockoutEnabled: user.LockoutEnabled,
-            LockoutEnd: user.LockoutEnd,
-            CreatedAt: user.CreatedAt,
-            LastModifiedAt: user.LastModifiedAt,
-            Roles: roles.Roles.ToList(),
-            Claims: claims.Claims.Select(c => new UserClaimResponse(c.Type, c.Value)).ToList()
+            Id: user.Value.Id,
+            Username: user.Value.Username,
+            Email: user.Value.Email,
+            FirstName: user.Value.FirstName,
+            LastName: user.Value.LastName,
+            IsActive: user.Value.IsActive,
+            Status: user.Value.Status,
+            EmailConfirmed: user.Value.EmailConfirmed,
+            PhoneNumber: user.Value.PhoneNumber,
+            PhoneNumberConfirmed: user.Value.PhoneNumberConfirmed,
+            TwoFactorEnabled: user.Value.TwoFactorEnabled,
+            LockoutEnabled: user.Value.LockoutEnabled,
+            LockoutEnd: user.Value.LockoutEnd,
+            CreatedAt: user.Value.CreatedAt,
+            LastModifiedAt: user.Value.LastModifiedAt,
+            Roles: roles.Value.Roles.ToList(),
+            Claims: claims.Value.Claims.Select(c => new UserClaimResponse(c.Type, c.Value)).ToList()
         );
 
         return Results.Ok(response);
@@ -148,8 +157,10 @@ public class UsersModule : EndpointsModule
 
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
 
-        var response = new CreateUserResponse(result.Id, result.Username, result.Email, DateTime.UtcNow);
-        return Results.Created($"/users/{response.Id}", response);
+        return result.ToHttpResult(
+            onSuccess: created => Results.Created(
+                $"/users/{created.Id}",
+                new CreateUserResponse(created.Id, created.Username, created.Email, DateTime.UtcNow)));
     }
 
     private async Task<IResult> InviteUser(InviteUserRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -165,8 +176,10 @@ public class UsersModule : EndpointsModule
 
         var result = await dispatcher.SendAsync(cmd, cancellationToken);
 
-        var response = new InviteUserResponse(result.Id, result.Email, result.Status, result.InvitationExpiresAt);
-        return Results.Created($"/users/{response.Id}", response);
+        return result.ToHttpResult(
+            onSuccess: invited => Results.Created(
+                $"/users/{invited.Id}",
+                new InviteUserResponse(invited.Id, invited.Email, invited.Status, invited.InvitationExpiresAt)));
     }
 
     private async Task<IResult> UpdateUser(Guid userId, UpdateUserRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -186,25 +199,25 @@ public class UsersModule : EndpointsModule
 
         var res = await dispatcher.SendAsync(cmd, cancellationToken);
 
-        var response = new UpdateUserResponse(
-            Id: res.Id,
-            Username: res.Username,
-            Email: res.Email,
-            FirstName: res.FirstName,
-            LastName: res.LastName,
-            PhoneNumber: res.PhoneNumber,
-            IsActive: res.IsActive,
-            LastModifiedAt: res.LastModifiedAt
-        );
-
-        return Results.Ok(response);
+        return res.ToHttpResult(
+            onSuccess: updated => Results.Ok(new UpdateUserResponse(
+                Id: updated.Id,
+                Username: updated.Username,
+                Email: updated.Email,
+                FirstName: updated.FirstName,
+                LastName: updated.LastName,
+                PhoneNumber: updated.PhoneNumber,
+                IsActive: updated.IsActive,
+                LastModifiedAt: updated.LastModifiedAt)));
     }
 
-    private async Task<Results<Ok<DeleteUserResponse>, BadRequest>> DeleteUser(Guid userId, [FromQuery] bool permanent = false, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher = null!, CancellationToken cancellationToken = default)
+    private async Task<IResult> DeleteUser(Guid userId, [FromQuery] bool permanent = false, IDispatcher dispatcher = null!, CancellationToken cancellationToken = default)
     {
         var cmd = new ShopIt.Identity.Application.Users.Commands.DeleteUser.DeleteUserCommand(userId, permanent);
         var res = await dispatcher.SendAsync(cmd, cancellationToken);
-        return TypedResults.Ok(new DeleteUserResponse(res.Id, res.IsDeleted, res.DeletedType));
+
+        return res.ToHttpResult(
+            onSuccess: deleted => Results.Ok(new DeleteUserResponse(deleted.Id, deleted.IsDeleted, deleted.DeletedType)));
     }
 
     // ------------------------------------------------------------------
@@ -215,10 +228,17 @@ public class UsersModule : EndpointsModule
     {
         var perms = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserPermissions.GetUserPermissionsQuery(userId), cancellationToken);
 
-        var permissions = perms.Permissions.Select(p => new UserPermissionResponse(p.PermissionName, p.IsGranted, p.Source == "Role" ? PermissionSource.Role : PermissionSource.Direct)).ToList();
-        var inherited = perms.InheritedPermissions.Select(ip => new InheritedPermissionResponse(ip.Permission, ip.Source)).ToList();
+        return perms.ToHttpResult(onSuccess: permissions =>
+        {
+            var direct = permissions.Permissions
+                .Select(p => new UserPermissionResponse(p.PermissionName, p.IsGranted, p.Source == "Role" ? PermissionSource.Role : PermissionSource.Direct))
+                .ToList();
+            var inherited = permissions.InheritedPermissions
+                .Select(ip => new InheritedPermissionResponse(ip.Permission, ip.Source))
+                .ToList();
 
-        return Results.Ok(new GetUserPermissionsResponse(userId, permissions, inherited));
+            return Results.Ok(new GetUserPermissionsResponse(userId, direct, inherited));
+        });
     }
 
     private async Task<IResult> UpdateUserPermissions(Guid userId, UpdateUserPermissionsRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -227,7 +247,12 @@ public class UsersModule : EndpointsModule
         var cmd = new ShopIt.Identity.Application.Users.Commands.UpdateUserPermissions.UpdateUserPermissionsCommand(userId, items);
         var res = await dispatcher.SendAsync(cmd, cancellationToken);
 
-        return Results.Ok(new UpdateUserPermissionsResponse(res.UserId, res.GrantedPermissions.ToList(), res.RevokedPermissions.ToList(), res.UpdatedAt));
+        return res.ToHttpResult(
+            onSuccess: updated => Results.Ok(new UpdateUserPermissionsResponse(
+                updated.UserId,
+                updated.GrantedPermissions.ToList(),
+                updated.RevokedPermissions.ToList(),
+                updated.UpdatedAt)));
     }
 
     // ------------------------------------------------------------------
@@ -237,7 +262,8 @@ public class UsersModule : EndpointsModule
     private async Task<IResult> GetUserRoles(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
     {
         var res = await dispatcher.QueryAsync(new ShopIt.Identity.Application.Users.Queries.GetUserRoles.GetUserRolesQuery(userId), cancellationToken);
-        return Results.Ok(new GetUserRolesResponse(res.UserId, res.Roles.ToList()));
+        return res.ToHttpResult(
+            onSuccess: roles => Results.Ok(new GetUserRolesResponse(roles.UserId, roles.Roles.ToList())));
     }
 
     private async Task<IResult> UpdateUserRoles(Guid userId, UpdateUserRolesRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -246,7 +272,8 @@ public class UsersModule : EndpointsModule
             new ShopIt.Identity.Application.Users.Commands.UpdateUserRoles.UpdateUserRolesCommand(userId, request.RoleNames),
             cancellationToken);
 
-        return Results.Ok(new UpdateUserRolesResponse(res.UserId, res.Roles.ToList(), res.UpdatedAt));
+        return res.ToHttpResult(
+            onSuccess: roles => Results.Ok(new UpdateUserRolesResponse(roles.UserId, roles.Roles.ToList(), roles.UpdatedAt)));
     }
 
     // ------------------------------------------------------------------
@@ -259,7 +286,8 @@ public class UsersModule : EndpointsModule
             new ShopIt.Identity.Application.Users.Commands.LockUser.LockUserCommand(userId, request.LockoutEnd),
             cancellationToken);
 
-        return Results.Ok(new LockUserResponse(res.UserId, res.LockoutEnd));
+        return res.ToHttpResult(
+            onSuccess: locked => Results.Ok(new LockUserResponse(locked.UserId, locked.LockoutEnd)));
     }
 
     private async Task<IResult> UnlockUser(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -268,7 +296,8 @@ public class UsersModule : EndpointsModule
             new ShopIt.Identity.Application.Users.Commands.UnlockUser.UnlockUserCommand(userId),
             cancellationToken);
 
-        return Results.Ok(new UnlockUserResponse(res.UserId, res.IsUnlocked));
+        return res.ToHttpResult(
+            onSuccess: unlocked => Results.Ok(new UnlockUserResponse(unlocked.UserId, unlocked.IsUnlocked)));
     }
 
     private async Task<IResult> ActivateUser(Guid userId, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -277,7 +306,8 @@ public class UsersModule : EndpointsModule
             new ShopIt.Identity.Application.Users.Commands.ActivateUser.ActivateUserCommand(userId),
             cancellationToken);
 
-        return Results.Ok(new ActivateUserResponse(res.UserId, res.IsActive));
+        return res.ToHttpResult(
+            onSuccess: activated => Results.Ok(new ActivateUserResponse(activated.UserId, activated.IsActive)));
     }
 
     private async Task<IResult> DeactivateUser(Guid userId, DeactivateUserRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -286,7 +316,8 @@ public class UsersModule : EndpointsModule
             new ShopIt.Identity.Application.Users.Commands.DeactivateUser.DeactivateUserCommand(userId, request.Reason),
             cancellationToken);
 
-        return Results.Ok(new DeactivateUserResponse(res.UserId, res.IsActive));
+        return res.ToHttpResult(
+            onSuccess: deactivated => Results.Ok(new DeactivateUserResponse(deactivated.UserId, deactivated.IsActive)));
     }
 
     private async Task<IResult> UpdateUserPassword(Guid userId, UpdateUserPasswordRequest request, ShopIt.Framework.Core.CQRS.IDispatcher dispatcher, CancellationToken cancellationToken = default)
@@ -295,11 +326,7 @@ public class UsersModule : EndpointsModule
             new ShopIt.Identity.Application.Users.Commands.UpdateUserPassword.UpdateUserPasswordCommand(userId, request.NewPassword),
             cancellationToken);
 
-        if (!res.Succeeded)
-        {
-            return Results.BadRequest(new UpdateUserPasswordResponse(res.UserId, false, res.Error));
-        }
-
-        return Results.Ok(new UpdateUserPasswordResponse(res.UserId, true, null));
+        return res.ToHttpResult(
+            onSuccess: changed => Results.Ok(new UpdateUserPasswordResponse(changed.UserId, true, null)));
     }
 }

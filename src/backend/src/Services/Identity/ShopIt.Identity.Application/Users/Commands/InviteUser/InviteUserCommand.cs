@@ -1,4 +1,7 @@
 using ShopIt.Framework.Core.CQRS.Commands;
+using ShopIt.Framework.Domain.Errors;
+using ShopIt.Framework.Domain.Result;
+using ShopIt.Identity.Domain.Users;
 using ShopIt.Identity.Application.Users.Commands.CreateUser;
 
 namespace ShopIt.Identity.Application.Users.Commands.InviteUser;
@@ -14,4 +17,4 @@ public record InviteUserCommand(
     string LastName,
     string? PhoneNumber = null,
     IEnumerable<string>? Roles = null,
-    IEnumerable<CreateUserClaimItem>? Claims = null) : ICommand<InviteUserResult>;
+    IEnumerable<CreateUserClaimItem>? Claims = null) : ICommand<Result<InviteUserResult, Error>>;
