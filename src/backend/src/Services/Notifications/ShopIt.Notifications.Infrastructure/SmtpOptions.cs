@@ -1,4 +1,4 @@
-namespace ShopIt.Notifications.Application.Emails;
+namespace ShopIt.Notifications.Infrastructure;
 
 /// <summary>
 /// Options for the SMTP email sender. Host and port are normally derived from the

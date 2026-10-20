@@ -182,3 +182,43 @@ dotnet build ShopIt.slnx -p:BaseOutputPath=C:/temp/shopit-verify/
 ```
 
 See also `.freebuff/run.md` for the full local run procedure.
+
+## Project layout
+
+Every service is a set of projects with the same names, so scaffolding a new service is copying one
+that exists rather than inventing a shape. The canonical set:
+
+| Project | Holds | Depends on |
+|---|---|---|
+| `<Service>.Domain` | Entities, value objects, domain events, permission definitions | `Framework.Domain` |
+| `<Service>.Application` | Use cases (commands/queries, handlers), ports it owns (`IEmailSender`, `IIdentityPermissionClient`) | its `Domain`, `Framework.Core` |
+| `<Service>.Infrastructure` | Implementations of those ports and outbound integration: HTTP clients, SMTP, caching | its `Application`, `Framework.Infrastructure` |
+| `<Service>.Persistence` | `DbContext`, EF configuration, migrations, repositories | its `Application`/`Domain`, `Framework.Persistence` |
+| `<Service>.Presentation` | HTTP endpoints and authorization wiring | its `Application`, `Framework.Presentation` |
+| `<Service>.Events` | The integration-event contracts this service **owns** and publishes | `Framework.Core` (+ `Framework.Domain` for value objects) |
+| `<Service>.API` | Composition root: `Program.cs`, appsettings, wiring only | all of the above |
+
+Rules that follow from it:
+
+- **Contracts live where ownership lives.** Each service owns an `.Events` assembly; there is no
+  `.Application.Contracts` layer (the two that existed were empty once the events moved). A service that
+  *consumes* another's event references that service's `.Events` — the accepted directed edge recorded in
+  `plans/event-contract-ownership.md`.
+- **A `.Client` project exists only for a synchronous HTTP contract.** Identity has one because Tenancy
+  and Authentication call its internal API. Do not add one for event-driven collaboration.
+- **`Infrastructure` must contain behaviour.** A project whose only content is a pass-through DI call is
+  not a layer; call the framework registration from the composition root instead.
+- **Ports in `Application`, adapters in `Infrastructure`.** "Send an email" is an application decision;
+  "send it over SMTP" is an infrastructure detail.
+
+### Deliberate differences
+
+| Service | Projects | Difference and why |
+|---|---|---|
+| Authentication | 7 | Canonical set. |
+| Identity | 7 | Canonical set **plus** `Client` (its internal API is called synchronously). No `Infrastructure` project: everything it needs is `Framework.Infrastructure` plus its own persistence, so the composition root calls the framework registration directly. |
+| Tenancy | 7 | Canonical set. No `Client` of its own — it consumes Identity's. |
+| Notifications | 5 | No `Domain` (it owns no entities; its tables are the framework's inbox/outbox) and no `Presentation` (it has no HTTP surface — adding one is a feature decision, not a layering one). |
+
+If a service diverges from the table above, either fix it or add it here with the reason. An
+undocumented difference is a bug in this document.

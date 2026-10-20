@@ -29,7 +29,6 @@
         <Project Path="src/Services/Identity/ShopIt.Identity.Client/ShopIt.Identity.Client.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Domain/ShopIt.Identity.Domain.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Events/ShopIt.Identity.Events.csproj" />
-        <Project Path="src/Services/Identity/ShopIt.Identity.Infrastructure/ShopIt.Identity.Infrastructure.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Persistence/ShopIt.Identity.Persistence.csproj" />
         <Project Path="src/Services/Identity/ShopIt.Identity.Presentation/ShopIt.Identity.Presentation.csproj" />
       </Folder>
@@ -37,6 +36,7 @@
     <Project Path="src/Services/Notifications/ShopIt.Notifications.API/ShopIt.Notifications.API.csproj" />
     <Project Path="src/Services/Notifications/ShopIt.Notifications.Application/ShopIt.Notifications.Application.csproj" />
     <Project Path="src/Services/Notifications/ShopIt.Notifications.Events/ShopIt.Notifications.Events.csproj" />
+    <Project Path="src/Services/Notifications/ShopIt.Notifications.Infrastructure/ShopIt.Notifications.Infrastructure.csproj" />
     <Project Path="src/Services/Notifications/ShopIt.Notifications.Persistence/ShopIt.Notifications.Persistence.csproj" />
   </Folder>
   <Folder Name="/src/Services/Tenancy/">
