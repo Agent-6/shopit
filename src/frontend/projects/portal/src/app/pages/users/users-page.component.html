@@ -85,9 +85,15 @@
     </ng-template>
     <ng-template appPageTableCell="roles" let-user>
       @if (user.roles?.length) {
-        <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
-          {{ user.roles?.join(', ') || '—' }}
-        </span>
+        <!-- One pill per role: a joined string wraps mid-name inside a single pill when a user holds
+             several roles, which reads as a broken badge. -->
+        <div class="flex flex-wrap items-center gap-1.5 min-w-[8.5rem]">
+          @for (role of user.roles; track role) {
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap">{{ role }}</span>
+          }
+        </div>
+      } @else {
+        <span class="text-muted-foreground">—</span>
       }
     </ng-template>
     <ng-template appPageTableCell="isActive" let-user>
