@@ -42,6 +42,7 @@ public static class DependencyInjection
 
         // Wire up Kafka integration event infrastructure
         services.AddKafkaIntegration<ApplicationDbContext>(
+            "authentication-inbox",
             configuration,
             configureOutbox,
             configureInbox,

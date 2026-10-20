@@ -11,9 +11,17 @@ public sealed class InboxOptions
     public string KafkaBootstrapServers { get; set; } = "localhost:9092";
 
     /// <summary>
-    /// Gets or sets the Kafka consumer group ID.
+    /// Gets or sets the Kafka consumer group ID. Set from the <c>consumerGroupId</c> argument of
+    /// <see cref="DependencyInjection.AddKafkaIntegration{TContext}"/>, which requires it, so a service
+    /// cannot inherit another service's group by defaulting.
     /// </summary>
-    public string ConsumerGroupId { get; set; } = "shopit-inbox";
+    /// <remarks>
+    /// Kafka delivers each partition of a topic to exactly one consumer <em>within</em> a group. A
+    /// shared group id therefore means two services subscribed to the same topic each receive only
+    /// some of its messages, with the split decided by partition assignment — silent and
+    /// dependent on startup order.
+    /// </remarks>
+    public string ConsumerGroupId { get; set; } = string.Empty;
 
     /// <summary>
     /// Gets or sets the list of Kafka topics to subscribe to.

@@ -33,12 +33,17 @@ public sealed class InboxProcessor<TContext>(
     {
         if (_options.Topics.Count == 0)
         {
-            _logger.LogWarning("InboxProcessor: no topics configured. Exiting.");
+            // The group id is logged even here: a service with no topics still has one, and seeing it
+            // is what lets an operator tell two services' consumer configuration apart (#36).
+            _logger.LogWarning(
+                "InboxProcessor: no topics configured (consumer group '{ConsumerGroupId}'). Exiting.",
+                _options.ConsumerGroupId);
             return;
         }
 
         _logger.LogInformation(
-            "InboxProcessor started. Subscribing to topics: {Topics}.",
+            "InboxProcessor started. Consumer group '{ConsumerGroupId}', subscribing to topics: {Topics}.",
+            _options.ConsumerGroupId,
             string.Join(", ", _options.Topics));
 
         var consumerConfig = new ConsumerConfig

@@ -76,6 +76,11 @@ public static class DependencyInjection
     /// </summary>
     /// <typeparam name="TContext">The DbContext type for the service. Outbox and Inbox tables must be in its schema.</typeparam>
     /// <param name="services">The service collection.</param>
+    /// <param name="consumerGroupId">
+    /// This service's Kafka consumer group. Must be unique per service: a group id shared with another
+    /// service means each of them receives only part of a topic's messages. Required, so it cannot be
+    /// forgotten and cannot silently fall back to a shared default.
+    /// </param>
     /// <param name="configuration">Optional configuration to read <c>ConnectionStrings:kafka</c> from.</param>
     /// <param name="configureOutbox">Optional action to configure <see cref="OutboxOptions"/>.</param>
     /// <param name="configureInbox">Optional action to configure <see cref="InboxOptions"/>.</param>
@@ -83,12 +88,15 @@ public static class DependencyInjection
     /// <returns>The updated service collection.</returns>
     public static IServiceCollection AddKafkaIntegration<TContext>(
         this IServiceCollection services,
+        string consumerGroupId,
         IConfiguration? configuration = null,
         Action<OutboxOptions>? configureOutbox = null,
         Action<InboxOptions>? configureInbox = null,
         params Assembly[] assemblies)
         where TContext : DbContext
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(consumerGroupId);
+
         var bootstrapServers = KafkaConfiguration.GetBootstrapServers(configuration);
 
         // Configure outbox options
@@ -101,6 +109,9 @@ public static class DependencyInjection
         var inboxOptions = new InboxOptions();
         inboxOptions.KafkaBootstrapServers = bootstrapServers;
         configureInbox?.Invoke(inboxOptions);
+        // Assigned after the callback so the parameter is authoritative: the group id is a property of
+        // the service, not something an inbox configuration can vary.
+        inboxOptions.ConsumerGroupId = consumerGroupId;
         services.AddSingleton(Microsoft.Extensions.Options.Options.Create(inboxOptions));
 
         // Register background services
