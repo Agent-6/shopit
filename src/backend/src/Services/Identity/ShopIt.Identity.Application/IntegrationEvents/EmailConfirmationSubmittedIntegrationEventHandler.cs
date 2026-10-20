@@ -69,11 +69,9 @@ public class EmailConfirmationSubmittedIntegrationEventHandler(
             return;
         }
 
-        // NOTE: ConfirmEmail() raises UserEmailConfirmedDomainEvent, but this inbox path
-        // persists via the InboxProcessor's SaveChangesAsync (no UnitOfWork/dispatcher), so
-        // domain events are not dispatched here. The integration event below is the contract
-        // other services observe; if a domain-event handler is added later it must be wired
-        // explicitly in this handler.
+        // ConfirmEmail() raises UserEmailConfirmedDomainEvent. The inbox processor dispatches domain
+        // events through the same DomainEventDispatch the command path uses, inside the same transaction,
+        // so this is not a place where an event would be lost.
         user.ConfirmEmail();
 
         // Rotate the security stamp so tokens issued before confirmation are invalidated,

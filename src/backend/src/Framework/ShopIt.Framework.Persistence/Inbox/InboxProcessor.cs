@@ -7,7 +7,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ShopIt.Framework.Core.Events.Integration;
-using ShopIt.Framework.Persistence.Inbox;
+using ShopIt.Framework.Domain.Events;
+using ShopIt.Framework.Persistence.Events;
 
 namespace ShopIt.Framework.Persistence.Inbox;
 
@@ -108,48 +109,141 @@ public sealed class InboxProcessor<TContext>(
         var eventType = Encoding.UTF8.GetString(eventTypeHeader.GetValueBytes());
         var eventId = Guid.TryParse(message.Key, out var id) ? id : Guid.NewGuid();
 
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
-
-        // Idempotency check: skip if already processed
-        var alreadyProcessed = await dbContext.Set<InboxMessage>()
-            .AnyAsync(m => m.Id == eventId && m.ProcessedOn != null, cancellationToken);
-
-        if (alreadyProcessed)
-        {
-            _logger.LogDebug("Duplicate inbox message {EventType} (Id: {Id}). Skipping.", eventType, eventId);
-            return;
-        }
-
-        // Upsert inbox record (mark as received)
-        var inbox = await dbContext.Set<InboxMessage>()
-            .FirstOrDefaultAsync(m => m.Id == eventId, cancellationToken)
-            ?? new InboxMessage { Id = eventId, ReceivedOn = DateTime.UtcNow };
-
-        inbox.EventType = eventType;
-        inbox.Payload = message.Value;
-
-        if (inbox.Id == eventId && !dbContext.Set<InboxMessage>().Local.Contains(inbox))
-            dbContext.Set<InboxMessage>().Add(inbox);
-
         try
         {
-            await DispatchToHandlersAsync(scope.ServiceProvider, eventType, message.Value, cancellationToken);
-
-            inbox.ProcessedOn = DateTime.UtcNow;
-            inbox.Error = null;
-
-            _logger.LogDebug("Processed inbox message {EventType} (Id: {Id}).", eventType, eventId);
+            await ProcessInTransactionAsync(eventId, eventType, message.Value, cancellationToken);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to handle inbox message {EventType} (Id: {Id}).", eventType, eventId);
-            inbox.Error = ex.Message;
+
+            // Record the failure on its own, in a fresh scope: the rolled-back transaction took the
+            // handler's partial writes with it, so what is persisted is only the fact that this message
+            // failed — not half of its effects.
+            await RecordFailureAsync(eventId, eventType, message.Value, ex, cancellationToken);
         }
-        finally
+    }
+
+    /// <summary>
+    /// Handles one message atomically: the handler's writes, the outbox rows its domain-event handlers
+    /// add, and the inbox row commit together or not at all.
+    /// </summary>
+    /// <remarks>
+    /// The work runs inside <c>CreateExecutionStrategy()</c> because the PostgreSQL provider is configured
+    /// with <c>EnableRetryOnFailure</c>, and a user-initiated transaction is rejected outright unless it is
+    /// executed as a retriable unit. Each attempt gets its own scope, so a retry starts from a clean
+    /// <c>DbContext</c> rather than from the failed attempt's tracked changes.
+    /// </remarks>
+    private async Task ProcessInTransactionAsync(
+        Guid eventId,
+        string eventType,
+        string payload,
+        CancellationToken cancellationToken)
+    {
+        // The strategy is obtained from a context; the delegate below resolves its own per attempt.
+        await using var strategyScope = _scopeFactory.CreateAsyncScope();
+        var strategy = strategyScope.ServiceProvider
+            .GetRequiredService<TContext>()
+            .Database
+            .CreateExecutionStrategy();
+
+        await strategy.ExecuteAsync(async () =>
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
+            var domainEventDispatcher = scope.ServiceProvider.GetRequiredService<IDomainEventDispatcher>();
+
+            // Idempotency check: skip if already processed
+            var alreadyProcessed = await dbContext.Set<InboxMessage>()
+                .AnyAsync(m => m.Id == eventId && m.ProcessedOn != null, cancellationToken);
+
+            if (alreadyProcessed)
+            {
+                _logger.LogDebug("Duplicate inbox message {EventType} (Id: {Id}). Skipping.", eventType, eventId);
+                return;
+            }
+
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            try
+            {
+                // Upsert the inbox record (mark as received) inside the transaction.
+                var inbox = await dbContext.Set<InboxMessage>()
+                    .FirstOrDefaultAsync(m => m.Id == eventId, cancellationToken)
+                    ?? new InboxMessage { Id = eventId, ReceivedOn = DateTime.UtcNow };
+
+                inbox.EventType = eventType;
+                inbox.Payload = payload;
+
+                if (inbox.Id == eventId && !dbContext.Set<InboxMessage>().Local.Contains(inbox))
+                    dbContext.Set<InboxMessage>().Add(inbox);
+
+                await DispatchToHandlersAsync(scope.ServiceProvider, eventType, payload, cancellationToken);
+
+                // The same dispatch the command path uses: an inbox handler that raises a domain event —
+                // User.ConfirmEmail() does — now gets its handlers run instead of having it discarded.
+                var domainEvents = await DomainEventDispatch.DispatchPendingAsync(
+                    dbContext, domainEventDispatcher, cancellationToken);
+
+                if (domainEvents.Count > 0)
+                {
+                    _logger.LogInformation(
+                        "Dispatched {Count} domain event(s) raised by inbox message {EventType} (Id: {Id}): {DomainEvents}.",
+                        domainEvents.Count,
+                        eventType,
+                        eventId,
+                        string.Join(", ", domainEvents.Select(e => e.GetType().Name)));
+                }
+
+                inbox.ProcessedOn = DateTime.UtcNow;
+                inbox.Error = null;
+
+                await dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                _logger.LogDebug("Processed inbox message {EventType} (Id: {Id}).", eventType, eventId);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        });
+    }
+
+    /// <summary>
+    /// Persists the inbox row for a message whose handling failed.
+    /// </summary>
+    private async Task RecordFailureAsync(
+        Guid eventId,
+        string eventType,
+        string payload,
+        Exception exception,
+        CancellationToken cancellationToken)
+    {
+        await using var scope = _scopeFactory.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<TContext>();
+
+        var inbox = await dbContext.Set<InboxMessage>()
+            .FirstOrDefaultAsync(m => m.Id == eventId, cancellationToken)
+            ?? new InboxMessage { Id = eventId };
+
+        if (inbox.ReceivedOn == default)
+        {
+            inbox.ReceivedOn = DateTime.UtcNow;
         }
+
+        inbox.EventType = eventType;
+        inbox.Payload = payload;
+        inbox.Error = exception.Message;
+        inbox.ProcessedOn = null;
+
+        if (!dbContext.Set<InboxMessage>().Local.Contains(inbox))
+        {
+            dbContext.Set<InboxMessage>().Add(inbox);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private async Task DispatchToHandlersAsync(
