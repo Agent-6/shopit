@@ -2,11 +2,14 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Core.UnitOfWork;
+using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Domain.Repositories;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Persistence.Outbox;
+using ShopIt.Framework.Persistence.Permissions;
 using ShopIt.Framework.Persistence.UnitOfWork;
 
 namespace ShopIt.Framework.Persistence;
@@ -106,6 +109,85 @@ public static class DependencyInjection
 
         // Scan and register IIntegrationEventHandler<> implementations
         services.AddIntegrationEventHandlers(assemblies);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the permission-catalog publishing hook for a service that does not own the
+    /// permission registry: on startup, the service's <typeparamref name="TProvider"/> groups are
+    /// written to the outbox as <paramref name="createEvent"/>'s integration event, and the
+    /// Identity service consumes them like any other message.
+    /// <list type="bullet">
+    /// <item><description>Publishes exactly once per process, from a hosted service that runs before the web server accepts requests.</description></item>
+    /// <item><description>Requires the service to have registered the outbox (see <see cref="AddKafkaIntegration{TContext}"/>).</description></item>
+    /// </list>
+    /// </summary>
+    /// <typeparam name="TProvider">The service's <see cref="IPermissionDefinitionProvider"/> implementation.</typeparam>
+    /// <typeparam name="TContext">The service's DbContext, which owns the outbox table.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <param name="sourceService">The name stamped on the catalog entries (e.g. <c>"Tenancy"</c>).</param>
+    /// <param name="createEvent">Maps (source service, groups) to the catalog integration event.</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddPermissionCatalogPublishing<TProvider, TContext>(
+        this IServiceCollection services,
+        string sourceService,
+        Func<string, IReadOnlyList<PermissionGroupDefinition>, IntegrationEvent> createEvent)
+        where TProvider : class, IPermissionDefinitionProvider
+        where TContext : DbContext
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceService);
+        ArgumentNullException.ThrowIfNull(createEvent);
+
+        services.TryAddSingleton<TProvider>();
+        services.AddSingleton(new PermissionCatalogPublishingOptions
+        {
+            SourceService = sourceService,
+            CreateEvent = createEvent,
+        });
+
+        return services.AddPermissionCatalogPublishingHook<TProvider, OutboxPermissionCatalogPublicationSink<TContext>>();
+    }
+
+    /// <summary>
+    /// Registers the permission-catalog publishing hook for a service that owns the permission
+    /// registry and therefore applies its catalog locally instead of publishing it over Kafka.
+    /// <para>
+    /// The service supplies <typeparamref name="TSink"/>, which receives the catalog once per
+    /// process start; the Identity service's sink synchronizes the persisted catalog directly.
+    /// </para>
+    /// </summary>
+    /// <typeparam name="TSink">The service's <see cref="IPermissionCatalogPublicationSink"/> implementation.</typeparam>
+    /// <typeparam name="TProvider">The service's <see cref="IPermissionDefinitionProvider"/> implementation.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <param name="sourceService">The name stamped on the catalog entries (e.g. <c>"Identity"</c>).</param>
+    /// <returns>The updated service collection.</returns>
+    public static IServiceCollection AddPermissionCatalogPublishing<TSink, TProvider>(
+        this IServiceCollection services,
+        string sourceService)
+        where TSink : class, IPermissionCatalogPublicationSink
+        where TProvider : class, IPermissionDefinitionProvider
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceService);
+
+        services.TryAddSingleton<TProvider>();
+        services.AddSingleton(new PermissionCatalogPublishingOptions { SourceService = sourceService });
+
+        return services.AddPermissionCatalogPublishingHook<TProvider, TSink>();
+    }
+
+    /// <summary>
+    /// Registers the sink, publisher and startup hook shared by both
+    /// <c>AddPermissionCatalogPublishing</c> overloads.
+    /// </summary>
+    private static IServiceCollection AddPermissionCatalogPublishingHook<TProvider, TSink>(this IServiceCollection services)
+        where TProvider : class, IPermissionDefinitionProvider
+        where TSink : class, IPermissionCatalogPublicationSink
+    {
+        services.TryAddScoped<IPermissionCatalogPublicationSink, TSink>();
+        services.TryAddSingleton<PermissionCatalogPublisher<TProvider>>();
+        services.TryAddSingleton<IPermissionCatalogPublisher>(sp => sp.GetRequiredService<PermissionCatalogPublisher<TProvider>>());
+        services.AddHostedService<PermissionCatalogPublisherHostedService<TProvider>>();
 
         return services;
     }

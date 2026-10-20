@@ -7,6 +7,8 @@ using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Presentation;
+using ShopIt.Framework.Persistence;
+using ShopIt.Framework.Persistence.Permissions;
 using ShopIt.Identity.Application;
 using ShopIt.Identity.Events;
 using ShopIt.Identity.Application.DataSeeding;
@@ -57,6 +59,14 @@ builder.Services.AddPersistence(
         nameof(PermissionCatalogPublishedIntegrationEvent),
     }),
     handlerAssemblies: typeof(ShopIt.Identity.Application.DependencyInjection).Assembly);
+
+// Identity owns the permission registry, so its own catalog is applied in place at startup
+// instead of being published over Kafka. Other services publish theirs; both go through the
+// same hook, so no service carries bespoke catalog-publishing code.
+builder.Services.AddPermissionCatalogPublishing<
+    SynchronizingPermissionCatalogPublicationSink,
+    ShopItIdentityPermissionDefinitionProvider>(
+    ShopItIdentityPermissionDefinitionProvider.SourceService);
 // TODO: move this to the persistence extension method,and make it an extension method on WebApplicationBuilder
 builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
 
@@ -196,7 +206,6 @@ using (var scope = app.Services.CreateScope())
         }
 
         // Seed data
-        await SeedPermissionCatalog(scope.ServiceProvider);
         await SeedRoles(scope.ServiceProvider);
         await SeedUsers(scope.ServiceProvider);
     }
@@ -208,22 +217,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-
-/// <summary>
-/// Seeds the Identity service's own permissions into the persisted permission catalog.
-/// Other services publish their catalogs via <see cref="PermissionCatalogPublishedIntegrationEvent"/>
-/// (handled by <see cref="PermissionCatalogPublishedIntegrationEventHandler"/>), so Identity does
-/// not need to be redeployed when another service changes its permissions.
-/// </summary>
-static async Task SeedPermissionCatalog(IServiceProvider services)
-{
-    var provider = services.GetRequiredService<ShopItIdentityPermissionDefinitionProvider>();
-    var synchronizer = services.GetRequiredService<IPermissionCatalogSynchronizer>();
-
-    await synchronizer.SynchronizeAsync(
-        ShopItIdentityPermissionDefinitionProvider.SourceService,
-        provider.GetGroups());
-}
 
 static async Task SeedRoles(IServiceProvider services)
 {

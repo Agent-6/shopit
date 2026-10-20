@@ -1,6 +1,5 @@
 using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain.Permissions;
-
 namespace ShopIt.Identity.Events;
 
 /// <summary>
@@ -30,7 +29,34 @@ namespace ShopIt.Identity.Events;
 /// <param name="Groups">The permission groups and their permissions.</param>
 public sealed record PermissionCatalogPublishedIntegrationEvent(
     string SourceService,
-    IReadOnlyList<PermissionGroupDto> Groups) : IntegrationEvent;
+    IReadOnlyList<PermissionGroupDto> Groups) : IntegrationEvent
+{
+    /// <summary>
+    /// Builds the event from a service's domain catalog. The wire mapping lives here so every
+    /// publisher maps value objects to DTOs the same way, and so a service registering the
+    /// permission-catalog publishing hook passes this method rather than repeating the mapping.
+    /// </summary>
+    /// <param name="sourceService">The publishing service's name (e.g. <c>"Tenancy"</c>).</param>
+    /// <param name="groups">The service's permission groups.</param>
+    /// <returns>The integration event describing the catalog.</returns>
+    public static PermissionCatalogPublishedIntegrationEvent Create(
+        string sourceService,
+        IReadOnlyList<PermissionGroupDefinition> groups) =>
+        new(
+            sourceService,
+            groups
+                .Select(group => new PermissionGroupDto(
+                    group.Name,
+                    group.DisplayName,
+                    group.Permissions
+                        .Select(permission => new PermissionDefinitionDto(
+                            permission.Name,
+                            permission.DisplayName,
+                            permission.Description,
+                            permission.MultiTenancySide))
+                        .ToList()))
+                .ToList());
+}
 
 /// <summary>Wire representation of a permission group in a catalog event.</summary>
 public sealed record PermissionGroupDto(
