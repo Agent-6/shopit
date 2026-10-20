@@ -51,13 +51,13 @@ builder.Services.AddPersistence(
     "identity-db",
     builder.Configuration,
     InboxSubscription.Consuming(
-        nameof(ForgotPasswordRequestedIntegrationEvent),
-        nameof(PasswordResetRequestedIntegrationEvent),
-        nameof(EmailConfirmationOtpRequestedIntegrationEvent),
-        nameof(EmailConfirmationSubmittedIntegrationEvent),
-        nameof(ResendInvitationRequestedIntegrationEvent),
-        nameof(TenantCreatedIntegrationEvent),
-        nameof(PermissionCatalogPublishedIntegrationEvent)),
+        typeof(ForgotPasswordRequestedIntegrationEvent),
+        typeof(PasswordResetRequestedIntegrationEvent),
+        typeof(EmailConfirmationOtpRequestedIntegrationEvent),
+        typeof(EmailConfirmationSubmittedIntegrationEvent),
+        typeof(ResendInvitationRequestedIntegrationEvent),
+        typeof(TenantCreatedIntegrationEvent),
+        typeof(PermissionCatalogPublishedIntegrationEvent)),
     handlerAssemblies: typeof(ShopIt.Identity.Application.DependencyInjection).Assembly);
 
 // Identity owns the permission registry, so its own catalog is applied in place at startup

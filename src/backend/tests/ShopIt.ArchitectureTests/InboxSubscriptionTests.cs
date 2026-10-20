@@ -40,9 +40,9 @@ public class InboxSubscriptionTests
     }
 
     [Fact]
-    public void A_consuming_inbox_rejects_blank_topic_names()
+    public void A_consuming_inbox_rejects_a_type_that_is_not_an_integration_event()
     {
-        Assert.Throws<ArgumentException>(() => InboxSubscription.Consuming("Something", " "));
+        Assert.Throws<ArgumentException>(() => InboxSubscription.Consuming(typeof(string)));
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class InboxSubscriptionTests
 
         services.AddKafkaIntegration<ApplicationDbContext>(
             "consuming-inbox",
-            InboxSubscription.Consuming(nameof(ConsumedTestEvent)),
+            InboxSubscription.Consuming(typeof(ConsumedTestEvent)),
             assemblies: [typeof(InboxSubscriptionTests).Assembly]);
 
         Assert.Contains(services, descriptor =>
@@ -83,7 +83,7 @@ public class InboxSubscriptionTests
             .Single();
 
         Assert.Equal("consuming-inbox", options.ConsumerGroupId);
-        Assert.Equal([nameof(ConsumedTestEvent)], options.Topics);
+        Assert.Equal([typeof(ConsumedTestEvent).FullName], options.Topics);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public class InboxSubscriptionTests
         var exception = Assert.Throws<InvalidOperationException>(() =>
             services.AddKafkaIntegration<ApplicationDbContext>(
                 "misconfigured-inbox",
-                InboxSubscription.Consuming(nameof(UnhandledTestEvent)),
+                InboxSubscription.Consuming(typeof(UnhandledTestEvent)),
                 assemblies: [typeof(InboxSubscriptionTests).Assembly]));
 
         Assert.Contains(nameof(UnhandledTestEvent), exception.Message);

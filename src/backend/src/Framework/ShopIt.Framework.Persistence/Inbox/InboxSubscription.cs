@@ -1,3 +1,5 @@
+using ShopIt.Framework.Core.Events.Integration;
+
 namespace ShopIt.Framework.Persistence.Inbox;
 
 /// <summary>
@@ -39,30 +41,35 @@ public sealed class InboxSubscription
     public IReadOnlyList<string> Topics => _topics;
 
     /// <summary>
-    /// This service consumes the given topics. Topics are integration event type names, which is what
-    /// the outbox publishes as the message's <c>EventType</c> header.
+    /// This service consumes the given events. Each is an <see cref="IntegrationEvent"/> type whose
+    /// namespace-qualified name is the Kafka topic; the type — not a string — is the declaration, so the
+    /// topic and the handler lookup cannot drift apart.
     /// </summary>
-    /// <param name="topics">One or more topic (event type) names.</param>
+    /// <param name="eventTypes">One or more concrete integration event types.</param>
     /// <returns>The subscription.</returns>
-    /// <exception cref="ArgumentException">No topics were supplied.</exception>
-    public static InboxSubscription Consuming(params string[] topics)
+    /// <exception cref="ArgumentException">No types were supplied, or one is not a concrete event.</exception>
+    public static InboxSubscription Consuming(params Type[] eventTypes)
     {
-        ArgumentNullException.ThrowIfNull(topics);
+        ArgumentNullException.ThrowIfNull(eventTypes);
 
-        if (topics.Length == 0)
+        if (eventTypes.Length == 0)
         {
             throw new ArgumentException(
-                "A consuming inbox needs at least one topic. Use InboxSubscription.None if this " +
+                "A consuming inbox needs at least one event type. Use InboxSubscription.None if this " +
                 "service is publish-only.",
-                nameof(topics));
+                nameof(eventTypes));
         }
 
-        if (topics.Any(string.IsNullOrWhiteSpace))
+        foreach (var eventType in eventTypes)
         {
-            throw new ArgumentException("Topic names cannot be empty or whitespace.", nameof(topics));
+            InboxEventRegistry.EnsureIsIntegrationEvent(eventType, nameof(eventTypes));
         }
 
-        return new InboxSubscription(topics.Distinct(StringComparer.Ordinal).ToArray());
+        return new InboxSubscription(
+            eventTypes
+                .Select(InboxEventRegistry.EventTypeNameOf)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray());
     }
 
     /// <summary>

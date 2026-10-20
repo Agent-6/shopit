@@ -23,7 +23,7 @@ builder.Services.AddDomainServices();
 builder.Services.AddPersistence(
     "notifications-db",
     builder.Configuration,
-    InboxSubscription.Consuming(nameof(SendEmailIntegrationEvent)),
+    InboxSubscription.Consuming(typeof(SendEmailIntegrationEvent)),
     handlerAssemblies: typeof(ShopIt.Notifications.Application.DependencyInjection).Assembly);
 builder.EnrichNpgsqlDbContext<NotificationsDbContext>();
 

@@ -15,8 +15,15 @@ public abstract record IntegrationEvent
     public DateTime OccurredOn { get; } = DomainProviders.Date.UtcNow;
 
     /// <summary>
-    /// Gets the event type name, derived automatically from the concrete record's type name.
-    /// Used as the Kafka topic or message type discriminator.
+    /// Gets the wire name of the event: its namespace-qualified type name. Used as the Kafka topic and as
+    /// the message type discriminator.
     /// </summary>
-    public string EventType => GetType().Name;
+    /// <remarks>
+    /// Namespace-qualified rather than the simple type name, because a simple name is not an identity:
+    /// two events named the same in different namespaces would be indistinguishable on the wire, and the
+    /// consumer resolves the header back to a CLR type to deserialize it.
+    /// </remarks>
+    public string EventType => GetType().FullName
+        ?? throw new InvalidOperationException(
+            $"Integration event '{GetType()}' has no full name and cannot be addressed on the wire.");
 }
