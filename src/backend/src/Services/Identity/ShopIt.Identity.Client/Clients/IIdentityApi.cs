@@ -19,15 +19,27 @@ public interface IIdentityApi
     Task<ApiResponse<CredentialValidationResponse>> ValidateCredentialsAsync([Body] CredentialValidationRequest request);
 
     /// <summary>
-    /// The caller's effective permissions, resolved and filtered by multi-tenancy side.
+    /// The user's effective permissions <em>in a tenant</em>, resolved and filtered by multi-tenancy side.
     /// </summary>
     /// <remarks>
-    /// The client wrapper reads the shared cache before calling this, and Identity itself serves it
-    /// from the same cache — so on a hit this endpoint is not reached at all.
+    /// <para>
+    /// The tenant is required, not inferred: this call is made with client credentials, so the request
+    /// carries no tenant claim and Identity would otherwise resolve the user's roles in host scope — where
+    /// a tenant user's role-derived grants do not exist (#86). It is the tenant the <em>user</em> is being
+    /// authorised in, which for a request is the caller's own tenant from their token.
+    /// </para>
+    /// <para>
+    /// The client wrapper reads the shared cache before calling this, and Identity itself serves it from
+    /// the same cache, keyed by tenant and user — so on a hit this endpoint is not reached at all.
+    /// </para>
     /// </remarks>
+    /// <param name="userId">The user whose permissions are needed.</param>
+    /// <param name="tenantId">The tenant to resolve them in; <see cref="Guid.Empty"/> for host scope.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
     [Get("/api/internal/users/{userId}/permissions")]
     Task<ApiResponse<UserPermissionsResponse>> GetUserPermissionsAsync(
         Guid userId,
+        [Query] Guid tenantId,
         CancellationToken cancellationToken = default);
 
     /// <summary>

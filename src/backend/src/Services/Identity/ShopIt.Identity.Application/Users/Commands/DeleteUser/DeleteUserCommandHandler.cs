@@ -40,7 +40,7 @@ public class DeleteUserCommandHandler : ICommandHandler<DeleteUserCommand, Resul
             ? await DeletePermanentlyAsync(user)
             : await SoftDeleteAsync(user);
 
-        await _permissionCache.InvalidateUserAsync(user.Id, cancellationToken);
+        await _permissionCache.InvalidateUserAsync(user, cancellationToken);
 
         return result;
     }

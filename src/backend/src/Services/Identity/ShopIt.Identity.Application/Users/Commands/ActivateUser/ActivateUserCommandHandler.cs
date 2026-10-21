@@ -33,7 +33,7 @@ public class ActivateUserCommandHandler(
 
         // Whether a user is active decides whether they hold anything at all — the resolver treats an
         // inactive user as having nothing — so this invalidates their snapshot.
-        await _permissionCache.InvalidateUserAsync(user.Id, cancellationToken);
+        await _permissionCache.InvalidateUserAsync(user, cancellationToken);
 
         return new ActivateUserResult(user.Id, user.IsActive);
     }

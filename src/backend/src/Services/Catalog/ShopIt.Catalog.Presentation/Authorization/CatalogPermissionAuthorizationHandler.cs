@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Identity.Client.Services;
 
@@ -18,6 +19,13 @@ namespace ShopIt.Catalog.Presentation.Authorization;
 /// handler is per service.
 /// </para>
 /// <para>
+/// The tenant is part of the question, not context Identity can recover on its own: the call to Identity
+/// carries service credentials, so Identity sees no tenant claim, and a tenant user's role-derived grants
+/// live in the tenant's copies of their roles. <paramref name="currentTenant"/> is therefore the tenant the
+/// <em>request</em> is acting as — the same scope the catalog's own query filter uses — and it travels with
+/// the call (#86).
+/// </para>
+/// <para>
 /// A handler that returned <c>false</c> rather than failing silently would leave the requirement unmet and
 /// produce a 403 anyway; <see cref="AuthorizationHandlerContext.Fail"/> is used so the reason is explicit
 /// and cannot be overridden by another handler succeeding (ASP.NET Core lets one handler fail the whole
@@ -25,7 +33,8 @@ namespace ShopIt.Catalog.Presentation.Authorization;
 /// </para>
 /// </remarks>
 public class CatalogPermissionAuthorizationHandler(
-    IIdentityPermissionClient permissionClient) : AuthorizationHandler<PermissionRequirement>
+    IIdentityPermissionClient permissionClient,
+    ICurrentTenant currentTenant) : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
@@ -40,7 +49,7 @@ public class CatalogPermissionAuthorizationHandler(
             return;
         }
 
-        var permissions = await permissionClient.GetPermissionsAsync(userId);
+        var permissions = await permissionClient.GetPermissionsAsync(userId, currentTenant.Id);
 
         if (permissions.Grants(requirement.PermissionName))
         {

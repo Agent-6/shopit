@@ -76,7 +76,7 @@ public class UpdateUserRolesCommandHandler(
         // A user's roles decide their permissions, so any change to the assignment invalidates them.
         if (toAdd.Count > 0 || toRemove.Count > 0)
         {
-            await _permissionCache.InvalidateUserAsync(user.Id, cancellationToken);
+            await _permissionCache.InvalidateUserAsync(user, cancellationToken);
         }
 
         return new UpdateUserRolesResult(user.Id, requested, DateTime.UtcNow);

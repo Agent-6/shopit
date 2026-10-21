@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using ShopIt.Framework.Application.Caching;
 using ShopIt.Framework.Core.CQRS;
+using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Identity.Client.Models;
 using ShopIt.Identity.Application.Permissions;
@@ -49,7 +50,8 @@ public static class InternalEndpoints
     }
 
     /// <summary>
-    /// Serves a user's effective permissions from the shared cache, resolving them only on a miss.
+    /// Serves a user's effective permissions <em>in a tenant</em> from the shared cache, resolving them only
+    /// on a miss.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -57,6 +59,18 @@ public static class InternalEndpoints
     /// A holder of an all-permissions role is represented by the flag, so the value does not depend on
     /// what the catalog contains — which is what keeps a catalog publish from invalidating a cache entry
     /// per user.
+    /// </para>
+    /// <para>
+    /// <strong>The tenant is required and comes from the caller.</strong> This endpoint is reached with
+    /// client credentials, so the request carries no tenant claim: without an explicit tenant it would
+    /// resolve the user's roles in host scope, where a tenant user's role-derived grants do not exist
+    /// (#86) — an admin-shaped user is unaffected, which is why the bug hid. The query filter is then
+    /// moved with <see cref="ICurrentTenant.Change"/> rather than bypassed, so the user lookup and the role
+    /// resolution that follows it answer about the same tenant.
+    /// </para>
+    /// <para>
+    /// Because the answer is tenant-dependent, the entry is keyed by tenant as well as user; see
+    /// <see cref="CacheKeys.UserPermissions(Guid, Guid)"/>.
     /// </para>
     /// <para>
     /// Both entries are written here under <c>CacheKeys</c>, the keys consumers read, so a consumer
@@ -67,20 +81,30 @@ public static class InternalEndpoints
     /// Unknown <em>and inactive</em> users both yield nothing rather than 404. An inactive user must not
     /// keep permissions, which is a divergence this endpoint previously had against Identity's own
     /// authorization handler; and a plain value keeps the cached entry unambiguous, since a cached null
-    /// cannot be told apart from a miss.
+    /// cannot be told apart from a miss. A user who exists in another tenant is unknown <em>here</em>, and
+    /// yields nothing for the same reason: this endpoint answers about one tenant, and answering about
+    /// another would be the cross-tenant read the isolation model exists to prevent.
     /// </para>
     /// </remarks>
     private static async Task<IResult> GetUserPermissionsInternal(
         Guid userId,
+        Guid tenantId,
         UserManager<User> userManager,
         IPermissionResolver permissionResolver,
+        ICurrentTenant currentTenant,
         ICache cache,
         CancellationToken cancellationToken)
     {
         var snapshot = await cache.GetOrCreateAsync(
-            CacheKeys.UserPermissions(userId),
+            CacheKeys.UserPermissions(userId, tenantId),
             async token =>
             {
+                // The user's own tenant is not consulted: the caller says which tenant it is authorising
+                // in, and a user who does not exist there has no permissions there.
+                using var tenantChange = currentTenant.Change(new TenantInfo(
+                    tenantId,
+                    tenantId == Guid.Empty ? "Host" : "Internal API"));
+
                 var user = await userManager.FindByIdAsync(userId.ToString());
                 if (user is null || !user.IsActive)
                 {
