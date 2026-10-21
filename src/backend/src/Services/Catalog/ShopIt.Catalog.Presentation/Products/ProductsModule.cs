@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Catalog.Application.Products.Commands.ChangeProductStatus;
 using ShopIt.Catalog.Application.Products.Commands.CreateProduct;
 using ShopIt.Catalog.Application.Products.Commands.UpdateProduct;
+using ShopIt.Catalog.Application.Products.Queries.GetProduct;
+using ShopIt.Catalog.Application.Products.Queries.GetProducts;
 using ShopIt.Catalog.Domain.Permissions;
 using ShopIt.Catalog.Domain.Products;
 using ShopIt.Framework.Core.CQRS;
@@ -17,38 +19,82 @@ using ShopIt.Framework.Presentation.Results;
 namespace ShopIt.Catalog.Presentation.Products;
 
 /// <summary>
-/// The catalog's product write endpoints.
+/// The catalog's product endpoints: the paged, filterable list and the detail read, plus the write commands.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Commands only: reading products — the list and the detail view — belongs to #79, so this module deliberately
-/// has no GET. Adding one here would split that issue's surface across two files.
+/// Reads require <c>catalog.view</c> and writes <c>catalog.write</c>, declared per endpoint rather than on the
+/// group so a new route without a gate is visible in the diff instead of inherited silently.
 /// </para>
 /// <para>
-/// Every route requires <c>catalog.write</c>, declared per endpoint rather than on the group so a new route
-/// without a gate is visible in the diff instead of inherited silently.
+/// Paging and sorting are validated by the handler, not here: <c>page</c> and <c>pageSize</c> default so a
+/// client can ask for "the list" without knowing this service's conventions, but an out-of-range page size or
+/// an unknown <c>sortBy</c>/<c>sortOrder</c> comes back as the handler's <c>Result</c> failure — a 400 — rather
+/// than a silent clamp or a default order.
 /// </para>
 /// <para>
-/// The price arrives as <c>{ "amount": "19.99", "currency": "EUR" }</c> with the amount as a <em>string</em>,
-/// the same shape the response uses. That is ADR-0005's contract in both directions: a JavaScript client that
-/// reads a price, lets a user edit it and posts it back never turns the amount into a double, which is exactly
-/// the rounding the ADR exists to prevent.
+/// The price is <c>{ "amount": "19.99", "currency": "EUR" }</c> in both directions, with the amount as a
+/// <em>string</em>: that is ADR-0005's contract, and it is why the read DTOs carry <c>Money</c> and not a
+/// <c>decimal</c>. A JavaScript client that reads a price, lets a user edit it and posts it back never turns
+/// the amount into a double, which is exactly the rounding the ADR exists to prevent.
 /// </para>
 /// </remarks>
 public class ProductsModule : EndpointsModule
 {
+    /// <summary>The page size used when a client does not ask for one.</summary>
+    private const int DefaultPageSize = 20;
+
     public override string GroupDisplayName => "Products";
 
     public override RoutePattern GroupPrefix => RoutePatternFactory.Parse("/products");
 
     public override void RegisterEndpoints(IEndpointRouteBuilder app)
     {
+        app.MapGet("/", GetProducts).RequirePermission(ShopItCatalogPermissions.View);
+        app.MapGet("/{productId:guid}", GetProductById).RequirePermission(ShopItCatalogPermissions.View);
         app.MapPost("/", CreateProduct).RequirePermission(ShopItCatalogPermissions.Write);
         app.MapPut("/{productId:guid}", UpdateProduct).RequirePermission(ShopItCatalogPermissions.Write);
 
         // One status route with a target status, mirroring the command: the lifecycle's rule is about
         // transitions, and two routes (activate/archive) would encode the same rule twice in the HTTP surface.
         app.MapPut("/{productId:guid}/status", ChangeProductStatus).RequirePermission(ShopItCatalogPermissions.Write);
+    }
+
+    private async Task<IResult> GetProducts(
+        [FromQuery] int? page,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? filter,
+        [FromQuery] Guid? categoryId,
+        [FromQuery] ProductStatus? status,
+        [FromQuery] string? sortBy,
+        [FromQuery] string? sortOrder,
+        IDispatcher dispatcher,
+        CancellationToken cancellationToken = default)
+    {
+        // Only the paging defaults live here; the bounds and the sort vocabulary are the handler's, so they
+        // are reported as Result failures rather than being papered over at the edge.
+        var result = await dispatcher.QueryAsync(
+            new GetProductsQuery(
+                page ?? 1,
+                pageSize ?? DefaultPageSize,
+                filter,
+                categoryId,
+                status,
+                sortBy,
+                sortOrder),
+            cancellationToken);
+
+        return result.ToHttpResult();
+    }
+
+    private async Task<IResult> GetProductById(
+        Guid productId,
+        IDispatcher dispatcher,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await dispatcher.QueryAsync(new GetProductQuery(productId), cancellationToken);
+
+        return result.ToHttpResult();
     }
 
     private async Task<IResult> CreateProduct(

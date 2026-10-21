@@ -7,8 +7,8 @@ namespace ShopIt.Catalog.Presentation;
 public static class DependencyInjection
 {
     /// <summary>
-    /// Registers the presentation layer: every <c>EndpointsModule</c> in this assembly (today the
-    /// categories module), which the composition root maps through the framework's <c>MapEndpoints</c>.
+    /// Registers the presentation layer: every <c>EndpointsModule</c> in this assembly (the categories and
+    /// products modules), which the composition root maps through the framework's <c>MapEndpoints</c>.
     /// </summary>
     /// <remarks>
     /// The permission-authorization handler is registered separately, by
