@@ -300,6 +300,41 @@ Applied to PRs touching persistence:
 - [ ] A test asserts that a query in tenant A cannot see tenant B's rows, **using two tenants through
       separate context instances**. A single-tenant test passes even when the filter is baked, so it is
       not evidence. *(No test project exists yet — this becomes enforceable when one does.)*
+      **Satisfied for Catalog since 2026-10-21** — see *What is not proven* below.
+
+## What is not proven
+
+Recorded deliberately, because a green build should not be mistaken for evidence.
+
+- **The filter was proven against Identity's own copy only.** `TenantAwareDbContext` — the base class every
+  other service inherits — had never isolated two tenants. The two-tenant check recorded above (*"verified
+  with two tenants through separate context instances, which is the only test that distinguishes a rooted
+  filter from a baked one"*) was a manual observation made while choosing the mechanism, and the review
+  checklist carried the requirement as *"no test project exists yet — this becomes enforceable when one
+  does."*
+- **No live request has been driven cross-tenant.** Nothing has shown that an HTTP request in tenant A
+  cannot return tenant B's rows: the proof below exercises the `DbContext` directly.
+- **PostgreSQL is not the provider under test.** The proof runs on EF Core's InMemory provider, so the
+  filter's *translation* to SQL is still exercised only by hand. The filter is a model artefact evaluated
+  per query rather than a relational feature, so this is a narrow gap — but it is a gap.
+- **`Product` cannot be materialised on that provider** — its price is a `Money` complex type, which the
+  InMemory shaper rejects — so the product assertions project to scalar columns. `Category` is materialised
+  in full, which is what proves that a list of whole entities is filtered.
+- **The `IgnoreQueryFilters()` call sites in *One mechanism: `Change()`* are still there** (all in Identity),
+  and nothing fails a build that adds an eighth — the catalog is audited, the rest of the repository is not.
+
+**2026-10-21 — the first of these is now automated, for the catalog service.**
+`tests/ShopIt.ArchitectureTests/TenantIsolationTests.cs` ([#80](https://github.com/Agent-6/shopit/issues/80))
+creates a product and a category in tenant A and queries in tenant B — by list, by id, through a filter, and
+through the repositories the handlers use — both on one context with `Change()` and, decisively, on
+**separate `DbContext` instances in the order A, B, A**. The second is the one that fails when the filter is
+baked into the cached model: confirmed by temporarily re-rooting the lambda through an `ICurrentTenant`
+parameter, which broke three of the tests. The suite also asserts that host scope (`Guid.Empty`) sees every
+tenant's rows — the behaviour the *Negative* consequences above describe — that every catalog use case
+*refuses* host scope, that each `ITenantEntity` in the model carries the filter, and that no catalog assembly
+calls `IgnoreQueryFilters()`, with a control proving that scan finds one when it is there. The original
+statement above is kept: it is what the accepted decision rested on, and this line dates the evidence that
+replaced it.
 
 ## Follow-ups
 
@@ -310,4 +345,4 @@ Applied to PRs touching persistence:
 | Adopt PostgreSQL RLS as a database-level backstop (option 4) | When a second developer joins, or when tenant data is exposed to end customers rather than only to staff |
 | Move the tenancy abstractions into the framework so all services can use them | [#16](https://github.com/Agent-6/shopit/issues/16) — already planned |
 | Make "no tenant context" explicit instead of overloading `Guid.Empty` | When a second service acquires tenant-scoped data |
-| Automated cross-tenant leak test in CI | When a test project exists |
+| Automated cross-tenant leak test in CI | When a test project exists — **the test exists since 2026-10-21** (Catalog, #80); nothing runs it in CI yet |
