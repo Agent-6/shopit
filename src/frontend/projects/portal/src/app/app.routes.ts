@@ -58,6 +58,34 @@ export const routes: Routes = [
         component: TenantDetailComponent,
         canActivate: [permissionGuard(ShopItPermissions.Tenants.View)]
       },
+      {
+        // A bare /catalog has no page of its own: products are the section's landing page. No guard on the
+        // redirect itself — Angular rejects `redirectTo` combined with `canActivate` — and none is needed:
+        // the route it redirects to carries the catalog.view guard, which runs before anything renders.
+        path: APP_ROUTES.catalog.root.path,
+        redirectTo: APP_ROUTES.catalog.products.path,
+        pathMatch: 'full'
+      },
+      {
+        path: APP_ROUTES.catalog.products.path,
+        // Lazily loaded: the catalog is a section an operator opens, not part of every session's initial
+        // bundle. The other, older pages are still eagerly imported; this one follows the Angular convention.
+        loadComponent: () =>
+          import('./pages/catalog/products-page.component').then((m) => m.ProductsPageComponent),
+        canActivate: [permissionGuard(ShopItPermissions.Catalog.View)]
+      },
+      {
+        path: APP_ROUTES.catalog.productDetail.path,
+        loadComponent: () =>
+          import('./pages/catalog/product-detail.component').then((m) => m.ProductDetailComponent),
+        canActivate: [permissionGuard(ShopItPermissions.Catalog.View)]
+      },
+      {
+        path: APP_ROUTES.catalog.categories.path,
+        loadComponent: () =>
+          import('./pages/catalog/categories-page.component').then((m) => m.CategoriesPageComponent),
+        canActivate: [permissionGuard(ShopItPermissions.Catalog.View)]
+      },
       { path: 'forbidden', component: ForbiddenPageComponent }
     ]
   },

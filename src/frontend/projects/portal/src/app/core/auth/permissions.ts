@@ -28,4 +28,10 @@ export const ShopItPermissions = {
     Delete: 'tenant.delete',
     ActivateDeactivate: 'tenant.activate-deactivate',
   },
+  Catalog: {
+    /** Browse products and categories; the Catalog API requires it on every read. */
+    View: 'catalog.view',
+    /** Create, edit and remove products and categories; required on every write. */
+    Write: 'catalog.write',
+  },
 } as const;

@@ -33,6 +33,8 @@ namespace ShopIt.Catalog.Application.Products.Queries.GetProduct;
 /// </param>
 /// <param name="CreatedOn">When the product was created.</param>
 /// <param name="LastModifiedOn">When it was last modified, or <c>null</c> if it never has been.</param>
+/// <param name="CreatedBy">The user who created the product, or <c>null</c> when no interactive user did (seeding).</param>
+/// <param name="LastModifiedBy">The user who last modified it, or <c>null</c> if it never has been modified.</param>
 public record GetProductResult(
     Guid Id,
     string Name,
@@ -44,4 +46,6 @@ public record GetProductResult(
     Guid TenantId,
     string? TenantCurrency,
     DateTimeOffset CreatedOn,
-    DateTimeOffset? LastModifiedOn);
+    DateTimeOffset? LastModifiedOn,
+    Guid? CreatedBy,
+    Guid? LastModifiedBy);

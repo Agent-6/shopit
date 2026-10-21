@@ -1,0 +1,203 @@
+<section class="flex flex-col gap-6">
+  <app-page-header
+    title="Products"
+    subtitle="Browse, create, and maintain the products in your catalog."
+  >
+    @if (canWrite()) {
+      <ui-button variant="default" icon="plus" (click)="openCreate()">New product</ui-button>
+    }
+  </app-page-header>
+
+  <app-catalog-nav></app-catalog-nav>
+
+  <app-page-filters>
+    <form class="grid gap-4 md:grid-cols-2 lg:grid-cols-12 items-end" (submit)="onSearchSubmit($event)">
+      <div class="lg:col-span-4 space-y-1.5">
+        <label class="text-sm font-medium leading-none" for="products-search">Search</label>
+        <input
+          id="products-search"
+          type="search"
+          placeholder="Search by name or SKU"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          [value]="service.filter()"
+          (input)="service.filter.set($any($event.target).value)"
+        />
+      </div>
+
+      <div class="lg:col-span-3 space-y-1.5">
+        <label class="text-sm font-medium leading-none" for="products-category">Category</label>
+        <select
+          id="products-category"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          [value]="service.categoryId() ?? ''"
+          (change)="onCategoryChange($any($event.target).value)"
+        >
+          <option value="">All categories</option>
+          @for (category of service.categoryOptions(); track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+          }
+        </select>
+        @if (service.categoryOptionsError(); as categoryError) {
+          <p class="text-xs text-destructive">{{ categoryError }}</p>
+        }
+      </div>
+
+      <div class="lg:col-span-2 space-y-1.5">
+        <label class="text-sm font-medium leading-none" for="products-status">Status</label>
+        <select
+          id="products-status"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          [value]="service.status() ?? ''"
+          (change)="onStatusChange($any($event.target).value)"
+        >
+          <option value="">All statuses</option>
+          <option value="Draft">Draft</option>
+          <option value="Active">Active</option>
+          <option value="Archived">Archived</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-3 space-y-1.5">
+        <label class="text-sm font-medium leading-none" for="products-sort-by">Sort by</label>
+        <select
+          id="products-sort-by"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          [value]="service.sortBy()"
+          (change)="onSortByChange($any($event.target).value)"
+        >
+          <option value="name">Name</option>
+          <option value="sku">SKU</option>
+          <option value="price">Price</option>
+          <option value="createdOn">Created</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-2 space-y-1.5">
+        <label class="text-sm font-medium leading-none" for="products-sort-order">Order</label>
+        <select
+          id="products-sort-order"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+          [value]="service.sortOrder()"
+          (change)="onSortOrderChange($any($event.target).value)"
+        >
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+
+      <div class="lg:col-span-10 flex flex-wrap justify-end gap-2">
+        <ui-button variant="outline" icon="refresh-cw" (click)="resetFilters()">Reset</ui-button>
+        <ui-button type="submit" icon="check">Search</ui-button>
+      </div>
+    </form>
+  </app-page-filters>
+
+  @if (actionError(); as message) {
+    <div role="alert" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+      <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
+      {{ message }}
+    </div>
+  }
+
+  <app-page-table
+    [columns]="columns()"
+    [rows]="service.products()"
+    [trackBy]="trackById"
+    [page]="service.page()"
+    [pageCount]="service.pageCount()"
+    [pageSize]="service.pageSize()"
+    [disabled]="service.productsLoading()"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  >
+    <ng-template appPageTableCell="name" let-product>
+      <a
+        class="block max-w-48 truncate font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        [routerLink]="['/catalog/products', product.id]"
+        [title]="product.name"
+      >
+        {{ product.name }}
+      </a>
+    </ng-template>
+    <ng-template appPageTableCell="sku" let-product>
+      <span class="whitespace-nowrap font-mono text-xs">{{ product.sku }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="category" let-product>
+      @if (service.categoryName(product.categoryId); as categoryName) {
+        <span class="block max-w-36 truncate text-muted-foreground" [title]="categoryName">{{ categoryName }}</span>
+      } @else {
+        <span class="text-muted-foreground">—</span>
+      }
+    </ng-template>
+    <ng-template appPageTableCell="price" let-product>
+      <span class="whitespace-nowrap tabular-nums">{{ product.price | money }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="status" let-product>
+      <app-product-status-badge [status]="product.status"></app-product-status-badge>
+    </ng-template>
+    <ng-template appPageTableCell="updated" let-product>
+      <span class="whitespace-nowrap text-muted-foreground">
+        {{ (product.lastModifiedOn ?? product.createdOn) | date: 'shortDate' }}
+      </span>
+    </ng-template>
+    <ng-template appPageTableCell="actions" let-product>
+      @if (product.status !== 'Archived') {
+        <div class="flex justify-end gap-1">
+          <ui-button
+            variant="secondary"
+            size="sm"
+            icon="pencil"
+            [ariaLabel]="'Edit ' + product.name"
+            (click)="editProduct(product)"
+          ></ui-button>
+          <ui-button
+            variant="outline"
+            size="sm"
+            icon="archive"
+            [ariaLabel]="'Archive ' + product.name"
+            (click)="archive(product)"
+          ></ui-button>
+        </div>
+      } @else {
+        <span class="text-xs text-muted-foreground">Read-only</span>
+      }
+    </ng-template>
+  </app-page-table>
+
+  @if (!service.productsLoading() && !service.productsError() && service.productsLoaded() && service.products().length === 0) {
+    <div class="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
+      @if (service.hasProductFilters()) {
+        <p class="font-medium text-foreground">No products match these filters.</p>
+        <p class="mt-1">Clear the filters to see the whole catalog.</p>
+      } @else {
+        <p class="font-medium text-foreground">No products yet.</p>
+        <p class="mt-1">
+          @if (canWrite()) {
+            This catalog is empty. Use <span class="font-medium text-foreground">New product</span> to add the
+            first one.
+          } @else {
+            This catalog is empty.
+          }
+        </p>
+      }
+    </div>
+  }
+
+  @if (service.productsError(); as message) {
+    <div role="alert" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+      <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
+      {{ message }}
+    </div>
+  }
+
+  @if (editorOpen()) {
+    <app-product-editor
+      [model]="editingProduct()"
+      [categories]="service.categoryOptions()"
+      [failure]="editorFailure()"
+      [busy]="editorBusy()"
+      (submit)="saveProduct($event)"
+      (cancel)="closeEditor()"
+    ></app-product-editor>
+  }
+</section>

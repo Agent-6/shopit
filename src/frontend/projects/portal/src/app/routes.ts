@@ -39,4 +39,22 @@ export const APP_ROUTES = {
       url: (id: string) => `/tenants/${id}`,
     },
   },
+  catalog: {
+    root: {
+      path: 'catalog',
+      url: '/catalog',
+    },
+    products: {
+      path: 'catalog/products',
+      url: '/catalog/products',
+    },
+    productDetail: {
+      path: 'catalog/products/:id',
+      url: (id: string) => `/catalog/products/${id}`,
+    },
+    categories: {
+      path: 'catalog/categories',
+      url: '/catalog/categories',
+    },
+  },
 };

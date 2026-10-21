@@ -1,0 +1,118 @@
+<section class="flex flex-col gap-6">
+  <app-page-header
+    title="Categories"
+    subtitle="The shelves your products are filed under. A category can be deleted only while no product uses it."
+  >
+    @if (canWrite()) {
+      <ui-button variant="default" icon="plus" (click)="openCreate()">New category</ui-button>
+    }
+  </app-page-header>
+
+  <app-catalog-nav></app-catalog-nav>
+
+  <app-page-filters>
+    <form class="grid gap-4 md:grid-cols-2 lg:grid-cols-12 items-end" (submit)="onSearchSubmit($event)">
+      <div class="lg:col-span-6 space-y-1.5">
+        <label class="text-sm font-medium leading-none" for="categories-search">Search</label>
+        <input
+          id="categories-search"
+          type="search"
+          placeholder="Search by category name"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          [value]="service.categoryFilter()"
+          (input)="service.categoryFilter.set($any($event.target).value)"
+        />
+      </div>
+
+      <div class="lg:col-span-6 flex flex-wrap justify-end gap-2">
+        <ui-button variant="outline" icon="refresh-cw" (click)="resetFilters()">Reset</ui-button>
+        <ui-button type="submit" icon="check">Search</ui-button>
+      </div>
+    </form>
+  </app-page-filters>
+
+  @if (actionError(); as message) {
+    <div role="alert" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+      <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
+      {{ message }}
+    </div>
+  }
+
+  <app-page-table
+    [columns]="columns()"
+    [rows]="service.categories()"
+    [trackBy]="trackById"
+    [page]="service.categoryPage()"
+    [pageCount]="service.categoryPageCount()"
+    [pageSize]="service.categoryPageSize()"
+    [disabled]="service.categoriesLoading()"
+    (pageChange)="goToPage($event)"
+    (pageSizeChange)="setPageSize($event)"
+  >
+    <ng-template appPageTableCell="name" let-category>
+      <span class="font-medium">{{ category.name }}</span>
+    </ng-template>
+    <ng-template appPageTableCell="products" let-category>
+      @let count = service.categoryProductCount(category.id);
+      @if (count !== null) {
+        <span class="whitespace-nowrap tabular-nums">{{ count }}</span>
+        @if (count > 0) {
+          <span class="ml-2 text-xs text-muted-foreground">in use</span>
+        }
+      } @else {
+        <span class="text-muted-foreground" title="Product count is unavailable">—</span>
+      }
+    </ng-template>
+    <ng-template appPageTableCell="created" let-category>
+      <span class="whitespace-nowrap text-muted-foreground">
+        {{ category.createdOn | date: 'shortDate' }}
+      </span>
+    </ng-template>
+    <ng-template appPageTableCell="actions" let-category>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <ui-button variant="secondary" size="sm" (click)="openRename(category)">Rename</ui-button>
+        @if (canDelete(category)) {
+          <ui-button variant="destructive" size="sm" (click)="deleteCategory(category)">Delete</ui-button>
+        } @else if (service.categoryProductCount(category.id) !== null) {
+          <span class="text-xs text-muted-foreground">Move its products first</span>
+        }
+      </div>
+    </ng-template>
+  </app-page-table>
+
+  @if (!service.categoriesLoading() && !service.categoriesError() && service.categoriesLoaded() && service.categories().length === 0) {
+    <div class="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
+      @if (service.categoryFilter().trim()) {
+        <p class="font-medium text-foreground">No categories match this search.</p>
+        <p class="mt-1">Clear the search to see all categories.</p>
+      } @else {
+        <p class="font-medium text-foreground">No categories yet.</p>
+        <p class="mt-1">
+          @if (canWrite()) {
+            Use <span class="font-medium text-foreground">New category</span> to create the first shelf for
+            your products.
+          } @else {
+            There are no categories in this catalog.
+          }
+        </p>
+      }
+    </div>
+  }
+
+  @if (service.categoriesError(); as message) {
+    <div role="alert" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+      <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
+      {{ message }}
+    </div>
+  }
+
+  @if (editorOpen()) {
+    <app-category-editor
+      [model]="editingCategory()"
+      [failure]="editorFailure()"
+      [busy]="editorBusy()"
+      (submit)="saveCategory($event)"
+      (cancel)="closeEditor()"
+    ></app-category-editor>
+  }
+</section>
