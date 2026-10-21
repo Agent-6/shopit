@@ -11,6 +11,7 @@ using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Application.Users.Commands.CompleteActivation;
 using ShopIt.Identity.Domain.Entities;
 using ShopIt.Identity.Domain.Enums;
+using ShopIt.Identity.Domain.Repositories;
 
 namespace ShopIt.Identity.Presentation.Internal;
 
@@ -104,6 +105,7 @@ public static class InternalEndpoints
     private static async Task<IResult> ValidateCredentials(
         [FromBody] CredentialValidationRequest request,
         UserManager<User> userManager,
+        IUserRepository userRepository,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
@@ -111,7 +113,10 @@ public static class InternalEndpoints
             return Results.BadRequest("Username and password are required.");
         }
 
-        var user = await userManager.FindByNameAsync(request.Username);
+        // Resolved across tenants on purpose: this call arrives with client credentials, so there is no
+        // ambient tenant here, and the account's tenant is an outcome of the lookup rather than an input
+        // to it. See IUserRepository.FindForLoginAsync and ADR-0001's legitimate escapes from the filter.
+        var user = await userRepository.FindForLoginAsync(request.Username, cancellationToken);
 
         if (user is null)
         {
