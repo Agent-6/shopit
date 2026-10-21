@@ -45,7 +45,7 @@ Three axes. An issue normally carries one KIND, one AREA, and any MARKERS that a
 | **KIND** | `feature` | A capability or change, written as a spec |
 | | `task` | A specific piece of work |
 | | `bug` | Something broken |
-| **AREA** | `svc:identity` `svc:tenancy` `svc:notifications` `svc:authentication` `svc:portal` `svc:framework` | Which part of the system |
+| **AREA** | `svc:identity` `svc:tenancy` `svc:catalog` `svc:notifications` `svc:authentication` `svc:portal` `svc:framework` | Which part of the system |
 | **MARKERS** | `epic` | Groups several features toward one outcome |
 | | `adr` | Settles an architectural decision |
 | | `spike` | Time-boxed investigation; the deliverable is a written answer |
@@ -219,6 +219,7 @@ Rules that follow from it:
 | Identity | 7 | Canonical set **plus** `Client` (its internal API is called synchronously). No `Infrastructure` project: everything it needs is `Framework.Infrastructure` plus its own persistence, so the composition root calls the framework registration directly. |
 | Tenancy | 7 | Canonical set. No `Client` of its own — it consumes Identity's. |
 | Notifications | 5 | No `Domain` (it owns no entities; its tables are the framework's inbox/outbox) and no `Presentation` (it has no HTTP surface — adding one is a feature decision, not a layering one). |
+| Catalog | 5 | No `Events` and no `Infrastructure`, both deliberately deferred (#75). `.Events` arrives with the first integration event the catalog service publishes, and `Infrastructure` with the first outbound adapter; creating either empty now would be the dead scaffolding #34 removed. Until then the composition root calls the framework infrastructure registration directly, as Identity does. `Application` and `Presentation` exist with no handlers or endpoints yet — they hold the permission provider registration and the endpoint seam that #77/#78 fill. Everything else in the service is tenant-scoped: `CatalogDbContext` derives from `TenantAwareDbContext`, so the first `ITenantEntity` is filtered by default. It declares `catalog.view` / `catalog.write` but registers **no** permission-authorization handler yet: nothing enforces a permission until #77/#78 add endpoints, and resolving one over HTTP needs `ShopIt.Identity.Client` (`Tenancy`'s path), which would be the service's second — and much wider — Identity reference. |
 
 If a service diverges from the table above, either fix it or add it here with the reason. An
 undocumented difference is a bug in this document.

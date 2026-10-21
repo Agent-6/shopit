@@ -28,7 +28,18 @@ namespace ShopIt.ArchitectureTests;
 /// </remarks>
 public class EventContractOwnershipTests
 {
-    private static readonly string[] Services = ["Authentication", "Identity", "Notifications", "Tenancy"];
+    private static readonly string[] Services = ["Authentication", "Catalog", "Identity", "Notifications", "Tenancy"];
+
+    /// <summary>
+    /// Services that deliberately ship without an <c>.Events</c> assembly.
+    /// </summary>
+    /// <remarks>
+    /// Catalog is here on purpose (#75): its assembly arrives with the first integration event it
+    /// publishes, and creating one empty now would be the dead scaffolding #34 removed. Recorded as a
+    /// deliberate delta in <c>docs/CONTRIBUTING.md</c>'s per-service table, so deleting this line is how
+    /// the scaffold's next step gets noticed.
+    /// </remarks>
+    private static readonly string[] ServicesWithoutEventsYet = ["Catalog"];
 
     /// <summary>Contract assembly suffixes a service is allowed to reference across a boundary.</summary>
     private static readonly string[] AllowedContractSuffixes = [".Events", ".Client"];
@@ -97,13 +108,13 @@ public class EventContractOwnershipTests
     public void Every_service_has_an_events_assembly_it_can_publish_from()
     {
         // Guards the rule's usefulness: if a service has no .Events assembly, its contracts are
-        // hiding in an implementation assembly again.
+        // hiding in an implementation assembly again. The deliberate exception is listed above.
         var servicesWithEvents = ServiceAssemblies()
             .Where(a => a.GetName().Name!.EndsWith(".Events"))
             .Select(a => ServiceOf(a.GetName())!)
             .ToHashSet();
 
-        Assert.Equal(Services.Order(), servicesWithEvents.Order());
+        Assert.Equal(Services.Except(ServicesWithoutEventsYet).Order(), servicesWithEvents.Order());
     }
 
     /// <summary>All ShopIt service assemblies that landed in this test's output directory.</summary>

@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\ShopIt.ServiceDefaults\ShopIt.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Domain\ShopIt.Framework.Domain.csproj" />
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
+    <!-- Accepted edge: the catalog service publishes a permission catalog, whose contract Identity
+         owns. This is the only ShopIt.Identity.* reference in this service — deliberate and
+         downstream-pointing; see plans/event-contract-ownership.md. -->
+    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Events\ShopIt.Identity.Events.csproj" />
+    <ProjectReference Include="..\ShopIt.Catalog.Application\ShopIt.Catalog.Application.csproj" />
+    <ProjectReference Include="..\ShopIt.Catalog.Persistence\ShopIt.Catalog.Persistence.csproj" />
+    <ProjectReference Include="..\ShopIt.Catalog.Presentation\ShopIt.Catalog.Presentation.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="OpenIddict.AspNetCore" />
+  </ItemGroup>
+
+</Project>

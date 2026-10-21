@@ -10,9 +10,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\ShopIt.ServiceDefaults\ShopIt.ServiceDefaults.csproj" />
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
-    <!-- Accepted edge: a service that publishes a permission catalog references the event contract
-         Identity owns. Deliberate and downstream-pointing; see plans/event-contract-ownership.md. -->
-    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Events\ShopIt.Identity.Events.csproj" />
     <ProjectReference Include="..\ShopIt.Notifications.Application\ShopIt.Notifications.Application.csproj" />
     <ProjectReference Include="..\ShopIt.Notifications.Infrastructure\ShopIt.Notifications.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Notifications.Persistence\ShopIt.Notifications.Persistence.csproj" />

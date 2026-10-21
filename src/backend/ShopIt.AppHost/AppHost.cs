@@ -23,10 +23,16 @@ var notificationsPostgres = builder.AddPostgres("notifications-postgres")
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent);
 
+var catalogPostgres = builder.AddPostgres("catalog-postgres")
+    .WithPgAdmin()
+    .WithDataVolume()
+    .WithLifetime(ContainerLifetime.Persistent);
+
 var authDb = authPostgres.AddDatabase("auth-db");
 var identityDb = identityPostgres.AddDatabase("identity-db");
 var tenancyDb = tenancyPostgres.AddDatabase("tenancy-db");
 var notificationsDb = notificationsPostgres.AddDatabase("notifications-db");
+var catalogDb = catalogPostgres.AddDatabase("catalog-db");
 
 var kafka = builder.AddKafka("kafka")
     .WithDataVolume()
@@ -105,6 +111,24 @@ var tenancy = builder.AddProject<Projects.ShopIt_Tenancy_API>("tenancy-api")
     .WaitFor(redis);
 tenancy = WithInternalClients(tenancy, introspectionClientSecret, backendClientSecret);
 
+// The catalog service declares catalog.view / catalog.write and publishes them to Identity, and
+// validates incoming tokens at the auth server. Like Tenancy it gets both references: introspection
+// needs the auth server, and resolving a caller's permissions is an Identity lookup.
+var catalog = builder.AddProject<Projects.ShopIt_Catalog_API>("catalog-api")
+    .WithReference(catalogDb)
+    .WithReference(seq)
+    .WithReference(kafka)
+    .WithReference(auth)
+    .WithReference(identity)
+    .WithReference(redis)
+    .WaitFor(catalogDb)
+    .WaitFor(kafka)
+    .WaitFor(seq)
+    .WaitFor(auth)
+    .WaitFor(identity)
+    .WaitFor(redis);
+catalog = WithInternalClients(catalog, introspectionClientSecret, backendClientSecret);
+
 // Notifications consumes SendEmailIntegrationEvent from Identity and Authentication
 // and delivers the emails to Mailpit's SMTP endpoint. It only needs Kafka, its own
 // database (inbox idempotency) and Seq for the delivered-email logs.
@@ -138,6 +162,10 @@ var gateway = builder.AddYarp("gateway")
         yarp.AddRoute("/api/tenancy/{**catch-all}", tenancy)
             .WithTransformPathRemovePrefix("/api/tenancy");
 
+        // Route for Catalog API - removes /api/catalog prefix
+        yarp.AddRoute("/api/catalog/{**catch-all}", catalog)
+            .WithTransformPathRemovePrefix("/api/catalog");
+
         // Route for Notifications API - removes /api/notifications prefix
         yarp.AddRoute("/api/notifications/{**catch-all}", notifications)
             .WithTransformPathRemovePrefix("/api/notifications");
@@ -155,11 +183,13 @@ scalar
     .WithApiReference(auth)
     .WithApiReference(identity)
     .WithApiReference(tenancy)
+    .WithApiReference(catalog)
     .WithApiReference(notifications)
     .WithApiReference(gateway)
     .WaitFor(auth)
     .WaitFor(identity)
     .WaitFor(tenancy)
+    .WaitFor(catalog)
     .WaitFor(notifications)
     .WaitFor(gateway);
 

@@ -1,0 +1,115 @@
+using Microsoft.EntityFrameworkCore;
+using OpenIddict.Validation.AspNetCore;
+using ShopIt.Catalog.Application;
+using ShopIt.Catalog.Domain.Permissions;
+using ShopIt.Catalog.Persistence;
+using ShopIt.Catalog.Persistence.Data;
+using ShopIt.Catalog.Presentation;
+using ShopIt.Framework.Domain;
+using ShopIt.Framework.Infrastructure;
+using ShopIt.Framework.Infrastructure.Security;
+using ShopIt.Framework.Persistence;
+using ShopIt.Framework.Persistence.Inbox;
+using ShopIt.Framework.Presentation;
+using ShopIt.Identity.Events;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+builder.AddServiceDefaults();
+
+builder.Services.AddDomainServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
+builder.Services.AddPresentation(builder.Configuration);
+builder.Services.AddApplication();
+
+// Publish-only: the catalog service publishes its permission catalog and will publish catalog domain
+// events, but consumes nothing yet. Stated explicitly so it cannot be confused with a service whose
+// inbox was never configured.
+builder.Services.AddPersistence("catalog-db", builder.Configuration, InboxSubscription.None);
+builder.EnrichNpgsqlDbContext<CatalogDbContext>();
+
+// This service's permissions are published to Identity through the framework hook: at startup the
+// provider's groups go to the outbox as a PermissionCatalogPublishedIntegrationEvent, so Identity
+// persists them and grants new permissions to the Admin role without being redeployed. This is the
+// real owner of catalog.view / catalog.write — the #24 placeholder in Notifications is gone.
+builder.Services.AddPermissionCatalogPublishing<ShopItCatalogPermissionDefinitionProvider, CatalogDbContext>(
+    ShopItCatalogPermissionDefinitionProvider.SourceService,
+    PermissionCatalogPublishedIntegrationEvent.Create);
+
+// Validate access tokens issued by the authentication server (introspection), so the first catalog
+// endpoint is authenticated by construction rather than by remembering to add it. The introspection
+// secret is injected by the AppHost; a missing one fails here rather than as an unexplained 401 on
+// every request.
+//
+// No permission handler is registered yet: nothing in this service enforces a permission until #77/#78
+// add endpoints. Resolving one is an HTTP call to Identity, which is a different dependency (and a
+// different project reference) from *declaring* permissions — see the note in
+// docs/CONTRIBUTING.md's per-service table.
+var introspectionClient = ServiceClientCredentials.Read(
+    builder.Configuration, "InternalClients:Introspection", "token introspection");
+
+builder.Services.AddOpenIddict()
+    .AddValidation(options =>
+    {
+        options.SetIssuer("https://localhost:7234/");
+
+        options.UseIntrospection()
+               .SetClientId(introspectionClient.ClientId)
+               .SetClientSecret(introspectionClient.ClientSecret);
+
+        options.UseSystemNetHttp();
+        options.UseAspNetCore();
+    });
+
+builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+app.Services.UseDomainServices();
+
+app.MapDefaultEndpoints();
+
+// Configure the HTTP request pipeline.
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapEndpoints();
+
+// Apply migrations on startup
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        logger.LogInformation("Checking for pending catalog migrations...");
+        var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+        var pendingList = pendingMigrations.ToList();
+
+        logger.LogInformation("Found {Count} pending catalog migrations", pendingList.Count);
+
+        if (pendingList.Any())
+        {
+            logger.LogInformation("Applying catalog migrations...");
+            await dbContext.Database.MigrateAsync();
+            logger.LogInformation("Catalog migrations applied successfully");
+        }
+        else
+        {
+            logger.LogInformation("No pending catalog migrations found");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while migrating the catalog database");
+        throw;
+    }
+}
+
+app.Run();
