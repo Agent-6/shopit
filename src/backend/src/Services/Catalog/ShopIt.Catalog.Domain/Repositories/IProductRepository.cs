@@ -8,14 +8,10 @@ namespace ShopIt.Catalog.Domain.Repositories;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Both lookups below run through the <c>DbContext</c>, so both are already scoped to the acting tenant by
-/// the query filter: <see cref="ExistsBySkuAsync"/> is a per-tenant uniqueness check and
-/// <see cref="IRepository{TEntity,TId}.FindByIdAsync"/> returns <c>null</c> — rather than another tenant's
-/// row — for an id that belongs to a different tenant.
-/// </para>
-/// <para>
-/// There are no listing or search methods here: the product list and detail query surface is #79, and adding
-/// a paged read now would be scaffolding that issue has to keep in step.
+/// Every method runs through the <c>DbContext</c>, so all of them are already scoped to the acting tenant by
+/// the query filter: <see cref="ExistsBySkuAsync"/> is a per-tenant uniqueness check, the paged read only
+/// sees this tenant's rows, and <see cref="IRepository{TEntity,TId}.FindByIdAsync"/> returns <c>null</c> —
+/// rather than another tenant's row — for an id that belongs to a different tenant.
 /// </para>
 /// </remarks>
 public interface IProductRepository : IRepository<Product, Guid>
@@ -41,4 +37,31 @@ public interface IProductRepository : IRepository<Product, Guid>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns><c>true</c> when at least one product in this tenant uses the category.</returns>
     Task<bool> AnyByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets a page of the acting tenant's products, optionally filtered by a name/SKU term, a category and a
+    /// status.
+    /// </summary>
+    /// <remarks>
+    /// The sort is a total order: <paramref name="sortBy"/> is followed by <c>Id</c>, so two products that
+    /// share a name, price or creation instant cannot appear on both of two pages — or, worse, on neither.
+    /// </remarks>
+    /// <param name="pageNumber">The 1-based page number.</param>
+    /// <param name="pageSize">The number of items per page.</param>
+    /// <param name="filter">An optional case-insensitive term matched against the name or the SKU.</param>
+    /// <param name="categoryId">An optional category to filter by.</param>
+    /// <param name="status">An optional lifecycle status to filter by.</param>
+    /// <param name="sortBy">The column to order by.</param>
+    /// <param name="sortOrder">The direction of that order.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The page of products, the total count and the total number of pages.</returns>
+    Task<(IEnumerable<Product> Items, long TotalCount, long TotalPages)> GetPagedAsync(
+        int pageNumber,
+        int pageSize,
+        string? filter,
+        Guid? categoryId,
+        ProductStatus? status,
+        ProductSortField sortBy,
+        ProductSortOrder sortOrder,
+        CancellationToken cancellationToken = default);
 }

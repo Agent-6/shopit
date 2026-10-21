@@ -8,6 +8,7 @@ using ShopIt.Catalog.Application.Categories.Commands.DeleteCategory;
 using ShopIt.Catalog.Application.Products.Commands.ChangeProductStatus;
 using ShopIt.Catalog.Application.Products.Commands.CreateProduct;
 using ShopIt.Catalog.Application.Products.Commands.UpdateProduct;
+using ShopIt.Catalog.Application.Products.Queries.GetProducts;
 using ShopIt.Catalog.Domain.Categories;
 using ShopIt.Catalog.Domain.Events;
 using ShopIt.Catalog.Domain.Products;
@@ -59,6 +60,10 @@ public class CatalogProductResultTests
     [InlineData(nameof(ProductErrors.CurrencyMismatch), StatusCodes.Status400BadRequest)]
     [InlineData(nameof(ProductErrors.PriceRequired), StatusCodes.Status400BadRequest)]
     [InlineData(nameof(ProductErrors.StatusRequired), StatusCodes.Status400BadRequest)]
+    [InlineData(nameof(ProductErrors.InvalidPageNumber), StatusCodes.Status400BadRequest)]
+    [InlineData(nameof(ProductErrors.InvalidPageSize), StatusCodes.Status400BadRequest)]
+    [InlineData(nameof(ProductErrors.InvalidSortBy), StatusCodes.Status400BadRequest)]
+    [InlineData(nameof(ProductErrors.InvalidSortOrder), StatusCodes.Status400BadRequest)]
     [InlineData(nameof(ProductErrors.TenantRequired), StatusCodes.Status403Forbidden)]
     public void Each_product_error_maps_to_the_documented_status_code(string error, int expectedStatus)
     {
@@ -456,6 +461,12 @@ public class CatalogProductResultTests
             nameof(ProductErrors.CurrencyMismatch) => ProductErrors.CurrencyMismatch("EUR", "USD"),
             nameof(ProductErrors.PriceRequired) => ProductErrors.PriceRequired(),
             nameof(ProductErrors.StatusRequired) => ProductErrors.StatusRequired(),
+            nameof(ProductErrors.InvalidPageNumber) => ProductErrors.InvalidPageNumber(),
+            nameof(ProductErrors.InvalidPageSize) => ProductErrors.InvalidPageSize(GetProductsQuery.MaxPageSize),
+            nameof(ProductErrors.InvalidSortBy) =>
+                ProductErrors.InvalidSortBy("colour", GetProductsQuery.SupportedSortBy),
+            nameof(ProductErrors.InvalidSortOrder) =>
+                ProductErrors.InvalidSortOrder("sideways", GetProductsQuery.SupportedSortOrder),
             nameof(ProductErrors.TenantRequired) => ProductErrors.TenantRequired(),
             _ => throw new ArgumentOutOfRangeException(nameof(factory), factory, "Unknown product error."),
         };
@@ -504,6 +515,17 @@ public class CatalogProductResultTests
 
         public Task<bool> AnyByCategoryAsync(Guid categoryId, CancellationToken cancellationToken = default) =>
             Task.FromResult(_products.Any(product => product.CategoryId == categoryId));
+
+        public Task<(IEnumerable<Product> Items, long TotalCount, long TotalPages)> GetPagedAsync(
+            int pageNumber,
+            int pageSize,
+            string? filter,
+            Guid? categoryId,
+            ProductStatus? status,
+            ProductSortField sortBy,
+            ProductSortOrder sortOrder,
+            CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("These use cases never list products.");
     }
 
     private sealed class FakeCategoryRepository(params Category[] categories) : ICategoryRepository

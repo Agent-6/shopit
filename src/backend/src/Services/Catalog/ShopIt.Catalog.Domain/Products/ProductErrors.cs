@@ -148,6 +148,44 @@ public static class ProductErrors
             $"A target status is required: one of {string.Join(", ", Enum.GetNames<ProductStatus>())}.",
             ErrorType.Validation);
 
+    /// <summary>The requested page number is below one.</summary>
+    /// <remarks>
+    /// A <c>Result</c> failure rather than a clamp to page 1: silently answering a different page than the one
+    /// asked for hides a client bug and makes paging loops that never advance look like they work.
+    /// </remarks>
+    public static Error InvalidPageNumber() =>
+        new("Product.InvalidPageNumber", "The page number must be 1 or greater.", ErrorType.Validation);
+
+    /// <summary>The requested page size is outside 1..<paramref name="maxPageSize"/>.</summary>
+    /// <remarks>
+    /// Rejected rather than capped: an uncapped page size lets one client ask for the whole catalog, and a
+    /// silently capped one makes the client believe it received everything it asked for.
+    /// </remarks>
+    public static Error InvalidPageSize(int maxPageSize) =>
+        new("Product.InvalidPageSize", $"The page size must be between 1 and {maxPageSize}.", ErrorType.Validation);
+
+    /// <summary>The requested sort column is not one the product list supports.</summary>
+    /// <remarks>
+    /// Unknown keys are refused instead of defaulting to the name order. A typo (<c>sortBy=prcie</c>) that
+    /// silently returns the default order is a client bug the API helped create.
+    /// </remarks>
+    /// <param name="sortBy">The key the request supplied.</param>
+    /// <param name="supported">The keys that are accepted, for the message.</param>
+    public static Error InvalidSortBy(string? sortBy, IEnumerable<string> supported) =>
+        new(
+            "Product.InvalidSortBy",
+            $"'{sortBy}' is not a sortable product field. Supported: {string.Join(", ", supported)}.",
+            ErrorType.Validation);
+
+    /// <summary>The requested sort direction is neither ascending nor descending.</summary>
+    /// <param name="sortOrder">The value the request supplied.</param>
+    /// <param name="supported">The values that are accepted, for the message.</param>
+    public static Error InvalidSortOrder(string? sortOrder, IEnumerable<string> supported) =>
+        new(
+            "Product.InvalidSortOrder",
+            $"'{sortOrder}' is not a sort direction. Supported: {string.Join(", ", supported)}.",
+            ErrorType.Validation);
+
     /// <summary>The request acts as the host, and the catalog is tenant-only.</summary>
     /// <remarks>
     /// <see cref="ErrorType.Forbidden"/> rather than a validation error: the request is well formed, the
