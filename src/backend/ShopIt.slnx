@@ -18,6 +18,7 @@
     <Project Path="src/Services/Catalog/ShopIt.Catalog.API/ShopIt.Catalog.API.csproj" />
     <Project Path="src/Services/Catalog/ShopIt.Catalog.Application/ShopIt.Catalog.Application.csproj" />
     <Project Path="src/Services/Catalog/ShopIt.Catalog.Domain/ShopIt.Catalog.Domain.csproj" />
+    <Project Path="src/Services/Catalog/ShopIt.Catalog.Infrastructure/ShopIt.Catalog.Infrastructure.csproj" />
     <Project Path="src/Services/Catalog/ShopIt.Catalog.Persistence/ShopIt.Catalog.Persistence.csproj" />
     <Project Path="src/Services/Catalog/ShopIt.Catalog.Presentation/ShopIt.Catalog.Presentation.csproj" />
   </Folder>

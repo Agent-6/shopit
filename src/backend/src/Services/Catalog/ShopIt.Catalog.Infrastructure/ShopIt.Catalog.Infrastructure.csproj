@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The catalog service's only outbound adapter: it resolves the caller's permissions from
+         Identity's internal API. This is an accepted cross-service edge, through Identity's .Client
+         contract, exactly as Tenancy does it. -->
+    <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Client\ShopIt.Identity.Client.csproj" />
+    <ProjectReference Include="..\ShopIt.Catalog.Application\ShopIt.Catalog.Application.csproj" />
+  </ItemGroup>
+
+</Project>

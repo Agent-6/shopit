@@ -10,6 +10,7 @@
          downstream-pointing; see plans/event-contract-ownership.md. -->
     <ProjectReference Include="..\..\Identity\ShopIt.Identity.Events\ShopIt.Identity.Events.csproj" />
     <ProjectReference Include="..\ShopIt.Catalog.Application\ShopIt.Catalog.Application.csproj" />
+    <ProjectReference Include="..\ShopIt.Catalog.Infrastructure\ShopIt.Catalog.Infrastructure.csproj" />
     <ProjectReference Include="..\ShopIt.Catalog.Persistence\ShopIt.Catalog.Persistence.csproj" />
     <ProjectReference Include="..\ShopIt.Catalog.Presentation\ShopIt.Catalog.Presentation.csproj" />
   </ItemGroup>

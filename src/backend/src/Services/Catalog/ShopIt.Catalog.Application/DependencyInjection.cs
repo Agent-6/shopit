@@ -11,10 +11,8 @@ public static class DependencyInjection
     /// this assembly, plus the types the service declares rather than implements.
     /// </summary>
     /// <remarks>
-    /// There are no handlers yet — product and category use cases arrive with #77/#78 — so today this
-    /// registers the permission provider and the framework's CQRS plumbing. The scan is unconditional
-    /// because it is what every service does; a handler added to this assembly is picked up by
-    /// convention, with no edit here.
+    /// The scan is unconditional because it is what every service does: the category use cases (#77) are
+    /// picked up by convention, and so will the product ones (#78) be, with no edit here.
     /// </remarks>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {

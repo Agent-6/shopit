@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using ShopIt.Catalog.Domain.Categories;
+using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Tenancy;
@@ -6,16 +8,15 @@ using ShopIt.Framework.Persistence.Tenancy;
 namespace ShopIt.Catalog.Persistence.Data;
 
 /// <summary>
-/// The Catalog service's database context. Today its schema is exactly the framework's inbox/outbox
-/// tables: no catalog tables exist until products and categories land (#77/#78).
+/// The Catalog service's database context: the framework's inbox/outbox tables plus the catalog's own
+/// aggregate tables.
 /// </summary>
 /// <remarks>
 /// <para>
-/// It derives from <see cref="TenantAwareDbContext{TContext}"/> because everything this service will own
-/// is tenant-scoped data (a tenant's products are not another tenant's products). Inheriting now means
-/// the first entity that implements <see cref="ITenantEntity"/> is filtered by default instead of
-/// depending on whoever writes it to remember — and the base class's convention fails the model build if
-/// it is not. See <c>docs/adr/0001-tenant-isolation-model.md</c>.
+/// It derives from <see cref="TenantAwareDbContext{TContext}"/> because everything this service owns is
+/// tenant-scoped data (a tenant's products are not another tenant's products). The base class's
+/// <c>ApplyTenantFilters</c> call is what gives <see cref="Category"/> its query filter and index — see
+/// <c>docs/adr/0001-tenant-isolation-model.md</c>.
 /// </para>
 /// <para>
 /// Notifications, whose tables are only messaging infrastructure, deliberately does not do this; the
@@ -27,15 +28,23 @@ public class CatalogDbContext(
     ICurrentTenant currentTenant)
     : TenantAwareDbContext<CatalogDbContext>(options, currentTenant)
 {
+    /// <summary>Tenant-owned product categories.</summary>
+    public DbSet<Category> Categories => Set<Category>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Domain events are an in-memory artefact of the aggregate, not rows: without this EF Core
+        // discovers DomainEvent (through AggregateRoot's DomainEvents property) and demands a key for
+        // it. Tenancy does the same, for the same reason.
+        modelBuilder.Ignore<DomainEvent>();
 
         modelBuilder.ApplyInboxOutboxConfigurations();
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CatalogDbContext).Assembly);
 
         // Must run last: it filters the entity types already in the model, so anything registered after
-        // it would be left unfiltered. A no-op while the model holds no ITenantEntity.
+        // it would be left unfiltered.
         ApplyTenantFilters(modelBuilder);
     }
 }

@@ -2,6 +2,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Presentation\ShopIt.Framework.Presentation.csproj" />
+    <!-- The authorization handler resolves permissions through Identity's .Client contract, the same
+         accepted edge Tenancy.Presentation takes. -->
+    <ProjectReference Include="..\..\Identity\ShopIt.Identity.Client\ShopIt.Identity.Client.csproj" />
     <ProjectReference Include="..\ShopIt.Catalog.Application\ShopIt.Catalog.Application.csproj" />
   </ItemGroup>
 
