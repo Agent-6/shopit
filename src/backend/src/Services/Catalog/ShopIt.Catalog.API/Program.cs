@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using OpenIddict.Validation.AspNetCore;
 using ShopIt.Catalog.Application;
 using ShopIt.Catalog.Domain.Permissions;
@@ -26,13 +25,6 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddPresentation(builder.Configuration);
 builder.Services.AddApplication();
-
-// The interim currency source (#84). ADR-0005 puts the currency on the tenant, but nothing exposes a
-// tenant's currency to this service yet, so one platform-wide setting stands in: every price is stamped
-// with it and a request naming another currency is refused. Bound here, in the composition root, because
-// it is deployment configuration rather than a domain rule.
-builder.Services.AddOptions<CatalogOptions>()
-    .Bind(builder.Configuration.GetSection(CatalogOptions.SectionName));
 
 // Publish-only: the catalog service publishes its permission catalog and will publish catalog domain
 // events, but consumes nothing yet. Stated explicitly so it cannot be confused with a service whose
@@ -125,10 +117,9 @@ using (var scope = app.Services.CreateScope())
     // seeded tenant itself — never host scope, where the tenant filter is off and rows would have no owner.
     try
     {
-        var catalogOptions = scope.ServiceProvider.GetRequiredService<IOptions<CatalogOptions>>().Value;
         var seeder = scope.ServiceProvider.GetRequiredService<CatalogDataSeeder>();
 
-        await seeder.SeedAsync(catalogOptions.NormalizedCurrency);
+        await seeder.SeedAsync();
     }
     catch (Exception ex)
     {

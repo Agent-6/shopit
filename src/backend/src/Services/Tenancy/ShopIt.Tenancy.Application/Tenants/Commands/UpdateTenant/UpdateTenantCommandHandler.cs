@@ -35,6 +35,7 @@ public class UpdateTenantCommandHandler(ITenantRepository tenantRepository)
         return new UpdateTenantResult(
             Id: tenant.Id,
             Name: tenant.Name,
+            Currency: tenant.Currency,
             IsActive: tenant.IsActive,
             CreatedOn: tenant.CreatedOn,
             LastModifiedOn: tenant.LastModifiedOn

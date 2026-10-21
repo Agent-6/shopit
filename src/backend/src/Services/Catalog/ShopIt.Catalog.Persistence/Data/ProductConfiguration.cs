@@ -16,11 +16,11 @@ namespace ShopIt.Catalog.Persistence.Data;
 /// tenant, the price's column, the status's representation and the category reference.
 /// </para>
 /// <para>
-/// The price is stored as two columns — <c>Price</c> as <c>numeric(18,2)</c> and <c>PriceCurrency</c> — rather
-/// than as one amount whose currency the reader re-derives from configuration. ADR-0005 has the currency
-/// coming from the tenant and not stored per product, but there is no tenant currency to read yet (#84), so
-/// the value the price was stamped with is persisted: otherwise changing <c>Catalog:Currency</c> would
-/// silently re-label every historical price, which is a financial bug with no symptom in the code.
+/// The price is stored as two columns — <c>Price</c> as <c>numeric(18,2)</c> and <c>PriceCurrency</c> — even though
+/// ADR-0005 has the currency coming from the tenant rather than from the product. The tenant decides what a
+/// <em>new</em> price is denominated in; the row records what this price actually is, because that is a historical
+/// fact: re-deriving it from the tenant would silently re-label every existing price the moment a shop switched
+/// currency, which is a financial bug with no symptom in the code (ADR-0006).
 /// </para>
 /// </remarks>
 public class ProductConfiguration : IEntityTypeConfiguration<Product>

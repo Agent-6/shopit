@@ -9,6 +9,7 @@ using ShopIt.Framework.Presentation.Modules;
 using ShopIt.Framework.Presentation.Results;
 using ShopIt.Tenancy.Domain.Permissions;
 using ShopIt.Tenancy.Application.Tenants.Commands.ActivateTenant;
+using ShopIt.Tenancy.Application.Tenants.Commands.ChangeTenantCurrency;
 using ShopIt.Tenancy.Application.Tenants.Commands.CreateTenant;
 using ShopIt.Tenancy.Application.Tenants.Commands.DeactivateTenant;
 using ShopIt.Tenancy.Application.Tenants.Commands.DeleteTenant;
@@ -30,6 +31,11 @@ public class TenantsModule : EndpointsModule
         app.MapPost("/", CreateTenant).RequirePermission(ShopItTenancyPermissions.Create);
         app.MapPut("/{tenantId:guid}", UpdateTenant).RequirePermission(ShopItTenancyPermissions.Update);
         app.MapDelete("/{tenantId:guid}", DeleteTenant).RequirePermission(ShopItTenancyPermissions.Delete);
+
+        // Its own route rather than a field on the update: renaming a tenant and changing the unit every price it
+        // will charge are different decisions, and a rename must not be able to move money (#84).
+        app.MapPut("/{tenantId:guid}/currency", ChangeTenantCurrency).RequirePermission(ShopItTenancyPermissions.Update);
+
         app.MapPut("/{tenantId:guid}/activate", ActivateTenant).RequirePermission(ShopItTenancyPermissions.ActivateDeactivate);
         app.MapPut("/{tenantId:guid}/deactivate", DeactivateTenant).RequirePermission(ShopItTenancyPermissions.ActivateDeactivate);
     }
@@ -85,6 +91,17 @@ public class TenantsModule : EndpointsModule
         return result.ToHttpResult();
     }
 
+    private async Task<IResult> ChangeTenantCurrency(
+        Guid tenantId,
+        ChangeTenantCurrencyRequest request,
+        IDispatcher dispatcher,
+        CancellationToken cancellationToken = default)
+    {
+        var cmd = new ChangeTenantCurrencyCommand(tenantId, request.Currency);
+        var result = await dispatcher.SendAsync(cmd, cancellationToken);
+        return result.ToHttpResult();
+    }
+
     private async Task<IResult> ActivateTenant(
         Guid tenantId,
         IDispatcher dispatcher,
@@ -108,3 +125,9 @@ public class TenantsModule : EndpointsModule
 
 public record CreateTenantRequest(string Name);
 public record UpdateTenantRequest(string Name);
+
+/// <summary>The body of a currency-change request.</summary>
+/// <param name="Currency">
+/// The new ISO 4217 code, any casing; stored upper case. Existing prices keep the currency they were quoted in.
+/// </param>
+public record ChangeTenantCurrencyRequest(string? Currency);

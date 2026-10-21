@@ -6,6 +6,7 @@ using ShopIt.Framework.Infrastructure.Security;
 using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Presentation;
+using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Identity.Events;
 using ShopIt.Tenancy.Application;
 using ShopIt.Tenancy.Domain.Permissions;
@@ -14,6 +15,7 @@ using ShopIt.Tenancy.Persistence;
 using ShopIt.Tenancy.Persistence.Data;
 using ShopIt.Tenancy.Presentation;
 using ShopIt.Tenancy.Presentation.Authorization;
+using ShopIt.Tenancy.Presentation.Internal;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,7 +60,14 @@ builder.Services.AddOpenIddict()
     });
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
-builder.Services.AddAuthorization();
+
+// The same internal policy Identity's internal API uses, for the same reason: only a client-credentials token
+// issued to the backend client may call /api/internal. Shared with Identity rather than copied, so the two
+// surfaces cannot drift into different rules.
+var backendClient = ServiceClientCredentials.Read(
+    builder.Configuration, "InternalClients:Backend", "backend service");
+
+builder.Services.AddAuthorization(options => options.AddInternalServicePolicy(backendClient.ClientId));
 builder.Services.AddTenantPermissionAuthorization();
 builder.Services.AddTenancyInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
@@ -77,6 +86,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapEndpoints();
+app.MapInternalEndpoints();
 
 // Apply migrations on startup
 using (var scope = app.Services.CreateScope())
@@ -106,6 +116,20 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred while migrating the tenancy database");
+        throw;
+    }
+
+    // The demo tenant Identity's demo users belong to. Started up idempotently, after the migration that gives it a
+    // currency, because the catalog resolves a tenant's currency from this registry and a missing demo tenant is
+    // otherwise discovered as a refused product write.
+    try
+    {
+        var seeder = scope.ServiceProvider.GetRequiredService<TenantDataSeeder>();
+        await seeder.SeedAsync();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred while seeding the tenancy database");
         throw;
     }
 }

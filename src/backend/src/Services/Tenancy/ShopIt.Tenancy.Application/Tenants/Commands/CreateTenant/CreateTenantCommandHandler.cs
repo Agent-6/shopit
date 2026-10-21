@@ -20,6 +20,7 @@ public class CreateTenantCommandHandler(ITenantRepository tenantRepository)
         return new CreateTenantResult(
             Id: tenant.Id,
             Name: tenant.Name,
+            Currency: tenant.Currency,
             IsActive: tenant.IsActive,
             CreatedOn: tenant.CreatedOn
         );

@@ -23,6 +23,7 @@ public class GetTenantQueryHandler(ITenantRepository tenantRepository)
         return new GetTenantResult(
             Id: tenant.Id,
             Name: tenant.Name,
+            Currency: tenant.Currency,
             IsActive: tenant.IsActive,
             CreatedOn: tenant.CreatedOn,
             LastModifiedOn: tenant.LastModifiedOn

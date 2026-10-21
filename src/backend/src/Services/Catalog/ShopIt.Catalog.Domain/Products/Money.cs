@@ -15,11 +15,11 @@ namespace ShopIt.Catalog.Domain.Products;
 /// what a shop charges.
 /// </para>
 /// <para>
-/// The ADR's other half — that the currency is the <em>tenant's</em>, not the product's — is not enforced
-/// here because the platform has no per-tenant currency yet (#84). Until it does, the catalog stamps the
-/// configured <c>Catalog:Currency</c> on every price and rejects a request that names a different one, and
-/// <see cref="CurrencyCode"/> is stored with the price so a row stays interpretable if that setting ever
-/// changes.
+/// The ADR's other half — that the currency is the <em>tenant's</em>, not the product's — is enforced by the command
+/// handlers: they resolve the acting tenant's currency from the tenant registry and stamp it on every price,
+/// refusing a request that names a different one (<c>docs/adr/0006-tenant-currency-transport.md</c>).
+/// <see cref="CurrencyCode"/> is still stored with the price rather than derived from the tenant, because a stored
+/// price is a historical fact: a tenant that changes currency must not re-label what it already charged.
 /// </para>
 /// <para>
 /// Over HTTP it is <c>{ "amount": "19.99", "currency": "EUR" }</c> — the amount is a <em>string</em> so a
@@ -79,7 +79,21 @@ public readonly record struct Money
     /// <param name="amount">The candidate amount.</param>
     /// <param name="currencyCode">The candidate currency code.</param>
     /// <returns>An <see cref="Error"/> when the pair is invalid, otherwise <c>null</c>.</returns>
-    public static Error? Validate(decimal amount, string? currencyCode)
+    public static Error? Validate(decimal amount, string? currencyCode) =>
+        ValidateAmount(amount)
+        ?? (IsValidCurrencyCode(currencyCode) ? null : ProductErrors.InvalidCurrency(currencyCode));
+
+    /// <summary>
+    /// Checks a candidate amount alone, without a currency.
+    /// </summary>
+    /// <remarks>
+    /// Split out so a command handler can reject a bad amount <em>before</em> it asks the tenant registry for a
+    /// currency: an invalid request must not cost a round trip, and its error must be the field's rather than
+    /// whatever the registry says.
+    /// </remarks>
+    /// <param name="amount">The candidate amount.</param>
+    /// <returns>An <see cref="Error"/> when the amount is negative or too precise, otherwise <c>null</c>.</returns>
+    public static Error? ValidateAmount(decimal amount)
     {
         if (amount < 0m)
         {
@@ -87,12 +101,9 @@ public readonly record struct Money
         }
 
         // Compare rather than round: rounding here would silently accept 19.999 and store 20.00.
-        if (decimal.Round(amount, Scale) != amount)
-        {
-            return ProductErrors.InvalidPriceScale(Scale);
-        }
-
-        return IsValidCurrencyCode(currencyCode) ? null : ProductErrors.InvalidCurrency(currencyCode);
+        return decimal.Round(amount, Scale) != amount
+            ? ProductErrors.InvalidPriceScale(Scale)
+            : null;
     }
 
     /// <summary>

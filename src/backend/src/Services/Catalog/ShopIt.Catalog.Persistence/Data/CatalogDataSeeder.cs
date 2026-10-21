@@ -39,16 +39,27 @@ public class CatalogDataSeeder(
     private const string ApparelCategory = "Apparel";
     private const string AccessoriesCategory = "Accessories";
 
+    /// <summary>
+    /// The currency every seeded price is quoted in.
+    /// </summary>
+    /// <remarks>
+    /// A constant rather than the demo tenant's currency read from the registry, on purpose: a seeded price is a
+    /// historical fact like any other, and startup must not depend on another service being up to insert sample data.
+    /// It is <c>EUR</c> because that is the currency every tenant was migrated to (Tenant.DefaultCurrency, ADR-0006),
+    /// so the demo catalogue agrees with the tenant it belongs to on a fresh database. If the demo tenant's currency
+    /// is later changed, these three products keep theirs and the product detail read reports both.
+    /// </remarks>
+    public const string SeedCurrency = "EUR";
+
     private readonly CatalogDbContext _dbContext = dbContext;
     private readonly ICurrentTenant _currentTenant = currentTenant;
     private readonly ILogger<CatalogDataSeeder> _logger = logger;
 
     /// <summary>
-    /// Ensures the demo tenant has two categories and three products, priced in <paramref name="currency"/>.
+    /// Ensures the demo tenant has two categories and three products, priced in <see cref="SeedCurrency"/>.
     /// </summary>
-    /// <param name="currency">The currency the catalog prices in, stamped on every seeded price.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task SeedAsync(string currency, CancellationToken cancellationToken = default)
+    public async Task SeedAsync(CancellationToken cancellationToken = default)
     {
         using var tenantChange = _currentTenant.Change(new TenantInfo(SeededTenantId, SeededTenantName));
 
@@ -97,7 +108,7 @@ public class CatalogDataSeeder(
                 sample.Name,
                 sample.Sku,
                 sample.Description,
-                Money.Create(sample.Amount, currency),
+                Money.Create(sample.Amount, SeedCurrency),
                 categories[sample.Category].Id);
 
             // Created Draft and then moved, so the seeded data cannot claim a transition the aggregate would

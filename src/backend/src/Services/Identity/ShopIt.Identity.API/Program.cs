@@ -7,6 +7,7 @@ using ShopIt.Framework.Core.Events.Integration;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Domain.Permissions;
 using ShopIt.Framework.Presentation;
+using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Framework.Persistence;
 using ShopIt.Framework.Persistence.Inbox;
 using ShopIt.Framework.Persistence.Permissions;
@@ -138,20 +139,11 @@ builder.Services.AddOpenIddict()
 
 // Add authentication and authorization
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
+// Internal endpoints may only be called by backend services, not interactive users. The rule is the
+// framework's, not a second copy of it: Tenancy exposes an internal surface too (#84), and two copies of an
+// authorization policy is how one of them quietly ends up weaker than the other.
 builder.Services.AddAuthorization(options =>
-{
-    // Internal endpoints may only be called by backend services, not interactive users.
-    // Client-credentials tokens carry a non-GUID subject (the client id); user tokens
-    // carry the user's GUID subject.
-    options.AddPolicy(InternalEndpoints.InternalPolicyName, policy =>
-    {
-        policy.RequireAuthenticatedUser();
-        policy.RequireAssertion(ctx =>
-            ctx.User.FindFirstValue("sub") is { } subject
-            && !Guid.TryParse(subject, out _)
-            && subject == backendClient.ClientId);
-    });
-});
+    options.AddInternalServicePolicy(backendClient.ClientId));
 builder.Services.AddPermissionAuthorization();
 
 var app = builder.Build();

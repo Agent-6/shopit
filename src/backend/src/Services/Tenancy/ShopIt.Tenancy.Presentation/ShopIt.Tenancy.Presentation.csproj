@@ -4,6 +4,10 @@
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Presentation\ShopIt.Framework.Presentation.csproj" />
     <ProjectReference Include="..\..\Identity\ShopIt.Identity.Client\ShopIt.Identity.Client.csproj" />
     <ProjectReference Include="..\ShopIt.Tenancy.Application\ShopIt.Tenancy.Application.csproj" />
+    <!-- Tenancy references its own .Client assembly for the internal API's response contract, exactly as
+         Identity's Presentation references Identity.Client: the wire shape belongs to the contract, so the
+         endpoint that produces it and the callers that consume it cannot describe it differently. -->
+    <ProjectReference Include="..\ShopIt.Tenancy.Client\ShopIt.Tenancy.Client.csproj" />
   </ItemGroup>
 
 </Project>

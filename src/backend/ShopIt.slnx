@@ -50,6 +50,7 @@
   <Folder Name="/src/Services/Tenancy/">
     <Project Path="src/Services/Tenancy/ShopIt.Tenancy.API/ShopIt.Tenancy.API.csproj" Id="6b5a94c3-9add-4ddd-950c-839fd82783d0" />
     <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Application/ShopIt.Tenancy.Application.csproj" Id="251a74ac-ff59-4907-8c6b-dd49534efcb5" />
+    <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Client/ShopIt.Tenancy.Client.csproj" />
     <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Domain/ShopIt.Tenancy.Domain.csproj" Id="9d36bd0d-be59-4aef-b3bf-97d8f2f5da8e" />
     <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Events/ShopIt.Tenancy.Events.csproj" />
     <Project Path="src/Services/Tenancy/ShopIt.Tenancy.Infrastructure/ShopIt.Tenancy.Infrastructure.csproj" Id="bbc3a992-4b5e-489d-9c84-b5b719178892" />
