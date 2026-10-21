@@ -21,9 +21,9 @@ namespace ShopIt.Catalog.Domain.Products;
 /// them.
 /// </para>
 /// <para>
-/// The price is <see cref="Money"/>, per ADR-0005. The currency is stamped from the platform-wide
-/// <c>Catalog:Currency</c> setting until per-tenant currency exists (#84); the aggregate stores it with the
-/// amount so the row stays interpretable.
+/// The price is <see cref="Money"/>, per ADR-0005. Its currency is the owning tenant's, resolved from the tenant
+/// registry when the price is written (ADR-0006); the aggregate stores it with the amount, so a row stays
+/// interpretable and a later change of the tenant's currency cannot re-label a price that was already quoted.
 /// </para>
 /// <para>
 /// Audit fields are stamped by the persistence convention (ADR-0004). The constructor records

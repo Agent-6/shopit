@@ -120,18 +120,19 @@ public static class ProductErrors
             ErrorType.Validation);
 
     /// <summary>
-    /// The request names a currency the platform does not use for this tenant.
+    /// The request names a currency that is not the acting tenant's.
     /// </summary>
     /// <remarks>
-    /// Until per-tenant currency exists (#84) the catalog stamps the single configured currency on every
-    /// price, so a request that names another one is refused rather than quietly re-stamped — a price of
-    /// <c>19.99 USD</c> silently stored as <c>19.99 EUR</c> would be a financial error.
+    /// A request that names another tenant's currency is refused rather than quietly re-stamped — a price of
+    /// <c>19.99 USD</c> silently stored as <c>19.99 GBP</c> would be a financial error — and it is also what makes two
+    /// tenants' currencies non-crossing: the value a request may name is exactly its own tenant's (ADR-0006).
     /// </remarks>
+    /// <param name="expected">The acting tenant's currency.</param>
+    /// <param name="actual">The currency the request supplied.</param>
     public static Error CurrencyMismatch(string expected, string? actual) =>
         new(
             "Product.CurrencyMismatch",
-            $"This catalog prices products in '{expected}'; the request used '{actual}'. " +
-            "Per-tenant currency is not supported yet (#84).",
+            $"This tenant prices products in '{expected}'; the request used '{actual}'.",
             ErrorType.Validation);
 
     /// <summary>A price was not supplied, or its amount could not be read as a decimal.</summary>

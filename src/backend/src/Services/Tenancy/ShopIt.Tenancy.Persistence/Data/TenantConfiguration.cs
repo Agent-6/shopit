@@ -16,6 +16,14 @@ public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
             .IsRequired()
             .HasMaxLength(100);
 
+        // Three characters, upper case, no database default: the aggregate always has a value (EUR unless it was
+        // changed), so the column has nothing to default. The migration that added it supplied 'EUR' for the rows
+        // that already existed, which is the same value the aggregate would have chosen — see ADR-0006 for why
+        // that is the answer that changes no price's meaning.
+        builder.Property(t => t.Currency)
+            .IsRequired()
+            .HasMaxLength(Tenant.CurrencyCodeLength);
+
         builder.HasIndex(t => t.Name)
             .IsUnique();
 

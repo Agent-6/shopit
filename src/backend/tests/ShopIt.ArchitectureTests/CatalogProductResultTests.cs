@@ -2,8 +2,6 @@ using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.Extensions.Options;
-using ShopIt.Catalog.Application;
 using ShopIt.Catalog.Application.Categories.Commands.DeleteCategory;
 using ShopIt.Catalog.Application.Products.Commands.ChangeProductStatus;
 using ShopIt.Catalog.Application.Products.Commands.CreateProduct;
@@ -73,7 +71,7 @@ public class CatalogProductResultTests
     }
 
     [Fact]
-    public async Task Creating_a_product_stores_the_acting_tenant_the_default_draft_status_and_the_catalog_currency()
+    public async Task Creating_a_product_stores_the_acting_tenant_the_default_draft_status_and_the_tenants_currency()
     {
         var handler = CreateHandler();
 
@@ -86,7 +84,7 @@ public class CatalogProductResultTests
         Assert.Equal(ProductStatus.Draft, result.Value.Status);
         Assert.Equal("TEE-001", result.Value.Sku);
 
-        // The currency was omitted by the caller and stamped from the catalog's setting (#84's interim).
+        // The currency was omitted by the caller and came from the tenant registry (#84).
         Assert.Equal(19.99m, result.Value.Price.Amount);
         Assert.Equal("EUR", result.Value.Price.CurrencyCode);
 
@@ -410,21 +408,27 @@ public class CatalogProductResultTests
     private static CreateProductCommandHandler CreateHandler(
         FakeProductRepository? products = null,
         Category[]? categories = null,
-        Guid? currentTenantId = null) =>
+        Guid? currentTenantId = null,
+        FakeTenantCurrencyProvider? currency = null) =>
         new(
             products ?? new FakeProductRepository(),
             new FakeCategoryRepository(categories ?? []),
             new FakeCurrentTenant(currentTenantId ?? TenantId),
-            Options.Create(new CatalogOptions { Currency = "EUR" }));
+            currency ?? TenantCurrency());
 
     private static UpdateProductCommandHandler UpdateHandler(
         FakeProductRepository? products = null,
-        Category[]? categories = null) =>
+        Category[]? categories = null,
+        FakeTenantCurrencyProvider? currency = null) =>
         new(
             products ?? new FakeProductRepository(),
             new FakeCategoryRepository(categories ?? []),
             new FakeCurrentTenant(TenantId),
-            Options.Create(new CatalogOptions { Currency = "EUR" }));
+            currency ?? TenantCurrency());
+
+    /// <summary>A provider that knows this fixture's tenant, priced in the euro.</summary>
+    private static FakeTenantCurrencyProvider TenantCurrency() =>
+        new FakeTenantCurrencyProvider().With(TenantId, "EUR");
 
     private static Product NewProduct(string sku = "TEE-001", Guid? categoryId = null) =>
         Product.Create(

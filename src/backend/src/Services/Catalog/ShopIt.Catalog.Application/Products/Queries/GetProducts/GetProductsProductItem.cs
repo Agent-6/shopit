@@ -10,6 +10,11 @@ namespace ShopIt.Catalog.Application.Products.Queries.GetProducts;
 /// contract is that the amount reaches the client as a string, and a DTO that flattened it to a decimal would
 /// round it on the way through JSON. <see cref="TenantId"/> is not reported — the caller already knows which
 /// tenant it is acting as, and a list is not the place to confirm it.
+/// <para>
+/// Unlike the detail read, a page does not report the tenant's <em>current</em> currency. A list is the browse path:
+/// it should not depend on another service answering, and a reader who needs to know that a shop has switched (so that
+/// a stored <c>EUR</c> price is not mistaken for the <c>GBP</c> the shop now quotes) reads the product (#84, ADR-0006).
+/// </para>
 /// </remarks>
 /// <param name="Id">The product's identifier.</param>
 /// <param name="Name">The stored name.</param>

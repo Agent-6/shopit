@@ -1,10 +1,14 @@
 # ADR-0005: Money and pricing representation
 
-- **Status:** Accepted
+- **Status:** Accepted, clarified by [ADR-0006](0006-tenant-currency-transport.md)
 - **Date:** 2026-10-20
 - **Issue:** [#76](https://github.com/Agent-6/shopit/issues/76)
 - **Related:** Epic [#74](https://github.com/Agent-6/shopit/issues/74) (M1) · ADR-0001 (tenant isolation)
 - **Supersedes:** —
+- **Superseded in part by:** [ADR-0006](0006-tenant-currency-transport.md) (2026-10-21) — the *transport* that carries
+  the tenant's currency to the catalog, the *storage* consequence below (the currency **is** stored with the price),
+  and the statement that changing a tenant's currency is out of scope for M1. Representation, rounding and display
+  stand unchanged.
 
 ## Context and problem statement
 
@@ -69,6 +73,14 @@ public readonly record struct Money(decimal Amount, string CurrencyCode)
 The tenant record gains a currency (ISO 4217), defaulting to `EUR` for the seeded tenant. A product
 does not choose its currency; it inherits the tenant's, and switching a tenant's currency is out of
 scope for M1 (it would imply re-pricing the catalog).
+
+> **2026-10-21 — how the catalog learns it, and what a change means** ([ADR-0006](0006-tenant-currency-transport.md), [#84](https://github.com/Agent-6/shopit/issues/84)).
+> The paragraph above left the transport open, and the catalog worked around it with a platform-wide
+> `Catalog:Currency` setting. ADR-0006 settles the transport (a `ShopIt.Tenancy.Client` edge plus a short-lived cache
+> in the catalog) and changes two things stated here. The currency **is** kept with each price, because a quoted price
+> is a historical fact: a tenant that changes currency keeps its existing prices on the old one, and the API reports
+> both. Switching a tenant's currency is therefore **in** scope for M1 — as a change of what new writes use, not a
+> re-pricing.
 
 ### Rounding
 

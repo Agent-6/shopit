@@ -8,7 +8,8 @@ Decisions that are expensive to reverse, recorded so the reasoning survives the 
 | [0002](0002-permission-resolution-and-caching.md) | Permission resolution and caching | Accepted |
 | [0003](0003-permission-catalog-publishing-hook.md) | Permission-catalog publishing hook | Accepted |
 | [0004](0004-audit-model.md) | Aggregate and audit model | Accepted |
-| [0005](0005-money-and-pricing.md) | Money and pricing representation | Accepted |
+| [0005](0005-money-and-pricing.md) | Money and pricing representation | Accepted — superseded **in part** by ADR-0006 |
+| [0006](0006-tenant-currency-transport.md) | Tenant currency transport | Accepted |
 
 ## Format
 

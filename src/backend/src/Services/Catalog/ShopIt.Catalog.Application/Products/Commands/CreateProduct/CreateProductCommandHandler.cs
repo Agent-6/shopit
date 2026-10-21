@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Options;
 using ShopIt.Catalog.Domain.Categories;
 using ShopIt.Catalog.Domain.Products;
 using ShopIt.Catalog.Domain.Repositories;
@@ -6,25 +5,31 @@ using ShopIt.Framework.Core.CQRS.Commands;
 using ShopIt.Framework.Domain.Errors;
 using ShopIt.Framework.Domain.Result;
 using ShopIt.Framework.Domain.Tenancy;
+using ShopIt.Tenancy.Client.Services;
 
 namespace ShopIt.Catalog.Application.Products.Commands.CreateProduct;
 
 /// <summary>
-/// Handles <see cref="CreateProductCommand"/>: tenant scope, field and price validation, per-tenant SKU
-/// uniqueness, the category's existence in this tenant, then the aggregate is added and the persistence
-/// convention stamps who created it.
+/// Handles <see cref="CreateProductCommand"/>: tenant scope, field and price validation, the tenant's currency,
+/// per-tenant SKU uniqueness, the category's existence in this tenant, then the aggregate is added and the
+/// persistence convention stamps who created it.
 /// </summary>
+/// <remarks>
+/// The currency is the acting tenant's, not the request's and not a service-wide setting: it is resolved from the
+/// tenant registry that owns it (ADR-0005, ADR-0006). A registry that cannot answer refuses the create — there is no
+/// fallback, because a guessed currency is a price in the wrong money.
+/// </remarks>
 public class CreateProductCommandHandler(
     IProductRepository productRepository,
     ICategoryRepository categoryRepository,
     ICurrentTenant currentTenant,
-    IOptions<CatalogOptions> options)
+    ITenantCurrencyProvider tenantCurrencyProvider)
     : ICommandHandler<CreateProductCommand, Result<CreateProductResult, Error>>
 {
     private readonly IProductRepository _productRepository = productRepository;
     private readonly ICategoryRepository _categoryRepository = categoryRepository;
     private readonly ICurrentTenant _currentTenant = currentTenant;
-    private readonly IOptions<CatalogOptions> _options = options;
+    private readonly ITenantCurrencyProvider _tenantCurrencyProvider = tenantCurrencyProvider;
 
     public async Task<Result<CreateProductResult, Error>> HandleAsync(
         CreateProductCommand request,
@@ -63,10 +68,25 @@ public class CreateProductCommandHandler(
                 "A category id must be a non-empty GUID; omit it to create an uncategorised product.");
         }
 
+        // The amount is checked before the tenant registry is asked: a request that is already invalid must not
+        // cost a round trip, and its failure must be the field's rather than whatever the registry answers.
+        if (Money.ValidateAmount(request.Amount) is { } amountError)
+        {
+            return amountError;
+        }
+
+        // The tenant's currency, from the registry that owns it. A failed lookup is returned as-is: no silent
+        // fallback to a platform-wide setting (#84).
+        var tenantCurrency = await _tenantCurrencyProvider.GetCurrencyAsync(_currentTenant.Id, cancellationToken);
+        if (tenantCurrency.IsFailure)
+        {
+            return tenantCurrency.Error;
+        }
+
         if (ProductPriceResolver.Resolve(
                 request.Amount,
                 request.Currency,
-                _options.Value.NormalizedCurrency,
+                tenantCurrency.Value,
                 out var price) is { } priceError)
         {
             return priceError;

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using ShopIt.Framework.Application.Caching;
 using ShopIt.Framework.Core.CQRS;
+using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Identity.Client.Models;
 using ShopIt.Identity.Application.Permissions;
 using ShopIt.Identity.Application.Users.Commands.CompleteActivation;
@@ -17,9 +18,11 @@ public static class InternalEndpoints
 {
     /// <summary>
     /// Policy restricting internal endpoints to the backend client-credentials token
-    /// (<c>shopit-backend</c>), so interactive user tokens cannot call them.
+    /// (<c>shopit-backend</c>), so interactive user tokens cannot call them. The policy itself is the
+    /// framework's <see cref="InternalServicePolicy.Name"/>, registered by the composition root; this
+    /// constant is kept so the endpoints here and Tenancy's read the same name.
     /// </summary>
-    public const string InternalPolicyName = "InternalOnly";
+    public const string InternalPolicyName = InternalServicePolicy.Name;
 
     public static IEndpointRouteBuilder MapInternalEndpoints(this IEndpointRouteBuilder app)
     {

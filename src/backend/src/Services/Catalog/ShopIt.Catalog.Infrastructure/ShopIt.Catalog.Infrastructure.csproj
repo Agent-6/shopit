@@ -6,11 +6,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The catalog service's only outbound adapter: it resolves the caller's permissions from
-         Identity's internal API. This is an accepted cross-service edge, through Identity's .Client
-         contract, exactly as Tenancy does it. -->
+    <!-- The catalog service's outbound adapters: it resolves the caller's permissions from Identity's
+         internal API, and the owning tenant's currency from Tenancy's. Both are accepted cross-service
+         edges, through the owning service's .Client contract, exactly as Tenancy does it. -->
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Infrastructure\ShopIt.Framework.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Identity\ShopIt.Identity.Client\ShopIt.Identity.Client.csproj" />
+    <ProjectReference Include="..\..\Tenancy\ShopIt.Tenancy.Client\ShopIt.Tenancy.Client.csproj" />
     <ProjectReference Include="..\ShopIt.Catalog.Application\ShopIt.Catalog.Application.csproj" />
   </ItemGroup>
 

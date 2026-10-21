@@ -114,18 +114,24 @@ tenancy = WithInternalClients(tenancy, introspectionClientSecret, backendClientS
 // The catalog service declares catalog.view / catalog.write and publishes them to Identity, and
 // validates incoming tokens at the auth server. Like Tenancy it gets both references: introspection
 // needs the auth server, and resolving a caller's permissions is an Identity lookup.
+//
+// It also needs Tenancy: a price is denominated in the owning tenant's currency, and the tenant registry
+// is the only place that value lives (#84, ADR-0006). The edge is a client-credentials call to
+// Tenancy's internal API, so the reference must be in place before the catalog starts.
 var catalog = builder.AddProject<Projects.ShopIt_Catalog_API>("catalog-api")
     .WithReference(catalogDb)
     .WithReference(seq)
     .WithReference(kafka)
     .WithReference(auth)
     .WithReference(identity)
+    .WithReference(tenancy)
     .WithReference(redis)
     .WaitFor(catalogDb)
     .WaitFor(kafka)
     .WaitFor(seq)
     .WaitFor(auth)
     .WaitFor(identity)
+    .WaitFor(tenancy)
     .WaitFor(redis);
 catalog = WithInternalClients(catalog, introspectionClientSecret, backendClientSecret);
 

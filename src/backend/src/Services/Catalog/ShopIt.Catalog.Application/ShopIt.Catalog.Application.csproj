@@ -1,13 +1,10 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <!-- IOptions<CatalogOptions>: the interim currency source (#84) is configuration, and the handlers
-         read it through the options pattern like every other service does. -->
-    <PackageReference Include="Microsoft.Extensions.Options" />
-  </ItemGroup>
-
-  <ItemGroup>
+    <!-- ITenantCurrencyProvider: which currency a price is denominated in is the tenant's answer, and the
+         contract for asking it belongs to the service that owns the value (#84, ADR-0006). -->
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
+    <ProjectReference Include="..\..\Tenancy\ShopIt.Tenancy.Client\ShopIt.Tenancy.Client.csproj" />
     <ProjectReference Include="..\ShopIt.Catalog.Domain\ShopIt.Catalog.Domain.csproj" />
   </ItemGroup>
 

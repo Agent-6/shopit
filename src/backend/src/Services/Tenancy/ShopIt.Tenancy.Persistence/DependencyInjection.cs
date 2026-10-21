@@ -29,6 +29,10 @@ public static class DependencyInjection
 
         services.AddPersistenceServices<TenancyDbContext>(configuration, typeof(DependencyInjection).Assembly);
 
+        // The demo tenant Identity's demo users belong to (see TenantDataSeeder). Registered here because it writes
+        // through this context; the composition root decides when to run it — after migrations, at startup.
+        services.AddScoped<TenantDataSeeder>();
+
         // Wire up Kafka integration event infrastructure
         services.AddKafkaIntegration<TenancyDbContext>(
             "tenancy-inbox",

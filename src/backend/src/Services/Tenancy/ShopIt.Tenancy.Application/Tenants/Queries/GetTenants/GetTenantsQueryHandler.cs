@@ -20,6 +20,7 @@ public class GetTenantsQueryHandler(ITenantRepository tenantRepository)
         var items = tenants.Select(t => new GetTenantsTenantItem(
             Id: t.Id,
             Name: t.Name,
+            Currency: t.Currency,
             IsActive: t.IsActive,
             CreatedOn: t.CreatedOn,
             LastModifiedOn: t.LastModifiedOn

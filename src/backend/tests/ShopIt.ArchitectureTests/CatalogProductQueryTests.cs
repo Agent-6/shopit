@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging.Abstractions;
 using ShopIt.Catalog.Application.Products.Queries.GetProduct;
 using ShopIt.Catalog.Application.Products.Queries.GetProducts;
 using ShopIt.Catalog.Domain.Products;
@@ -225,7 +226,9 @@ public class CatalogProductQueryTests
 
         var result = await new GetProductQueryHandler(
                 new RecordingProductRepository(product),
-                new FakeCurrentTenant(Guid.Empty))
+                new FakeCurrentTenant(Guid.Empty),
+                TenantCurrency(),
+                NullLogger<GetProductQueryHandler>.Instance)
             .HandleAsync(new GetProductQuery(product.Id), CancellationToken.None);
 
         Assert.True(result.IsFailure);
@@ -245,6 +248,7 @@ public class CatalogProductQueryTests
             CategoryId: null,
             Status: ProductStatus.Active,
             TenantId: TenantId,
+            TenantCurrency: "EUR",
             CreatedOn: DateTimeOffset.UnixEpoch,
             LastModifiedOn: null);
 
@@ -302,8 +306,18 @@ public class CatalogProductQueryTests
     private static GetProductsQueryHandler ListHandler(RecordingProductRepository? repository = null) =>
         new(repository ?? new RecordingProductRepository(), new FakeCurrentTenant(TenantId));
 
-    private static GetProductQueryHandler DetailHandler(RecordingProductRepository? repository = null) =>
-        new(repository ?? new RecordingProductRepository(), new FakeCurrentTenant(TenantId));
+    private static GetProductQueryHandler DetailHandler(
+        RecordingProductRepository? repository = null,
+        FakeTenantCurrencyProvider? currency = null) =>
+        new(
+            repository ?? new RecordingProductRepository(),
+            new FakeCurrentTenant(TenantId),
+            currency ?? TenantCurrency(),
+            NullLogger<GetProductQueryHandler>.Instance);
+
+    /// <summary>A provider that knows this fixture's tenant, priced in the euro.</summary>
+    private static FakeTenantCurrencyProvider TenantCurrency() =>
+        new FakeTenantCurrencyProvider().With(TenantId, "EUR");
 
     private static GetProductsQuery Query(
         int page = 1,

@@ -100,6 +100,11 @@ namespace ShopIt.Tenancy.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
                     b.Property<Guid?>("DeletedBy")
                         .HasColumnType("uuid");
 
