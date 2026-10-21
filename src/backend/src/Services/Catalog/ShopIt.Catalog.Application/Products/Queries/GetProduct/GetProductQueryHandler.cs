@@ -52,6 +52,11 @@ public class GetProductQueryHandler(
             Status: product.Status,
             TenantId: product.TenantId,
             CreatedOn: product.CreatedOn,
-            LastModifiedOn: product.LastModifiedOn);
+            LastModifiedOn: product.LastModifiedOn,
+            // The actor is a user id, not a name: resolving it to a display name would be an Identity
+            // lookup, and this read must not depend on the caller also holding `user.view` (#81 reports
+            // the id rather than pretending it knows who that is).
+            CreatedBy: product.CreatedBy,
+            LastModifiedBy: product.LastModifiedBy);
     }
 }

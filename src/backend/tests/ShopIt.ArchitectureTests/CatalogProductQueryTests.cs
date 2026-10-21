@@ -203,6 +203,46 @@ public class CatalogProductQueryTests
     }
 
     [Fact]
+    public async Task The_detail_read_reports_who_created_and_last_modified_the_product()
+    {
+        // The portal's detail page must be able to answer "who did this" (ADR-0004). The actor is a user id,
+        // so the assertion is about the id reaching the response — resolving it to a name is Identity's job.
+        var product = NewProduct();
+        var creator = Guid.NewGuid();
+        var editor = Guid.NewGuid();
+
+        product.CreatedBy = creator;
+        product.LastModifiedOn = DateTimeOffset.UnixEpoch;
+        product.LastModifiedBy = editor;
+
+        var result = await DetailHandler(new RecordingProductRepository(product)).HandleAsync(
+            new GetProductQuery(product.Id),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(creator, result.Value.CreatedBy);
+        Assert.Equal(editor, result.Value.LastModifiedBy);
+        Assert.Equal(DateTimeOffset.UnixEpoch, result.Value.LastModifiedOn);
+    }
+
+    [Fact]
+    public async Task An_unmodified_product_reports_no_modifier_rather_than_the_creator()
+    {
+        // null means "no interactive actor did this" (seeding); a detail page that showed the creator as the
+        // modifier would claim a change nobody made.
+        var product = NewProduct();
+        product.CreatedBy = Guid.NewGuid();
+
+        var result = await DetailHandler(new RecordingProductRepository(product)).HandleAsync(
+            new GetProductQuery(product.Id),
+            CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(result.Value.LastModifiedOn);
+        Assert.Null(result.Value.LastModifiedBy);
+    }
+
+    [Fact]
     public async Task Reading_an_id_the_tenant_filter_hides_is_the_domain_NotFound_error()
     {
         // The repository returns null for another tenant's id — that is what the query filter does — and the
@@ -246,7 +286,9 @@ public class CatalogProductQueryTests
             Status: ProductStatus.Active,
             TenantId: TenantId,
             CreatedOn: DateTimeOffset.UnixEpoch,
-            LastModifiedOn: null);
+            LastModifiedOn: null,
+            CreatedBy: null,
+            LastModifiedBy: null);
 
         var json = JsonSerializer.Serialize(result, HttpJsonOptions);
 

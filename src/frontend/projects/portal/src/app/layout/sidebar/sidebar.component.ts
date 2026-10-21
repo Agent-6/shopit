@@ -97,6 +97,21 @@ import { ShopItPermissions } from '../../core/auth/permissions';
           }
         </a>
         }
+
+        @if (permissionService.has(perms.Catalog.View)) {
+        <a routerLink="/catalog/products"
+           routerLinkActive="bg-accent text-accent-foreground"
+           class="flex items-center rounded-md hover:bg-muted text-muted-foreground transition-all duration-300 overflow-hidden shrink-0 h-10"
+           [class.gap-3]="isExpanded()"
+           [class.px-2]="isExpanded()"
+           [class.justify-center]="!isExpanded()"
+           title="Catalog">
+          <ui-icon name="package" class="h-5 w-5 shrink-0"></ui-icon>
+          @if (isExpanded()) {
+            <span class="font-medium whitespace-nowrap transition-opacity duration-300">Catalog</span>
+          }
+        </a>
+        }
       </nav>
 
       <div class="p-2 border-t border-border shrink-0 flex flex-col gap-2 relative overflow-hidden">

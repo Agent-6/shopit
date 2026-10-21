@@ -1,0 +1,57 @@
+<dialog
+  #dialog
+  aria-labelledby="category-editor-title"
+  class="w-[calc(100%-2rem)] max-w-md rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg backdrop:bg-black/50"
+  (cancel)="onNativeCancel($event)"
+>
+  <form class="space-y-5" [attr.aria-busy]="busy()" (submit)="onSubmit($event)">
+    <div class="flex items-start justify-between gap-4 border-b border-border pb-4">
+      <h2 id="category-editor-title" class="text-xl font-semibold tracking-tight">{{ title() }}</h2>
+      <ui-button variant="outline" size="sm" (click)="close()">Cancel</ui-button>
+    </div>
+
+    @if (generalFailure(); as message) {
+      <div role="alert" class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        {{ message }}
+      </div>
+    }
+
+    <div class="grid gap-2">
+      <label class="text-sm font-medium leading-none" for="category-name">Name</label>
+      <input
+        #firstField
+        id="category-name"
+        type="text"
+        autofocus
+        required
+        autocomplete="off"
+        [class]="fieldClass"
+        [attr.aria-invalid]="hasError('name') ? 'true' : null"
+        [attr.aria-describedby]="hasError('name') ? 'category-name-error category-name-hint' : 'category-name-hint'"
+        [value]="name()"
+        (input)="name.set($any($event.target).value)"
+      />
+      @if (hasError('name')) {
+        <p id="category-name-error" class="text-sm text-destructive">
+          @for (message of messagesFor('name'); track message) {
+            <span class="block">{{ message }}</span>
+          }
+        </p>
+      }
+      @if (duplicateName()) {
+        <p class="text-xs text-muted-foreground">
+          Category names are unique within your catalog, ignoring case. Choose a different name.
+        </p>
+      } @else {
+        <p id="category-name-hint" class="text-xs text-muted-foreground">
+          A short label such as "Apparel" or "Accessories".
+        </p>
+      }
+    </div>
+
+    <div class="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+      <ui-button variant="outline" (click)="close()">Cancel</ui-button>
+      <ui-button type="submit">{{ submitLabel() }}</ui-button>
+    </div>
+  </form>
+</dialog>

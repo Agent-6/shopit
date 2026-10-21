@@ -10,6 +10,7 @@ import { UiIconComponent } from './ui-icon.component';
     <button
       [type]="type"
       [disabled]="disabled"
+      [attr.aria-label]="ariaLabel ?? null"
       [class]="computedClasses"
       (click)="onClick()">
         @if (icon) {
@@ -26,6 +27,8 @@ export class UiButtonComponent {
   @Input() type: 'button' | 'submit' | 'reset' = 'button';
   @Input() disabled = false;
   @Input() class = '';
+  /** The accessible name when the button has only an icon; text content is the name otherwise. */
+  @Input() ariaLabel?: string;
 
   get computedClasses(): string {
     let base = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer ';

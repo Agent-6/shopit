@@ -15,11 +15,13 @@ import { UiButtonComponent } from '../../../shared/components/ui-button.componen
             <span class="text-xs font-medium text-foreground">Rows per page</span>
             <select
               class="h-9 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              [value]="pageSize() ?? ''"
               [disabled]="disabled()"
               (change)="onPageSizeChange($any($event.target).value)">
               @for (size of pageSizeOptions(); track size) {
-                <option [value]="size">{{ size }}</option>
+                <!-- "selected" on the option, not "value" on the select: the select's value is set by
+                     Angular before its options exist, so it would fall back to the first option and
+                     misreport the page size that is actually in use. -->
+                <option [value]="size" [selected]="size === pageSize()">{{ size }}</option>
               }
             </select>
           </label>

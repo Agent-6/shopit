@@ -1,0 +1,170 @@
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+    <a
+      class="font-semibold text-primary transition-colors hover:text-primary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      routerLink="/catalog/products"
+    >
+      ← Back to products
+    </a>
+    <span>Product details</span>
+  </div>
+
+  @if (actionError(); as message) {
+    <div role="alert" class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+      <ui-icon name="alert-circle" class="inline-block mr-2 h-4 w-4"></ui-icon>
+      {{ message }}
+    </div>
+  }
+
+  @if (service.productError(); as message) {
+    <div role="alert" class="rounded-xl border border-destructive/50 bg-destructive/10 p-6 text-sm text-destructive shadow-sm">
+      {{ message }}
+    </div>
+  }
+
+  @if (product(); as current) {
+    <header class="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+      <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-3">
+            <h1 class="truncate text-3xl font-semibold tracking-tight" [title]="current.name">
+              {{ current.name }}
+            </h1>
+            <app-product-status-badge [status]="current.status"></app-product-status-badge>
+          </div>
+          <p class="mt-1.5 text-sm text-muted-foreground">
+            <span class="font-mono">{{ current.sku }}</span>
+            <span aria-hidden="true"> · </span>
+            <span>{{ categoryName() ?? 'Uncategorised' }}</span>
+          </p>
+        </div>
+
+        @if (canWrite()) {
+          <div class="flex flex-wrap items-center gap-2">
+            @if (canEdit()) {
+              <ui-button variant="secondary" size="sm" icon="pencil" (click)="openEditor()">
+                Edit
+              </ui-button>
+            }
+            @if (canActivate()) {
+              <ui-button variant="default" size="sm" icon="check" (click)="changeStatus('Active')">
+                Activate
+              </ui-button>
+            }
+            @if (canArchive()) {
+              <ui-button variant="outline" size="sm" icon="archive" (click)="changeStatus('Archived')">
+                Archive
+              </ui-button>
+            }
+          </div>
+        }
+      </div>
+    </header>
+
+    <section class="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+      <div class="space-y-6">
+        <section class="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+          <h2 class="text-lg font-semibold tracking-tight">Price</h2>
+          <p class="mt-2 text-3xl font-semibold tabular-nums">{{ current.price | money }}</p>
+          <p class="mt-1 text-xs text-muted-foreground">
+            Stored as {{ current.price.amount }} {{ current.price.currency }} and shown in your browser's
+            locale.
+          </p>
+        </section>
+
+        <section class="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+          <h2 class="text-lg font-semibold tracking-tight">Details</h2>
+          <dl class="mt-4 space-y-3 text-sm">
+            <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-background px-4 py-3">
+              <dt class="text-muted-foreground">SKU</dt>
+              <dd class="font-mono">{{ current.sku }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-background px-4 py-3">
+              <dt class="text-muted-foreground">Category</dt>
+              <dd class="font-medium">{{ categoryName() ?? 'Uncategorised' }}</dd>
+            </div>
+            <div class="flex items-center justify-between gap-4 rounded-lg border border-border bg-background px-4 py-3">
+              <dt class="text-muted-foreground">Status</dt>
+              <dd><app-product-status-badge [status]="current.status"></app-product-status-badge></dd>
+            </div>
+            <div class="flex items-start justify-between gap-4 rounded-lg border border-border bg-background px-4 py-3">
+              <dt class="text-muted-foreground">Description</dt>
+              <dd class="max-w-[65%] whitespace-pre-line text-right font-medium">
+                {{ current.description ?? '—' }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      </div>
+
+      <div class="space-y-6">
+        <section class="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+          <h2 class="text-lg font-semibold tracking-tight">Audit</h2>
+          <dl class="mt-4 space-y-3 text-sm">
+            <div class="rounded-lg border border-border bg-background px-4 py-3">
+              <dt class="text-muted-foreground">Created</dt>
+              <dd class="mt-1 font-medium">{{ current.createdOn | date: 'medium' }}</dd>
+              <dd class="mt-1 text-xs text-muted-foreground">
+                by
+                @if (current.createdBy) {
+                  <span class="break-all font-mono" title="Recorded user id">{{ current.createdBy }}</span>
+                } @else {
+                  no interactive user (seeded)
+                }
+              </dd>
+            </div>
+            <div class="rounded-lg border border-border bg-background px-4 py-3">
+              <dt class="text-muted-foreground">Last modified</dt>
+              <dd class="mt-1 font-medium">
+                @if (current.lastModifiedOn) {
+                  {{ current.lastModifiedOn | date: 'medium' }}
+                } @else {
+                  Never modified
+                }
+              </dd>
+              @if (current.lastModifiedOn) {
+                <dd class="mt-1 text-xs text-muted-foreground">
+                  by
+                  @if (current.lastModifiedBy) {
+                    <span class="break-all font-mono" title="Recorded user id">{{ current.lastModifiedBy }}</span>
+                  } @else {
+                    no interactive user
+                  }
+                </dd>
+              }
+            </div>
+          </dl>
+          <p class="mt-4 text-xs text-muted-foreground">
+            Actors are recorded as user ids (ADR-0004); they are shown as-is rather than resolved to names.
+          </p>
+        </section>
+
+        <section class="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+          <h2 class="text-lg font-semibold tracking-tight">Lifecycle</h2>
+          <p class="mt-2 text-sm text-muted-foreground">
+            A product is created as a draft, can be activated for sale, and can be archived. Archiving is
+            final — an archived product cannot be edited or restored.
+          </p>
+          @if (current.status === 'Archived' && canWrite()) {
+            <p class="mt-3 text-sm text-muted-foreground">This product is archived and is read-only.</p>
+          }
+        </section>
+      </div>
+    </section>
+
+    @if (editorOpen()) {
+      <app-product-editor
+        [model]="current"
+        [categories]="service.categoryOptions()"
+        [failure]="editorFailure()"
+        [busy]="editorBusy()"
+        (submit)="saveProduct($event)"
+        (cancel)="closeEditor()"
+      ></app-product-editor>
+    }
+  } @else if (service.productLoading()) {
+    <div class="rounded-xl border bg-card p-6 text-center text-sm text-muted-foreground shadow-sm" aria-busy="true">
+      Loading product…
+    </div>
+  }
+</div>

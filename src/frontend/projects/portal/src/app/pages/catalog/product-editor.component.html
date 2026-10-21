@@ -1,0 +1,160 @@
+<dialog
+  #dialog
+  aria-labelledby="product-editor-title"
+  class="w-[calc(100%-2rem)] max-w-lg rounded-lg border border-border bg-card p-6 text-card-foreground shadow-lg backdrop:bg-black/50"
+  (cancel)="onNativeCancel($event)"
+>
+  <form class="space-y-5" [attr.aria-busy]="busy()" (submit)="onSubmit($event)">
+    <div class="flex items-start justify-between gap-4 border-b border-border pb-4">
+      <h2 id="product-editor-title" class="text-xl font-semibold tracking-tight">{{ title() }}</h2>
+      <ui-button variant="outline" size="sm" (click)="close()">Cancel</ui-button>
+    </div>
+
+    @if (generalFailure(); as message) {
+      <div role="alert" class="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+        {{ message }}
+      </div>
+    }
+
+    <div class="grid gap-2">
+      <label class="text-sm font-medium leading-none" for="product-name">Name</label>
+      <input
+        #firstField
+        id="product-name"
+        type="text"
+        autofocus
+        required
+        autocomplete="off"
+        [class]="fieldClass"
+        [attr.aria-invalid]="hasError('name') ? 'true' : null"
+        [attr.aria-describedby]="describedBy(hasError('name') ? 'product-name-error' : null)"
+        [value]="form().name"
+        (input)="updateField('name', $any($event.target).value)"
+      />
+      @if (hasError('name')) {
+        <p id="product-name-error" class="text-sm text-destructive">
+          @for (message of messagesFor('name'); track message) {
+            <span class="block">{{ message }}</span>
+          }
+        </p>
+      }
+    </div>
+
+    <div class="grid gap-2">
+      <label class="text-sm font-medium leading-none" for="product-sku">SKU</label>
+      <input
+        id="product-sku"
+        type="text"
+        required
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="TEE-001"
+        [class]="fieldClass + ' font-mono'"
+        [attr.aria-invalid]="hasError('sku') ? 'true' : null"
+        [attr.aria-describedby]="describedBy(hasError('sku') ? 'product-sku-error' : null, duplicateSku() ? null : 'product-sku-hint')"
+        [value]="form().sku"
+        (input)="updateField('sku', $any($event.target).value)"
+      />
+      @if (hasError('sku')) {
+        <p id="product-sku-error" class="text-sm text-destructive">
+          @for (message of messagesFor('sku'); track message) {
+            <span class="block">{{ message }}</span>
+          }
+        </p>
+      }
+      @if (duplicateSku()) {
+        <p class="text-xs text-muted-foreground">
+          A SKU identifies one product and must be unique within your catalog. Choose a different one — for
+          example, append a size or colour.
+        </p>
+      } @else {
+        <p id="product-sku-hint" class="text-xs text-muted-foreground">
+          Letters, digits and <code>-</code>, <code>_</code> or <code>.</code> only.
+        </p>
+      }
+    </div>
+
+    <div class="grid gap-2">
+      <label class="text-sm font-medium leading-none" for="product-category">Category</label>
+      <select
+        id="product-category"
+        [class]="fieldClass"
+        [attr.aria-invalid]="hasError('categoryId') ? 'true' : null"
+        [attr.aria-describedby]="describedBy(hasError('categoryId') ? 'product-category-error' : null)"
+        (change)="updateField('categoryId', $any($event.target).value)"
+      >
+        <option value="" [selected]="form().categoryId === ''">Uncategorised</option>
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id" [selected]="form().categoryId === category.id">
+            {{ category.name }}
+          </option>
+        }
+      </select>
+      @if (hasError('categoryId')) {
+        <p id="product-category-error" class="text-sm text-destructive">
+          @for (message of messagesFor('categoryId'); track message) {
+            <span class="block">{{ message }}</span>
+          }
+        </p>
+      }
+    </div>
+
+    <div class="grid gap-2">
+      <label class="text-sm font-medium leading-none" for="product-amount">
+        Price{{ currency() ? ' (' + currency() + ')' : '' }}
+      </label>
+      <input
+        id="product-amount"
+        type="text"
+        inputmode="decimal"
+        required
+        autocomplete="off"
+        placeholder="19.99"
+        [class]="fieldClass"
+        [attr.aria-invalid]="hasError('price') ? 'true' : null"
+        [attr.aria-describedby]="describedBy(hasError('price') ? 'product-amount-error' : null, 'product-amount-hint')"
+        [value]="form().amount"
+        (input)="updateField('amount', $any($event.target).value)"
+      />
+      @if (hasError('price')) {
+        <p id="product-amount-error" class="text-sm text-destructive">
+          @for (message of messagesFor('price'); track message) {
+            <span class="block">{{ message }}</span>
+          }
+        </p>
+      }
+      <p id="product-amount-hint" class="text-xs text-muted-foreground">
+        @if (currency()) {
+          Up to two decimal places. Prices in this catalog are stored in {{ currency() }}.
+        } @else {
+          Up to two decimal places. Prices are stored in the catalog's configured currency.
+        }
+      </p>
+    </div>
+
+    <div class="grid gap-2">
+      <label class="text-sm font-medium leading-none" for="product-description">Description</label>
+      <textarea
+        id="product-description"
+        rows="3"
+        [class]="textareaClass"
+        [attr.aria-invalid]="hasError('description') ? 'true' : null"
+        [attr.aria-describedby]="describedBy(hasError('description') ? 'product-description-error' : null)"
+        [value]="form().description"
+        (input)="updateField('description', $any($event.target).value)"
+      ></textarea>
+      @if (hasError('description')) {
+        <p id="product-description-error" class="text-sm text-destructive">
+          @for (message of messagesFor('description'); track message) {
+            <span class="block">{{ message }}</span>
+          }
+        </p>
+      }
+    </div>
+
+    <div class="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
+      <ui-button variant="outline" (click)="close()">Cancel</ui-button>
+      <ui-button type="submit">{{ submitLabel() }}</ui-button>
+    </div>
+  </form>
+</dialog>
