@@ -229,10 +229,9 @@ static async Task SeedRoles(IServiceProvider services)
     // Tenant-scoped copies of the static roles for the seeded tenant, so that role lookups
     // (tenant-filtered at request time) resolve for that tenant — e.g. a host admin can
     // assign "Admin" to a tenant user and it will resolve within the tenant.
-    var tenantId = new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E");
     foreach (var definition in roleDefinitions.GetAll())
     {
-        await EnsureRoleAsync(services, definition, tenantId);
+        await EnsureRoleAsync(services, definition, DemoSeed.TenantId);
     }
 }
 
@@ -324,7 +323,12 @@ static async Task SeedUsers(IServiceProvider services)
     var users = new[]
     {
         (Email: "mock@user.com", Name: "Mock User", TenantId: Guid.Empty, ConfirmEmail: true, Role: "Admin"),
-        (Email: "tenant@user.com", Name: "Tenant User", TenantId: new Guid("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E"), ConfirmEmail: true, Role: "Manager"),
+        (Email: "tenant@user.com", Name: "Tenant User", TenantId: DemoSeed.TenantId, ConfirmEmail: true, Role: "Manager"),
+        // The demo tenant's administrator. The seeded catalog's permissions (catalog.view /
+        // catalog.write, #78) are granted to Admin only, so this is the account that can both sign
+        // in and see the portal's Catalog section. TenantDataSeeder creates one of these when a
+        // tenant is provisioned through the API, but the demo tenant predates that path (#93).
+        (Email: "tenantadmin@user.com", Name: "Tenant Administrator", TenantId: DemoSeed.TenantId, ConfirmEmail: true, Role: "Admin"),
         // Left unconfirmed on purpose to exercise the email confirmation (OTP) flow on login.
         (Email: "unconfirmed@user.com", Name: "Unconfirmed User", TenantId: Guid.Empty, ConfirmEmail: false, Role: "User")
     };
@@ -416,3 +420,48 @@ static async Task SeedUsers(IServiceProvider services)
     }
 }
 
+/// <summary>
+/// The fixed data the demo tenant is seeded into, and the development accounts seeded on startup.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The tenant id is a constant because three seeding steps must agree on it: the tenant's roles (see
+/// <c>SeedRoles</c>), its users (see <c>SeedUsers</c>), and the sample catalog <c>CatalogDataSeeder</c> seeds
+/// in the Catalog service, which carries the same id. A second literal is how they drift.
+/// </para>
+/// <para>
+/// <strong>Development credentials</strong> — all accounts use the password <c>P@SSw0rd</c>:
+/// </para>
+/// <list type="table">
+///   <listheader><term>Account</term><description>What it can do</description></listheader>
+///   <item>
+///     <term><c>mock@user.com</c> (host Admin)</term>
+///     <description>Everything, at host scope — the account most manual checks use.</description>
+///   </item>
+///   <item>
+///     <term><c>tenantadmin@user.com</c> (Admin of the demo tenant)</term>
+///     <description>
+///       The demo tenant's administrator. This is the account to use for the M1 acceptance criterion
+///       "a tenant administrator can create and see their catalog in the portal": it signs in as a
+///       tenant user and holds <c>catalog.view</c> / <c>catalog.write</c>.
+///     </description>
+///   </item>
+///   <item>
+///     <term><c>tenant@user.com</c> (Manager of the demo tenant)</term>
+///     <description>
+///       A tenant <em>non</em>-admin: holds the Manager role's grants only, so it is the account that
+///       shows whether role-derived permissions reach a tenant user through the internal permission
+///       endpoint.
+///     </description>
+///   </item>
+///   <item>
+///     <term><c>unconfirmed@user.com</c> (host User, unconfirmed)</term>
+///     <description>Exercises the email confirmation (OTP) flow.</description>
+///   </item>
+/// </list>
+/// </remarks>
+static class DemoSeed
+{
+    /// <summary>The tenant the demo administrator, the demo manager and the sample catalog belong to.</summary>
+    public static readonly Guid TenantId = new("B5D0C0E4-3A5B-4CDC-8D2A-7F1F6C9F5B4E");
+}

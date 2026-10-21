@@ -252,6 +252,35 @@ One call site already uses the supported pattern and is the model to follow:
 `EmailConfirmationOtpRequestedIntegrationEventHandler.cs:34-36` wraps an inbox handler in
 `Change(new TenantInfo(Guid.Empty, "Host"))` and says why in a comment.
 
+### Legitimate escapes from the filter
+
+> Added 2026-10-21 with [#92](https://github.com/Agent-6/shopit/issues/92).
+
+"No new `IgnoreQueryFilters()`" above is a rule about *data* access. There is exactly one case where the
+filter must be escaped rather than moved, and it is worth naming so the next one is recognised instead of
+argued about:
+
+**Resolving a login identifier, before a tenant is known.** `UserRepository.FindForLoginAsync`
+(`ShopIt.Identity.Persistence`) matches `NormalizedUserName` / `NormalizedEmail` with
+`IgnoreQueryFilters()`. Authentication runs on the internal `validate-credentials` endpoint, called with
+client credentials, so the request has no tenant claim; and the account's tenant is the *result* of the
+lookup, not an input to it. A tenant-filtered lookup is therefore answering a different question.
+
+Why the bypass and not `Change(new TenantInfo(Guid.Empty, "Host"))`, which is the supported mechanism?
+Because `Change()` moves the <em>whole request</em> to host scope, and host scope disables the filter —
+every later query in that request would read across tenants too, which is the fail-open direction this ADR
+exists to avoid. `IgnoreQueryFilters()` on that single query keeps the bypass one query wide.
+
+What makes it safe, and the reason it is not a precedent for writes:
+
+- it is a single read, and nothing it returns is written back under the ambient scope;
+- the entity's own `TenantId` is authoritative and is what the token's `tenant_id` claim is minted from;
+- an identifier that matches accounts in more than one tenant is **refused** rather than resolved by
+  picking one (`FindForLoginAsync` returns `null`), because picking would cross a tenant boundary.
+
+The review checklist item below is amended accordingly: no new `IgnoreQueryFilters()` except this one,
+named call site.
+
 ## Tenant resolution on non-HTTP paths
 
 `CurrentTenant` resolves the tenant from the `tenant_id` and `tenant_name` claims on
@@ -293,7 +322,9 @@ Applied to PRs touching persistence:
 - [ ] The filter is **not** moved into a `ModelBuilder` extension taking `ICurrentTenant`. That silently
       bakes the first tenant into the cached model.
 - [ ] Data access goes through a repository. No raw SQL.
-- [ ] No new `IgnoreQueryFilters()`. Host scope is reached with `Change()`.
+- [ ] No new `IgnoreQueryFilters()`. Host scope is reached with `Change()`. **One exception**, named in
+      *Legitimate escapes from the filter*: the login-identifier lookup, which runs before a tenant is
+      known.
 - [ ] Any new composite unique index includes `TenantId` where uniqueness should be per-tenant, and
       Identity's global default index has been removed.
 - [ ] Background work wraps its scope in `Change(...)`, and takes the tenant id from the payload.
@@ -322,6 +353,8 @@ Recorded deliberately, because a green build should not be mistaken for evidence
   in full, which is what proves that a list of whole entities is filtered.
 - **The `IgnoreQueryFilters()` call sites in *One mechanism: `Change()`* are still there** (all in Identity),
   and nothing fails a build that adds an eighth — the catalog is audited, the rest of the repository is not.
+  Since 2026-10-21 there is a ninth, `UserRepository.FindForLoginAsync`, which is the named exception in
+  *Legitimate escapes from the filter* rather than debt.
 
 **2026-10-21 — the first of these is now automated, for the catalog service.**
 `tests/ShopIt.ArchitectureTests/TenantIsolationTests.cs` ([#80](https://github.com/Agent-6/shopit/issues/80))

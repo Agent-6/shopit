@@ -96,3 +96,18 @@ For full-stack development:
    ```
 
 Access the application at `http://localhost:4200/`.
+
+### Seeded development accounts
+
+The Identity service seeds these accounts on startup (idempotently — restarting does not duplicate them).
+All of them use the password `P@SSw0rd`:
+
+| Account | Scope | What it is for |
+|---|---|---|
+| `mock@user.com` | Host, role `Admin` | Everything, at host scope — what most manual checks use. |
+| `tenantadmin@user.com` | Demo tenant `b5d0c0e4-…`, role `Admin` | The demo tenant's administrator. Use this one to see the portal's **Catalog** section: catalog permissions are Admin-only. |
+| `tenant@user.com` | Demo tenant `b5d0c0e4-…`, role `Manager` | A tenant *non*-admin: holds the Manager role's grants only. |
+| `unconfirmed@user.com` | Host, role `User` | Left unconfirmed on purpose, to exercise the email confirmation (OTP) flow. |
+
+The seeding code and the credentials in one place: `SeedUsers` and `DemoSeed` in
+`src/backend/src/Services/Identity/ShopIt.Identity.API/Program.cs`.
