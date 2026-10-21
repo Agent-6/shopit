@@ -34,6 +34,11 @@ public static class DependencyInjection
 
         services.AddPersistenceServices<CatalogDbContext>(configuration, typeof(DependencyInjection).Assembly);
 
+        // The demo tenant's sample catalog (two categories, three products). Registered here because it
+        // writes through this context inside its own tenant scope; the composition root decides when to run
+        // it — after migrations, at startup.
+        services.AddScoped<CatalogDataSeeder>();
+
         // Kafka integration event infrastructure. The consumer group is this service's own and is
         // named here rather than defaulted: sharing a group with another service splits each topic's
         // partitions between them, silently, with no error.

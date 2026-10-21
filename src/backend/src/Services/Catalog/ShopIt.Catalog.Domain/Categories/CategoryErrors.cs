@@ -45,6 +45,26 @@ public static class CategoryErrors
     public static Error NameTooLong(int maxLength) =>
         new("Category.NameTooLong", $"A category name cannot exceed {maxLength} characters.", ErrorType.Validation);
 
+    /// <summary>The category still has products and cannot be deleted.</summary>
+    /// <remarks>
+    /// <para>
+    /// <see cref="ErrorType.Conflict"/> rather than a validation error: the request is well formed and the id
+    /// exists, the category's <em>state</em> is what refuses it. The caller's fix — move or delete the
+    /// products first — is a different request, not a corrected field.
+    /// </para>
+    /// <para>
+    /// The foreign key from <see cref="Products.Product.CategoryId"/> is restrict-on-delete, so the database
+    /// refuses this too; the check exists so the client gets a message instead of a constraint violation a
+    /// layer down. The two racing (a product created after the check) still end in that exception, which is
+    /// the honest outcome — silently cascading would delete products nobody asked to delete.
+    /// </para>
+    /// </remarks>
+    public static Error CategoryHasProducts(Guid categoryId) =>
+        new(
+            "Category.CategoryHasProducts",
+            $"The category '{categoryId}' still has products. Move or delete them before deleting the category.",
+            ErrorType.Conflict);
+
     /// <summary>The request acts as the host, and the catalog is tenant-only.</summary>
     /// <remarks>
     /// <see cref="ErrorType.Forbidden"/> rather than a validation error: the request is well formed, the

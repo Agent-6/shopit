@@ -1,6 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <!-- IOptions<CatalogOptions>: the interim currency source (#84) is configuration, and the handlers
+         read it through the options pattern like every other service does. -->
+    <PackageReference Include="Microsoft.Extensions.Options" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\Framework\ShopIt.Framework.Core\ShopIt.Framework.Core.csproj" />
     <ProjectReference Include="..\ShopIt.Catalog.Domain\ShopIt.Catalog.Domain.csproj" />
   </ItemGroup>
