@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Framework.Presentation.Authorization;
 using ShopIt.Identity.Client.Services;
 
@@ -10,8 +11,14 @@ namespace ShopIt.Tenancy.Presentation.Authorization;
 /// permissions (via the Identity service) and checking the required permission. Also rejects
 /// requests without an interactive user (e.g. client-credentials tokens).
 /// </summary>
+/// <remarks>
+/// The tenant the request is acting as travels with the call, because Identity cannot recover it: the call
+/// to Identity carries service credentials, so it has no tenant claim of its own, and a tenant user's
+/// role-derived grants come from that tenant's copies of their roles (#86).
+/// </remarks>
 public class TenantPermissionAuthorizationHandler(
-    IIdentityPermissionClient permissionClient) : AuthorizationHandler<PermissionRequirement>
+    IIdentityPermissionClient permissionClient,
+    ICurrentTenant currentTenant) : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context,
@@ -26,7 +33,7 @@ public class TenantPermissionAuthorizationHandler(
             return;
         }
 
-        var permissions = await permissionClient.GetPermissionsAsync(userId);
+        var permissions = await permissionClient.GetPermissionsAsync(userId, currentTenant.Id);
 
         if (permissions.Grants(requirement.PermissionName))
         {

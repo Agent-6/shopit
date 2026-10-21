@@ -54,7 +54,7 @@ public class UpdateUserPermissionsCommandHandler : ICommandHandler<UpdateUserPer
         // security hole, not a cache miss.
         if (granted.Count > 0 || revoked.Count > 0)
         {
-            await _permissionCache.InvalidateUserAsync(request.UserId, cancellationToken);
+            await _permissionCache.InvalidateUserAsync(user, cancellationToken);
         }
 
         return new UpdateUserPermissionsResult(request.UserId, granted, revoked, DateTime.UtcNow);

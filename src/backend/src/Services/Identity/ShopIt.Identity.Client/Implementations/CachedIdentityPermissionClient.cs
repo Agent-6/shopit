@@ -12,20 +12,25 @@ public sealed class CachedIdentityPermissionClient(
 {
     public async Task<UserPermissionsSnapshot> GetPermissionsAsync(
         Guid userId,
+        Guid tenantId,
         CancellationToken cancellationToken = default)
     {
         // One entry holding both the flag and the explicit set, under the key Identity also writes, so a
         // hit costs no HTTP call at all and an invalidation in Identity reaches this process through the
-        // shared backplane rather than after a local expiry.
+        // shared backplane rather than after a local expiry. The tenant is in the key because the answer
+        // depends on it: the same user resolved in another tenant is a different set of role grants.
         return await cache.GetOrCreateAsync(
-            CacheKeys.UserPermissions(userId),
-            async token => await FetchAsync(userId, token),
+            CacheKeys.UserPermissions(userId, tenantId),
+            async token => await FetchAsync(userId, tenantId, token),
             cancellationToken);
     }
 
-    private async Task<UserPermissionsSnapshot> FetchAsync(Guid userId, CancellationToken cancellationToken)
+    private async Task<UserPermissionsSnapshot> FetchAsync(
+        Guid userId,
+        Guid tenantId,
+        CancellationToken cancellationToken)
     {
-        var response = await identityApi.GetUserPermissionsAsync(userId, cancellationToken);
+        var response = await identityApi.GetUserPermissionsAsync(userId, tenantId, cancellationToken);
 
         if (!response.IsSuccessful || response.Content is null)
         {

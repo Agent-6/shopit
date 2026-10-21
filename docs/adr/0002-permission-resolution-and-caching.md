@@ -86,6 +86,24 @@ Explicit, by the writer that knows something changed — never left to expiry:
 Editing a role's permissions is the one change that genuinely fans out. It is bounded by the role's
 membership and happens only when an administrator edits a role.
 
+### The key includes the tenant
+
+> Added 2026-10-21 with [#86](https://github.com/Agent-6/shopit/issues/86).
+
+`CacheKeys.UserPermissions(userId, tenantId)` — `permissions:user:{tenant}:{user}` — because the value is a
+function of the tenant as well as the user. A user's role-derived grants come from the copies of their roles
+that exist *in that tenant* (plus the host copies), so the same id resolved for tenant A and for tenant B are
+two different answers. A key without the tenant lets the second caller be served the first tenant's entry,
+which is a cross-tenant authorisation answer — the one collision a shared cache must not be able to produce.
+Host scope (`Guid.Empty`) is a tenant value like any other and gets its own entry.
+
+This became load-bearing at the same moment resolution became tenant-aware. Before that, the internal
+endpoint resolved everything in host scope (the caller is a service, so it has no tenant claim), which is
+exactly the defect: a tenant user whose grants come from a role was silently denied, while an Admin-shaped
+user was unaffected because the `isAllPermissions` flag is tenant-independent. The tenant now travels with
+the call — the caller passes the tenant the request is acting as — and pairs with the key so the entry and its
+answer cannot disagree.
+
 ### Why the other options were rejected
 
 - **1 (always ask Identity)** — correct but pays an HTTP round-trip on every authorised request, and

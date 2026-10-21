@@ -15,8 +15,15 @@ namespace ShopIt.Identity.Application.Permissions;
 /// </remarks>
 public interface IPermissionCacheInvalidator
 {
-    /// <summary>Invalidates the cached permissions of a single user.</summary>
-    Task InvalidateUserAsync(Guid userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Invalidates the cached permissions of a single user, in the tenant that user belongs to.
+    /// </summary>
+    /// <remarks>
+    /// Takes the user rather than an id on purpose: the cache entry is keyed by tenant <em>and</em> user, so
+    /// removing the wrong tenant's entry would leave the stale one behind, and the entity's own
+    /// <see cref="User.TenantId"/> is the authority on which tenant that is.
+    /// </remarks>
+    Task InvalidateUserAsync(User user, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Invalidates every user holding the role, for a change to the role's own permissions.
@@ -34,9 +41,9 @@ public class PermissionCacheInvalidator(
     private readonly ICache _cache = cache;
     private readonly ILogger<PermissionCacheInvalidator> _logger = logger;
 
-    public async Task InvalidateUserAsync(Guid userId, CancellationToken cancellationToken = default)
+    public async Task InvalidateUserAsync(User user, CancellationToken cancellationToken = default)
     {
-        await _cache.RemoveAsync(CacheKeys.UserPermissions(userId), cancellationToken);
+        await _cache.RemoveAsync(CacheKeys.UserPermissions(user.Id, user.TenantId), cancellationToken);
     }
 
     /// <remarks>
@@ -51,7 +58,7 @@ public class PermissionCacheInvalidator(
 
         foreach (var user in users)
         {
-            await _cache.RemoveAsync(CacheKeys.UserPermissions(user.Id), cancellationToken);
+            await _cache.RemoveAsync(CacheKeys.UserPermissions(user.Id, user.TenantId), cancellationToken);
         }
 
         _logger.LogInformation(
