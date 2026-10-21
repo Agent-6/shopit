@@ -44,6 +44,7 @@ public class CatalogCategoryResultTests
     [InlineData(nameof(CategoryErrors.InvalidPageNumber), StatusCodes.Status400BadRequest)]
     [InlineData(nameof(CategoryErrors.InvalidPageSize), StatusCodes.Status400BadRequest)]
     [InlineData(nameof(CategoryErrors.TenantRequired), StatusCodes.Status403Forbidden)]
+    [InlineData(nameof(CategoryErrors.CategoryHasProducts), StatusCodes.Status409Conflict)]
     public void Each_category_error_maps_to_the_documented_status_code(string error, int expectedStatus)
     {
         var problem = Assert.IsType<ProblemHttpResult>(ErrorNamed(error).ToProblem());
@@ -256,6 +257,7 @@ public class CatalogCategoryResultTests
             nameof(CategoryErrors.InvalidPageNumber) => CategoryErrors.InvalidPageNumber(),
             nameof(CategoryErrors.InvalidPageSize) => CategoryErrors.InvalidPageSize(GetCategoriesQuery.MaxPageSize),
             nameof(CategoryErrors.TenantRequired) => CategoryErrors.TenantRequired(),
+            nameof(CategoryErrors.CategoryHasProducts) => CategoryErrors.CategoryHasProducts(id),
             _ => throw new ArgumentOutOfRangeException(nameof(factory), factory, "Unknown category error."),
         };
     }

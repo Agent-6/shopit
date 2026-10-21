@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ShopIt.Catalog.Domain.Categories;
+using ShopIt.Catalog.Domain.Products;
 using ShopIt.Framework.Domain.Events;
 using ShopIt.Framework.Domain.Tenancy;
 using ShopIt.Framework.Persistence;
@@ -30,6 +31,9 @@ public class CatalogDbContext(
 {
     /// <summary>Tenant-owned product categories.</summary>
     public DbSet<Category> Categories => Set<Category>();
+
+    /// <summary>Tenant-owned products.</summary>
+    public DbSet<Product> Products => Set<Product>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

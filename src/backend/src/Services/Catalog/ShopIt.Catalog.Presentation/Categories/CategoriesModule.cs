@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Routing.Patterns;
 using ShopIt.Catalog.Application.Categories.Commands.CreateCategory;
+using ShopIt.Catalog.Application.Categories.Commands.DeleteCategory;
 using ShopIt.Catalog.Application.Categories.Commands.RenameCategory;
 using ShopIt.Catalog.Application.Categories.Queries.GetCategories;
 using ShopIt.Catalog.Application.Categories.Queries.GetCategory;
@@ -25,8 +26,9 @@ namespace ShopIt.Catalog.Presentation.Categories;
 /// the diff instead of inherited silently.
 /// </para>
 /// <para>
-/// There is no DELETE. Whether a category that still has products may be deleted is decided with the
-/// products issue (#78); leaving the route out is the honest state until then.
+/// <c>DELETE</c> refuses with a 409 while products still reference the category: a cascade would delete a
+/// tenant's products along with the shelf they sit on. That decision was taken with the products issue (#78)
+/// and lives in <c>DeleteCategoryCommandHandler</c>.
 /// </para>
 /// </remarks>
 public class CategoriesModule : EndpointsModule
@@ -44,6 +46,7 @@ public class CategoriesModule : EndpointsModule
         app.MapGet("/{categoryId:guid}", GetCategoryById).RequirePermission(ShopItCatalogPermissions.View);
         app.MapPost("/", CreateCategory).RequirePermission(ShopItCatalogPermissions.Write);
         app.MapPut("/{categoryId:guid}", RenameCategory).RequirePermission(ShopItCatalogPermissions.Write);
+        app.MapDelete("/{categoryId:guid}", DeleteCategory).RequirePermission(ShopItCatalogPermissions.Write);
     }
 
     private async Task<IResult> GetCategories(
@@ -97,6 +100,18 @@ public class CategoriesModule : EndpointsModule
             cancellationToken);
 
         return result.ToHttpResult();
+    }
+
+    private async Task<IResult> DeleteCategory(
+        Guid categoryId,
+        IDispatcher dispatcher,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await dispatcher.SendAsync(new DeleteCategoryCommand(categoryId), cancellationToken);
+
+        // 204: the resource is gone, so there is nothing to describe. A 200 with an empty body would suggest
+        // a representation exists.
+        return result.ToHttpResult(StatusCodes.Status204NoContent);
     }
 }
 
