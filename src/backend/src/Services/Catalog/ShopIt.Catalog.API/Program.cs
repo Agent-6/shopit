@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
 using ShopIt.Catalog.Application;
 using ShopIt.Catalog.Domain.Permissions;
+using ShopIt.Catalog.Infrastructure;
 using ShopIt.Catalog.Persistence;
 using ShopIt.Catalog.Persistence.Data;
 using ShopIt.Catalog.Presentation;
+using ShopIt.Catalog.Presentation.Authorization;
 using ShopIt.Framework.Domain;
 using ShopIt.Framework.Infrastructure;
 using ShopIt.Framework.Infrastructure.Security;
@@ -38,15 +40,13 @@ builder.Services.AddPermissionCatalogPublishing<ShopItCatalogPermissionDefinitio
     ShopItCatalogPermissionDefinitionProvider.SourceService,
     PermissionCatalogPublishedIntegrationEvent.Create);
 
-// Validate access tokens issued by the authentication server (introspection), so the first catalog
-// endpoint is authenticated by construction rather than by remembering to add it. The introspection
-// secret is injected by the AppHost; a missing one fails here rather than as an unexplained 401 on
-// every request.
+// Validate access tokens issued by the authentication server (introspection) and resolve the caller's
+// permissions from the Identity service. The introspection secret is injected by the AppHost; a missing
+// one fails here rather than as an unexplained 401 on every request.
 //
-// No permission handler is registered yet: nothing in this service enforces a permission until #77/#78
-// add endpoints. Resolving one is an HTTP call to Identity, which is a different dependency (and a
-// different project reference) from *declaring* permissions — see the note in
-// docs/CONTRIBUTING.md's per-service table.
+// Enforcing catalog.view / catalog.write means resolving a permission over HTTP, which is why this
+// service now has an Infrastructure project and a ShopIt.Identity.Client reference: declaring a
+// permission and enforcing it are different dependencies. See docs/CONTRIBUTING.md's per-service table.
 var introspectionClient = ServiceClientCredentials.Read(
     builder.Configuration, "InternalClients:Introspection", "token introspection");
 
@@ -65,6 +65,8 @@ builder.Services.AddOpenIddict()
 
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 builder.Services.AddAuthorization();
+builder.Services.AddCatalogPermissionAuthorization();
+builder.Services.AddCatalogInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
